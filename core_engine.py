@@ -353,11 +353,13 @@ class CoreEngine:
                 )
                 logger.info(f"Using reference audio: {ref_audio_path}")
             
-            # Process text with preprocessing options
-            processed_text = self.process_text_preprocessing(text, **kwargs)
+            # Process text with preprocessing options (exclude 'text' from kwargs to avoid duplicate)
+            preprocessing_kwargs = {k: v for k, v in kwargs.items() if k != 'text'}
+            processed_text = self.process_text_preprocessing(text, **preprocessing_kwargs)
             
-            # Call the main TTS generation logic
-            wav_output_path = await self._process_tts_generation(processed_text, ref_audio_path, **kwargs)
+            # Call the main TTS generation logic (exclude 'text' from kwargs)
+            generation_kwargs = {k: v for k, v in kwargs.items() if k != 'text'}
+            wav_output_path = await self._process_tts_generation(processed_text, ref_audio_path, **generation_kwargs)
             
             # Convert to requested formats
             export_formats = kwargs.get('export_formats', ['wav', 'mp3'])

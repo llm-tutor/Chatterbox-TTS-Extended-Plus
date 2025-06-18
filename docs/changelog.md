@@ -6,17 +6,53 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Ready for Next Phase
+- **Phase 4: Enhanced Features** ready to begin
+- All basic API functionality completed and validated
+
+---
+
+## [1.2.0] - 2025-06-18
+
 ### Added
-- Initial CoreEngine class with BASIC TTS and VC logic extraction
-- Audio file download support for URLs
-- Multi-format audio conversion (WAV, MP3, FLAC)
-- Comprehensive file resolution logic
+- Complete FastAPI application (`main_api.py`) with all core endpoints
+- TTS endpoint: `POST /api/v1/tts` with full parameter support
+- VC endpoint: `POST /api/v1/vc` with audio source handling
+- Health check endpoint: `GET /api/v1/health`
+- Configuration endpoint: `GET /api/v1/config`
+- Voice listing endpoint: `GET /api/v1/voices`
+- Static file serving for outputs at `/outputs/`
+- Comprehensive error handling with custom exception mapping
+- CORS middleware for local development
+- Application lifespan management (startup/shutdown)
+- Basic API testing script (`test_api_basic.py`)
 
 ### Changed
-- Ready to begin Phase 3: Basic API Implementation
+- Project ready for live API testing
+- Directory structure validated and working
+- All imports functioning correctly
 
-### In Progress
-- Preparing to implement FastAPI endpoints
+### Fixed
+- Unicode character issues in testing scripts
+- Configuration loading working properly
+- CUDA device detection functional
+- **TTS parameter passing issue:** Fixed duplicate parameter error in core engine
+- **Core functionality validated:** TTS and VC working with real audio files
+
+### Tested
+- **✅ API Server:** Successfully running on localhost:7860
+- **✅ All Endpoints:** Health, Config, Voices, TTS, VC all responding correctly
+- **✅ TTS Generation:** Working with reference audio files
+- **✅ VC Processing:** Working with input and target audio files
+- **✅ Error Handling:** Proper error responses for missing files
+- **✅ Multi-format Output:** WAV, MP3 conversion working
+
+### Notes
+- **Phase 3 Completed:** All basic API endpoints implemented and tested
+- **Manual Testing Completed:** API server tested with real audio files
+- **Next Phase:** Ready for Phase 4 - Enhanced Features
+- **Testing Command:** `python main_api.py` to start server on localhost:7860
+- **All Core Functionality Validated:** TTS, VC, and utility endpoints working correctly
 
 ---
 

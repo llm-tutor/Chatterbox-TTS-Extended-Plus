@@ -3,5 +3,11 @@ repomix
 temp
 output
 outputs
+vc_inputs/*.mp3
+vc_inputs/*.wav
+vc_inputs/*.flac
+reference_audio/*/*.mp3
+reference_audio/*/*.wav
+reference_audio/*/*.flac
 
 settings.json
