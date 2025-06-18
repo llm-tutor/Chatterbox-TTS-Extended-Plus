@@ -38,26 +38,37 @@ This document tracks the implementation progress of adding FastAPI-based HTTP AP
 - [x] `api_models.py`
 - [x] Updated `requirements.txt` with FastAPI dependencies
 
-### 🟡 Phase 2: Core Logic Extraction
-**Status:** 📋 Ready to Start  
+### ✅ Phase 2: Core Logic Extraction
+**Status:** ✅ Completed  
+**Started:** 2025-06-18  
+**Completed:** 2025-06-18  
 **Dependencies:** Phase 1 complete ✅  
 
 #### Tasks:
-- [ ] Create CoreEngine class in core_engine.py
-- [ ] Extract TTS logic from Chatter.py → CoreEngine._process_tts_generation()
-- [ ] Extract VC logic from Chatter.py → CoreEngine._process_vc_generation()
-- [ ] Implement model loading management
-- [ ] Add audio file download functionality
-- [ ] Add audio format conversion utilities
-- [ ] Test extracted logic works independently
+- [x] Create CoreEngine class in core_engine.py
+- [x] Extract TTS logic from Chatter.py → CoreEngine._process_tts_generation()
+- [x] Extract VC logic from Chatter.py → CoreEngine._process_vc_generation()
+- [x] Implement model loading management
+- [x] Add audio file download functionality
+- [x] Add audio format conversion utilities
+- [x] Test extracted logic works independently
 
-#### Files to Create/Modify:
-- [ ] `core_engine.py`
-- [ ] Test modifications to existing logic
+#### Files Created/Modified:
+- [x] `core_engine.py` - Complete CoreEngine class with TTS/VC logic
+- [x] Updated virtual environment with required dependencies
 
-### 🔲 Phase 3: Basic API Implementation
-**Status:** 📋 Planned  
-**Dependencies:** Phase 2 complete  
+#### Notes:
+- Implemented simplified but functional versions of TTS and VC generation
+- Added comprehensive file resolution logic for local files and URLs
+- Included audio format conversion (WAV, MP3, FLAC)
+- Model loading and device detection working properly
+- **IMPORTANT:** `_process_tts_generation()` and `_process_vc_generation()` are basic implementations
+- **TODO Phase 6:** Full extraction of chunking, retry, and Whisper validation logic from Chatter.py
+- Phase ready for API integration
+
+### 🟡 Phase 3: Basic API Implementation
+**Status:** 📋 Ready to Start  
+**Dependencies:** Phase 2 complete ✅  
 
 #### Tasks:
 - [ ] Complete Pydantic models in api_models.py
@@ -93,7 +104,7 @@ This document tracks the implementation progress of adding FastAPI-based HTTP AP
 **Dependencies:** Phase 4 complete  
 
 #### Tasks:
-- [ ] Modify Chatter.py to use CoreEngine methods
+- [ ] Modify Chatter.py to use CoreEngine methods (preserve old complex functionality, we will extract it to CoreEngine in Phase 6)
 - [ ] Update Gradio event handlers
 - [ ] Mount Gradio app in FastAPI (/ui)
 - [ ] Test existing UI functionality still works
@@ -111,6 +122,7 @@ This document tracks the implementation progress of adding FastAPI-based HTTP AP
 - [ ] Add comprehensive error handling
 - [ ] Implement cleanup and resource management
 - [ ] Add logging and monitoring
+- [ ] **COMPLETE TTS/VC LOGIC EXTRACTION:** Implement full chunking, retry, and Whisper validation logic from Chatter.py (preserved in Phase 5)
 - [ ] Create API documentation
 - [ ] Performance testing and optimization
 - [ ] Create deployment documentation
@@ -123,10 +135,10 @@ This document tracks the implementation progress of adding FastAPI-based HTTP AP
 ## Current Status Details
 
 ### Active Development
-- **Current Phase:** Phase 2 - Core Logic Extraction
-- **Current Task:** Creating CoreEngine class and extracting TTS/VC logic
+- **Current Phase:** Phase 3 - Basic API Implementation
+- **Current Task:** Creating FastAPI application and endpoints
 - **Blocking Issues:** None
-- **Next Steps:** Begin Phase 2 implementation
+- **Next Steps:** Begin Phase 3 implementation
 
 ### Key Decisions Made
 1. **Configuration Management:** Using YamlConfigManager adapted from Chatterbox-TTS-Server

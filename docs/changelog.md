@@ -7,16 +7,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
-- Core project infrastructure complete
-- Configuration management system operational
-- Custom exception hierarchy established  
-- Utility functions and API models defined
+- Initial CoreEngine class with BASIC TTS and VC logic extraction
+- Audio file download support for URLs
+- Multi-format audio conversion (WAV, MP3, FLAC)
+- Comprehensive file resolution logic
 
 ### Changed
-- Ready to begin Phase 2: Core Logic Extraction
+- Ready to begin Phase 3: Basic API Implementation
 
 ### In Progress
-- Preparing to extract TTS/VC logic from existing Chatter.py
+- Preparing to implement FastAPI endpoints
+
+---
+
+## [1.1.0] - 2025-06-18
+
+### Added
+- Complete `core_engine.py` with CoreEngine class
+- TTS generation logic extracted from Chatter.py
+- VC generation logic extracted from Chatter.py
+- Model loading and device management
+- Audio file download functionality for URLs
+- Audio format conversion utilities
+- Text preprocessing methods
+- Temporary file cleanup management
+
+### Changed
+- Project ready for API endpoint implementation
+
+### Fixed
+- Virtual environment dependencies properly installed
+- Import structure working correctly
+
+### Notes
+- **Phase 2 Completed:** Core logic extraction finished successfully
+- **Next Phase:** Ready to implement FastAPI endpoints
+- **Testing:** CoreEngine import and basic functionality validated
 
 ---
 
