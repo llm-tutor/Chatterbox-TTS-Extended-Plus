@@ -1,0 +1,72 @@
+# Chatterbox TTS Extended Plus Configuration
+
+# Basic server settings
+server:
+  host: "127.0.0.1"  # Local only by default
+  port: 7860
+  log_level: "INFO"
+  log_file_path: "logs/chatterbox_extended.log"
+  log_file_max_size_mb: 10
+  log_file_backup_count: 5
+
+# Path Configuration
+paths:
+  reference_audio_dir: "reference_audio"  # ALL reference voices (TTS + VC targets)
+  vc_input_dir: "vc_inputs"         # Source audio files to be converted  
+  output_dir: "outputs"             # Generated audio files
+  temp_dir: "temp"                  # Downloaded URLs, temporary processing
+  logs_dir: "logs"
+
+# Model settings
+models:
+  device: "auto"  # auto, cuda, cpu
+  preload_models: true
+
+# API Configuration
+api:
+  max_text_length: 10000
+  cleanup_temp_files: true
+  enable_url_downloads: true
+  download_timeout_seconds: 30
+
+# TTS defaults (from existing settings.json)
+tts_defaults:
+  exaggeration: 0.5
+  temperature: 0.75
+  cfg_weight: 1.0
+  seed: 0
+  num_candidates_per_chunk: 3
+  max_attempts_per_candidate: 3
+  bypass_whisper_checking: false
+  whisper_model_name: "medium"
+  use_faster_whisper: true
+  use_longest_transcript_on_fail: true
+  enable_batching: false
+  smart_batch_short_sentences: true
+  to_lowercase: true
+  normalize_spacing: true
+  fix_dot_letters: true
+  remove_reference_numbers: true
+  use_auto_editor: false
+  ae_threshold: 0.06
+  ae_margin: 0.2
+  normalize_audio: false
+  normalize_method: "ebu"
+  normalize_level: -24.0
+  normalize_tp: -2.0
+  normalize_lra: 7.0
+  disable_watermark: true
+  export_formats: ["wav", "mp3"]
+
+# VC defaults
+vc_defaults:
+  chunk_sec: 60
+  overlap_sec: 0.1
+  disable_watermark: true
+  export_formats: ["wav", "mp3"]
+
+# UI settings
+ui:
+  title: "Chatterbox TTS Extended Plus"
+  mount_path: "/ui"
+  enable_ui: true

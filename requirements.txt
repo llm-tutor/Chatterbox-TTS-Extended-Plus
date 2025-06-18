@@ -19,3 +19,17 @@ nltk
 --extra-index-url=https://download.pytorch.org/whl/cu128
 torch==2.7.0
 torchaudio==2.7.0
+
+# FastAPI and related dependencies
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+httpx>=0.25.0
+python-multipart>=0.0.6
+aiofiles>=23.0.0
+
+# Audio processing (additional)
+pydub>=0.25.1
+
+# YAML configuration
+PyYAML>=6.0.0
