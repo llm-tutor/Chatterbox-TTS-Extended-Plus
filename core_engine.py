@@ -188,6 +188,11 @@ class CoreEngine:
         """
         # Handle URLs - download to temp
         if source.startswith(('http://', 'https://')):
+            # Validate URL safety
+            from utils import validate_url
+            if not validate_url(source):
+                raise ResourceError(f"Invalid or unsafe URL: {source}")
+                
             temp_dir = Path(config_manager.get("paths.temp_dir"))
             temp_dir.mkdir(exist_ok=True)
             temp_file = temp_dir / f"download_{int(time.time())}_{hash(source) % 10000}.wav"

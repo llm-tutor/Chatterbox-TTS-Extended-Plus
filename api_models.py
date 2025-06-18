@@ -2,7 +2,7 @@
 
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field, validator
-from utils import validate_text_length, validate_audio_format
+from utils import validate_text_length, validate_audio_format, validate_text_input
 
 
 # Base models
@@ -57,9 +57,10 @@ class TTSRequest(BaseModel):
 
     @validator('text')
     def validate_text_content(cls, v):
-        if not validate_text_length(v):
+        is_valid, sanitized_text = validate_text_input(v)
+        if not is_valid:
             raise ValueError("Text must be non-empty and under length limit")
-        return v.strip()
+        return sanitized_text
 
     @validator('export_formats')
     def validate_formats(cls, v):
@@ -75,6 +76,16 @@ class TTSRequest(BaseModel):
             raise ValueError(f"Invalid Whisper model: {v}")
         return v
 
+    @validator('reference_audio_filename')
+    def validate_reference_audio(cls, v):
+        from utils import sanitize_file_path
+        if v is not None:
+            v = v.strip()
+            # If it's not a URL, sanitize the file path
+            if not v.startswith(('http://', 'https://')):
+                v = sanitize_file_path(v)
+        return v
+
 
 # VC Models
 class VCRequest(BaseModel):
@@ -88,9 +99,17 @@ class VCRequest(BaseModel):
 
     @validator('input_audio_source', 'target_voice_source')
     def validate_audio_sources(cls, v):
+        from utils import sanitize_file_path
         if not v or not v.strip():
             raise ValueError("Audio source cannot be empty")
-        return v.strip()
+        
+        v = v.strip()
+        
+        # If it's not a URL, sanitize the file path
+        if not v.startswith(('http://', 'https://')):
+            v = sanitize_file_path(v)
+        
+        return v
 
     @validator('export_formats')
     def validate_formats(cls, v):

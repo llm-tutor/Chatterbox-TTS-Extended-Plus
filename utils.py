@@ -124,3 +124,80 @@ def get_supported_audio_formats() -> List[str]:
 def validate_audio_format(format_name: str) -> bool:
     """Validate if audio format is supported"""
     return format_name.lower() in get_supported_audio_formats()
+
+
+def validate_url(url: str) -> bool:
+    """Validate if URL is properly formatted and safe"""
+    import re
+    
+    # Basic URL pattern validation
+    url_pattern = re.compile(
+        r'^https?://'  # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # domain...
+        r'localhost|'  # localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
+        r'(?::\d+)?'  # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    
+    if not url_pattern.match(url):
+        return False
+    
+    # Check for potentially dangerous URLs (localhost and private IPs)
+    dangerous_patterns = [
+        r'.*localhost.*',
+        r'.*127\.0\.0\.1.*',
+        r'.*0\.0\.0\.0.*',
+        r'.*192\.168\..*',
+        r'.*10\..*',
+        r'.*172\.(1[6-9]|2[0-9]|3[0-1])\..*',  # Private IP ranges
+    ]
+    
+    for pattern in dangerous_patterns:
+        if re.match(pattern, url, re.IGNORECASE):
+            return False
+    
+    return True
+
+
+def sanitize_file_path(file_path: str) -> str:
+    """Sanitize file path for safe usage"""
+    import os
+    
+    # Convert to Path and resolve any relative components
+    path = Path(file_path)
+    
+    # Remove any directory traversal attempts
+    path_parts = []
+    for part in path.parts:
+        if part in ('..', '.'):
+            continue
+        part = sanitize_filename(part)
+        path_parts.append(part)
+    
+    # Reconstruct path using forward slashes (cross-platform)
+    if path_parts:
+        return '/'.join(path_parts)
+    else:
+        return "unnamed"
+
+
+def validate_text_input(text: str) -> tuple[bool, str]:
+    """
+    Validate and sanitize text input for TTS generation
+    Returns (is_valid, sanitized_text)
+    """
+    if not text or not text.strip():
+        return False, ""
+    
+    text = text.strip()
+    
+    # Check length
+    max_length = 10000  # Could be configurable
+    if len(text) > max_length:
+        return False, text[:max_length]
+    
+    # Basic sanitization - remove potential control characters
+    import re
+    text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', text)
+    
+    return True, text

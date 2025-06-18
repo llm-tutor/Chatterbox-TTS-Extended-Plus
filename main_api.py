@@ -91,7 +91,7 @@ async def validation_error_handler(request: Request, exc: ValidationError):
         content=ErrorResponse(
             error=str(exc),
             error_code="VALIDATION_ERROR"
-        ).dict()
+        ).model_dump()
     )
 
 @app.exception_handler(ResourceError)
@@ -101,7 +101,7 @@ async def resource_error_handler(request: Request, exc: ResourceError):
         content=ErrorResponse(
             error=str(exc),
             error_code="RESOURCE_NOT_FOUND"
-        ).dict()
+        ).model_dump()
     )
 
 @app.exception_handler(ModelLoadError)
@@ -111,7 +111,7 @@ async def model_load_error_handler(request: Request, exc: ModelLoadError):
         content=ErrorResponse(
             error=str(exc),
             error_code="MODEL_LOAD_ERROR"
-        ).dict()
+        ).model_dump()
     )
 
 @app.exception_handler(GenerationError)
@@ -121,7 +121,7 @@ async def generation_error_handler(request: Request, exc: GenerationError):
         content=ErrorResponse(
             error=str(exc),
             error_code="GENERATION_ERROR"
-        ).dict()
+        ).model_dump()
     )
 
 @app.exception_handler(Exception)
@@ -133,7 +133,7 @@ async def general_exception_handler(request: Request, exc: Exception):
             error="Internal server error",
             detail=str(exc),
             error_code="INTERNAL_ERROR"
-        ).dict()
+        ).model_dump()
     )
 
 # API Endpoints

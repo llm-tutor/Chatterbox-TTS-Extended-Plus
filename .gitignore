@@ -1,8 +1,19 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDEs
 .idea
+.vscode/
+
+# Project directories
 repomix
 temp
 output
 outputs
+
+# Audio files
 vc_inputs/*.mp3
 vc_inputs/*.wav
 vc_inputs/*.flac
@@ -10,4 +21,14 @@ reference_audio/*/*.mp3
 reference_audio/*/*.wav
 reference_audio/*/*.flac
 
+# Config
 settings.json
+
+# Logs
+logs/
+*.log
+
+# Virtual environments
+.venv/
+venv/
+.env

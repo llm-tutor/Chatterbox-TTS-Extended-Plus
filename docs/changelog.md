@@ -7,8 +7,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Ready for Next Phase
-- **Phase 4: Enhanced Features** ready to begin
-- All basic API functionality completed and validated
+- **Phase 5: Gradio Integration** ready to begin
+- All enhanced API features completed and validated
+
+---
+
+## [1.3.0] - 2025-06-18
+
+### Added
+- **Enhanced URL validation** with safety checks for localhost/private IP blocking
+- **File path sanitization** to prevent directory traversal attacks
+- **Enhanced text input validation** with control character removal and length limits
+- **URL download functionality** with safety validation in core engine
+- **Comprehensive input sanitization** across all API models
+- **Enhanced error handling** with detailed validation error responses
+- **Security features** for safe file and URL handling
+
+### Changed
+- **Updated Pydantic models** to use `model_dump()` instead of deprecated `dict()`
+- **Enhanced API validation** with automatic input sanitization
+- **Improved error responses** with better structure and details
+- **Cross-platform path handling** for consistent file operations
+
+### Fixed
+- **Pydantic deprecation warnings** by updating to model_dump()
+- **URL validation security** now properly blocks dangerous URLs
+- **File path security** with sanitization and traversal prevention
+- **Text input security** with control character filtering
+
+### Tested
+- **✅ Enhanced URL Validation:** All URL safety checks working correctly
+- **✅ File Path Sanitization:** Directory traversal prevention working
+- **✅ Text Input Validation:** Control character removal and length limits working
+- **✅ Pydantic Model Validation:** Input sanitization working across all models
+- **✅ Error Response Format:** New model_dump format working correctly
+- **✅ All Phase 4 Tests:** 5/5 enhanced feature tests passing
+
+### Security
+- **URL safety validation** prevents access to localhost and private IP ranges
+- **File path sanitization** prevents directory traversal attacks
+- **Text input validation** removes potentially harmful control characters
+- **Input sanitization** across all API endpoints
+
+### Notes
+- **Phase 4 Completed:** All enhanced features implemented, tested, and validated
+- **Security Enhanced:** Comprehensive input validation and sanitization
+- **API Hardened:** Protection against common web security vulnerabilities
+- **Next Phase:** Ready for Phase 5 - Gradio Integration
+- **Testing:** All existing functionality preserved and enhanced
 
 ---
 
