@@ -1,5 +1,5 @@
-# core_engine.py - Refactored core TTS and VC logic
-# Extracted from Chatter.py for shared use between Gradio UI and FastAPI
+# core_engine.py - Phase 6: Complete TTS and VC Logic Extraction
+# Full extraction from Chatter.py with chunking, retry, and Whisper validation
 
 import os
 import time
@@ -42,18 +42,193 @@ import nltk
 from nltk.tokenize import sent_tokenize
 
 logger = logging.getLogger(__name__)
+# ===== HELPER FUNCTIONS (extracted from Chatter.py) =====
+
+def normalize_whitespace(text: str) -> str:
+    """Normalize whitespace in text"""
+    return re.sub(r'\s{2,}', ' ', text.strip())
+
+def replace_letter_period_sequences(text: str) -> str:
+    """Replace letter.period.sequences with spaced letters"""
+    def replacer(match):
+        cleaned = match.group(0).rstrip('.')
+        letters = cleaned.split('.')
+        return ' '.join(letters)
+    
+    pattern = r'\b[A-Za-z](?:\.[A-Za-z])*\.?'
+    return re.sub(pattern, replacer, text)
+
+def remove_inline_reference_numbers(text: str) -> str:
+    """Remove reference numbers from text"""
+    # Remove patterns like [1], [2], (1), (2), etc.
+    text = re.sub(r'\[\d+\]', '', text)
+    text = re.sub(r'\(\d+\)', '', text)
+    return text
+
+def split_into_sentences(text: str) -> List[str]:
+    """Split text into sentences using NLTK"""
+    try:
+        # Download NLTK data if not available
+        try:
+            nltk.data.find('tokenizers/punkt')
+        except LookupError:
+            logger.info("Downloading NLTK punkt tokenizer...")
+            nltk.download('punkt', quiet=True)
+        
+        sentences = sent_tokenize(text)
+        # Filter out very short sentences
+        sentences = [s.strip() for s in sentences if len(s.strip()) > 3]
+        return sentences
+    except Exception as e:
+        logger.warning(f"NLTK sentence splitting failed: {e}, using simple splitting")
+        # Fallback to simple splitting
+        sentences = re.split(r'[.!?]+', text)
+        return [s.strip() for s in sentences if len(s.strip()) > 3]
+
+def group_sentences(sentences: List[str], max_chars: int = 400) -> List[List[str]]:
+    """Group sentences into chunks with max character limit"""
+    groups = []
+    current_group = []
+    current_chars = 0
+    
+    for sentence in sentences:
+        sentence_chars = len(sentence)
+        if current_chars + sentence_chars > max_chars and current_group:
+            groups.append(current_group)
+            current_group = [sentence]
+            current_chars = sentence_chars
+        else:
+            current_group.append(sentence)
+            current_chars += sentence_chars
+    
+    if current_group:
+        groups.append(current_group)
+    
+    return groups
+
+def smart_append_short_sentences(sentences: List[str], min_chars: int = 50) -> List[List[str]]:
+    """Smart batching: combine short sentences, keep long ones separate"""
+    groups = []
+    current_group = []
+    current_chars = 0
+    
+    for sentence in sentences:
+        sentence_chars = len(sentence)
+        
+        if sentence_chars >= min_chars * 2:  # Long sentence - process alone
+            if current_group:
+                groups.append(current_group)
+                current_group = []
+                current_chars = 0
+            groups.append([sentence])
+        else:  # Short sentence - try to combine
+            if current_chars + sentence_chars > min_chars * 3 and current_group:
+                groups.append(current_group)
+                current_group = [sentence]
+                current_chars = sentence_chars
+            else:
+                current_group.append(sentence)
+                current_chars += sentence_chars
+    
+    if current_group:
+        groups.append(current_group)
+    
+    return groups
+
+def set_seed(seed_value: int) -> int:
+    """Set random seed for reproducibility"""
+    if seed_value <= 0:
+        seed_value = random.randint(1, 2**32 - 1)
+    
+    torch.manual_seed(seed_value)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed_value)
+        torch.cuda.manual_seed_all(seed_value)
+    random.seed(seed_value)
+    np.random.seed(seed_value)
+    
+    logger.debug(f"Seed set to: {seed_value}")
+    return seed_value
+
+# ===== WHISPER HELPER FUNCTIONS =====
+
+# Whisper model mapping
+whisper_model_map = {
+    "tiny": "tiny",
+    "base": "base", 
+    "small": "small",
+    "medium": "medium",
+    "large": "large-v2"
+}
+
+def load_whisper_backend(model_key: str, use_faster_whisper: bool, device: str):
+    """Load Whisper model backend"""
+    try:
+        if use_faster_whisper:
+            logger.info(f"Loading Faster-Whisper model: {model_key}")
+            # For faster-whisper, device should be "cuda" or "cpu"
+            device_type = "cuda" if device == "cuda" and torch.cuda.is_available() else "cpu"
+            return FasterWhisperModel(model_key, device=device_type)
+        else:
+            logger.info(f"Loading OpenAI Whisper model: {model_key}")
+            return whisper.load_model(model_key, device=device)
+    except Exception as e:
+        logger.error(f"Failed to load Whisper model {model_key}: {e}")
+        # Fallback to base model
+        try:
+            if use_faster_whisper:
+                device_type = "cuda" if device == "cuda" and torch.cuda.is_available() else "cpu"
+                return FasterWhisperModel("base", device=device_type)
+            else:
+                return whisper.load_model("base", device=device)
+        except Exception as e2:
+            logger.error(f"Failed to load fallback Whisper model: {e2}")
+            raise ModelLoadError(f"Could not load any Whisper model: {e}")
+
+def whisper_check_mp(audio_path: str, expected_text: str, whisper_model, use_faster_whisper: bool) -> Tuple[str, float, str]:
+    """Check audio quality using Whisper transcription"""
+    try:
+        if use_faster_whisper:
+            # Faster-whisper API
+            segments, info = whisper_model.transcribe(audio_path)
+            transcribed = " ".join([segment.text for segment in segments]).strip()
+        else:
+            # OpenAI Whisper API
+            result = whisper_model.transcribe(audio_path)
+            transcribed = result["text"].strip()
+        
+        # Calculate similarity score
+        expected_clean = expected_text.lower().strip()
+        transcribed_clean = transcribed.lower().strip()
+        
+        if not expected_clean or not transcribed_clean:
+            return audio_path, 0.0, transcribed
+        
+        # Use difflib for similarity calculation
+        similarity = difflib.SequenceMatcher(None, expected_clean, transcribed_clean).ratio()
+        
+        logger.debug(f"Whisper check: expected='{expected_clean[:50]}...', got='{transcribed_clean[:50]}...', score={similarity:.3f}")
+        
+        return audio_path, similarity, transcribed
+        
+    except Exception as e:
+        logger.error(f"Whisper transcription failed for {audio_path}: {e}")
+        return audio_path, 0.0, ""
+
+# ===== CORE ENGINE CLASS =====
 
 class CoreEngine:
-    """Core engine for TTS and VC operations"""
+    """Core engine for TTS and VC operations with full feature extraction"""
     
     def __init__(self):
         # Model instances
         self.tts_model: Optional[ChatterboxTTS] = None
         self.vc_model: Optional[ChatterboxVC] = None
+        self.whisper_model: Optional[Union[whisper.Whisper, FasterWhisperModel]] = None
         
         # Device and status tracking
         self.device = self._determine_device()
-        self.models_loaded = {"tts": False, "vc": False}
+        self.models_loaded = {"tts": False, "vc": False, "whisper": False}
         
         # Temporary file tracking for cleanup
         self._temp_files = []
@@ -131,29 +306,32 @@ class CoreEngine:
             self.models_loaded["vc"] = False
             raise ModelLoadError(f"VC model loading failed: {e}")
     
-    async def ensure_models_loaded(self, tts: bool = False, vc: bool = False) -> None:
+    async def load_whisper_model(self, model_name: str = "medium", use_faster_whisper: bool = True) -> None:
+        """Load Whisper model for validation"""
+        try:
+            if self.whisper_model is not None:
+                logger.info("Whisper model already loaded")
+                return
+            
+            model_key = whisper_model_map.get(model_name, "medium")
+            self.whisper_model = load_whisper_backend(model_key, use_faster_whisper, self.device)
+            self.models_loaded["whisper"] = True
+            logger.info(f"Whisper model loaded: {model_name}")
+            
+        except Exception as e:
+            logger.error(f"Failed to load Whisper model: {e}")
+            self.models_loaded["whisper"] = False
+            # Don't raise error - Whisper is optional
+            
+    async def ensure_models_loaded(self, tts: bool = False, vc: bool = False, whisper: bool = False, 
+                                  whisper_model: str = "medium", use_faster_whisper: bool = True) -> None:
         """Ensure required models are loaded"""
         if tts and not self.models_loaded["tts"]:
             await self.load_tts_model()
         if vc and not self.models_loaded["vc"]:
             await self.load_vc_model()
-    
-    # ===== UTILITY METHODS =====
-    
-    def set_seed(self, seed_value: int) -> int:
-        """Set random seed for reproducibility, returns actual seed used"""
-        if seed_value <= 0:
-            seed_value = random.randint(1, 2**32 - 1)
-        
-        torch.manual_seed(seed_value)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed(seed_value)
-            torch.cuda.manual_seed_all(seed_value)
-        random.seed(seed_value)
-        np.random.seed(seed_value)
-        
-        logger.debug(f"Seed set to: {seed_value}")
-        return seed_value
+        if whisper and not self.models_loaded["whisper"]:
+            await self.load_whisper_model(whisper_model, use_faster_whisper)
     
     # ===== FILE HANDLING METHODS =====
     
@@ -275,29 +453,7 @@ class CoreEngine:
         return output_files
     
     # ===== TEXT PROCESSING METHODS =====
-    # (Extracted from Chatter.py)
     
-    def normalize_whitespace(self, text: str) -> str:
-        """Normalize whitespace in text"""
-        return re.sub(r'\s{2,}', ' ', text.strip())
-
-    def replace_letter_period_sequences(self, text: str) -> str:
-        """Replace letter.period.sequences with spaced letters"""
-        def replacer(match):
-            cleaned = match.group(0).rstrip('.')
-            letters = cleaned.split('.')
-            return ' '.join(letters)
-        
-        pattern = r'\b[A-Za-z](?:\.[A-Za-z])*\.?'
-        return re.sub(pattern, replacer, text)
-
-    def remove_reference_numbers(self, text: str) -> str:
-        """Remove reference numbers from text"""
-        # Remove patterns like [1], [2], (1), (2), etc.
-        text = re.sub(r'\[\d+\]', '', text)
-        text = re.sub(r'\(\d+\)', '', text)
-        return text
-
     def process_text_preprocessing(self, text: str, **kwargs) -> str:
         """Apply text preprocessing steps"""
         # Get preprocessing settings
@@ -312,22 +468,82 @@ class CoreEngine:
             text = text.lower()
             
         if normalize_spacing:
-            text = self.normalize_whitespace(text)
+            text = normalize_whitespace(text)
             
         if fix_dot_letters:
-            text = self.replace_letter_period_sequences(text)
+            text = replace_letter_period_sequences(text)
             
         if remove_reference_numbers_flag:
-            text = self.remove_reference_numbers(text)
+            text = remove_inline_reference_numbers(text)
         
         logger.debug(f"Text preprocessing: '{original_text[:50]}...' -> '{text[:50]}...'")
         return text.strip()
+    
+    # ===== CHUNK PROCESSING (extracted from Chatter.py) =====
+    
+    def process_one_chunk(self, model, sentence_group: List[str], chunk_idx: int, gen_index: int, 
+                         seed_value: int, audio_prompt_path: Optional[str], exaggeration: float, 
+                         temperature: float, cfg_weight: float, disable_watermark: bool, 
+                         num_candidates: int, max_attempts: int, bypass_whisper: bool, 
+                         attempt_num: int = 1) -> Tuple[int, List[Dict]]:
+        """
+        Process one chunk of text for TTS generation (extracted from Chatter.py)
+        """
+        set_seed(seed_value + chunk_idx + attempt_num)
+        
+        # Join sentences in the group
+        text_chunk = " ".join(sentence_group)
+        logger.debug(f"Processing chunk {chunk_idx}, attempt {attempt_num}: '{text_chunk[:50]}...'")
+        
+        candidates = []
+        temp_dir = Path(config_manager.get("paths.temp_dir", "temp"))
+        temp_dir.mkdir(exist_ok=True)
+        
+        for candidate_idx in range(num_candidates):
+            try:
+                # Generate unique filename for this candidate
+                timestamp = int(time.time())
+                temp_filename = f"chunk_{gen_index}_{chunk_idx}_{attempt_num}_{candidate_idx}_{timestamp}.wav"
+                temp_path = temp_dir / temp_filename
+                
+                # Generate audio for this chunk
+                wav = model.generate(
+                    text_chunk,
+                    audio_prompt_path=audio_prompt_path,
+                    exaggeration=min(exaggeration, 1.0),
+                    temperature=temperature,
+                    cfg_weight=cfg_weight,
+                    apply_watermark=not disable_watermark
+                )
+                
+                # Save the candidate
+                torchaudio.save(str(temp_path), wav, model.sr)
+                self._temp_files.append(temp_path)  # Track for cleanup
+                
+                # Calculate duration
+                duration = len(wav[0]) / model.sr if wav.ndim > 1 else len(wav) / model.sr
+                
+                candidates.append({
+                    'path': str(temp_path),
+                    'sentence_group': sentence_group,
+                    'duration': duration,
+                    'chunk_idx': chunk_idx,
+                    'candidate_idx': candidate_idx
+                })
+                
+                logger.debug(f"Generated candidate {candidate_idx} for chunk {chunk_idx}: {temp_filename}")
+                
+            except Exception as e:
+                logger.error(f"Failed to generate candidate {candidate_idx} for chunk {chunk_idx}: {e}")
+                continue
+        
+        return chunk_idx, candidates
     
     # ===== MAIN GENERATION METHODS =====
     
     async def generate_tts(self, **kwargs) -> Dict:
         """
-        Generate TTS audio
+        Generate TTS audio with full feature extraction from Chatter.py
         Returns dictionary with output_files, seed_used, processing_time, etc.
         """
         start_time = time.time()
@@ -347,7 +563,7 @@ class CoreEngine:
             
             # Handle seed
             seed = kwargs.get('seed', 0)
-            actual_seed = self.set_seed(seed)
+            actual_seed = set_seed(seed)
             
             # Handle reference audio
             ref_audio_path = None
@@ -362,9 +578,9 @@ class CoreEngine:
             preprocessing_kwargs = {k: v for k, v in kwargs.items() if k != 'text'}
             processed_text = self.process_text_preprocessing(text, **preprocessing_kwargs)
             
-            # Call the main TTS generation logic (exclude 'text' from kwargs)
+            # Call the full TTS generation logic (exclude 'text' from kwargs)
             generation_kwargs = {k: v for k, v in kwargs.items() if k != 'text'}
-            wav_output_path = await self._process_tts_generation(processed_text, ref_audio_path, **generation_kwargs)
+            wav_output_path = await self._process_tts_generation_full(processed_text, ref_audio_path, **generation_kwargs)
             
             # Convert to requested formats
             export_formats = kwargs.get('export_formats', ['wav', 'mp3'])
@@ -389,7 +605,7 @@ class CoreEngine:
     
     async def generate_vc(self, **kwargs) -> Dict:
         """
-        Generate voice conversion
+        Generate voice conversion with full feature extraction from Chatter.py
         Returns dictionary with output_files, processing_time, etc.
         """
         start_time = time.time()
@@ -409,8 +625,8 @@ class CoreEngine:
             
             logger.info(f"Voice conversion: {input_path} -> {target_path}")
             
-            # Call the main VC generation logic
-            wav_output_path = await self._process_vc_generation(input_path, target_path, **kwargs)
+            # Call the full VC generation logic
+            wav_output_path = await self._process_vc_generation_full(input_path, target_path, **kwargs)
             
             # Convert to requested formats
             export_formats = kwargs.get('export_formats', ['wav', 'mp3'])
@@ -431,107 +647,296 @@ class CoreEngine:
                 raise
             else:
                 raise GenerationError(f"VC generation failed: {e}")
-            
-            logger.info(f"VC generation successful: {output_path}")
-            return output_path
-            
-        except Exception as e:
-            logger.error(f"VC generation failed: {e}")
-            if isinstance(e, (ModelLoadError, GenerationError)):
-                raise
-            else:
-                raise GenerationError(f"VC generation failed: {e}")
-    
-    # ===== CLEANUP METHODS =====
-    
-    def cleanup_temp_files(self) -> None:
-        """Clean up temporary files"""
-        if not config_manager.get("api.cleanup_temp_files", True):
-            logger.debug("Temp file cleanup disabled in config")
-            return
-            
-        cleaned_count = 0
-        for temp_file in self._temp_files:
-            try:
-                if temp_file.exists():
-                    temp_file.unlink()
-                    cleaned_count += 1
-                    logger.debug(f"Cleaned up temp file: {temp_file}")
-            except Exception as e:
-                logger.warning(f"Failed to cleanup temp file {temp_file}: {e}")
-        
-        if cleaned_count > 0:
-            logger.info(f"Cleaned up {cleaned_count} temporary files")
-        
-        self._temp_files.clear()
 
-    # ===== INTERNAL GENERATION METHODS =====
-    # TODO: These are simplified implementations. 
-    # Full extraction with chunking, retry, and Whisper validation to be implemented in Phase 6
-    
-    async def _process_tts_generation(self, text: str, ref_audio_path: Optional[Path], **kwargs) -> Path:
+    # ===== FULL TTS GENERATION (extracted from Chatter.py) =====
+
+    async def _process_tts_generation_full(self, text: str, ref_audio_path: Optional[Path],
+                                           **kwargs) -> Path:
         """
-        Process TTS generation (simplified version of Chatter.py logic)
-        
-        TODO PHASE 6: Implement full chunking, retry, and Whisper validation logic from Chatter.py
-        Current implementation is basic single-call generation for API testing.
+        Full TTS generation with chunking, retry, and Whisper validation (extracted from Chatter.py)
         """
         try:
             if self.tts_model is None:
                 raise ModelLoadError("TTS model not loaded")
-            
-            # Prepare output directory
+
+            # Prepare output directory and temp directory
             output_dir = Path(config_manager.get("paths.output_dir", "outputs"))
             output_dir.mkdir(exist_ok=True)
-            
-            # Generate unique filename
-            timestamp = int(time.time())
-            seed_used = kwargs.get('seed', 0)
-            output_filename = f"tts_output_{timestamp}_{seed_used}.wav"
-            output_path = output_dir / output_filename
-            
-            # Extract TTS parameters with defaults
+            temp_dir = Path(config_manager.get("paths.temp_dir", "temp"))
+            temp_dir.mkdir(exist_ok=True)
+
+            # Clean temp directory
+            for f in temp_dir.iterdir():
+                if f.is_file():
+                    f.unlink()
+
+            # Extract parameters with defaults
+            num_generations = kwargs.get('num_generations', 1)
+            enable_batching = kwargs.get('enable_batching', False)
+            smart_batch_short_sentences = kwargs.get('smart_batch_short_sentences', True)
+            num_candidates_per_chunk = kwargs.get('num_candidates_per_chunk', 3)
+            max_attempts_per_candidate = kwargs.get('max_attempts_per_candidate', 3)
+            bypass_whisper_checking = kwargs.get('bypass_whisper_checking', False)
+            whisper_model_name = kwargs.get('whisper_model_name', 'medium')
+            use_faster_whisper = kwargs.get('use_faster_whisper', True)
+            use_longest_transcript_on_fail = kwargs.get('use_longest_transcript_on_fail', True)
+            enable_parallel = kwargs.get('enable_parallel', False)
+            num_parallel_workers = kwargs.get('num_parallel_workers', 4)
+
+            # TTS generation parameters
             exaggeration = kwargs.get('exaggeration', config_manager.get("tts_defaults.exaggeration", 0.5))
             temperature = kwargs.get('temperature', config_manager.get("tts_defaults.temperature", 0.75))
             cfg_weight = kwargs.get('cfg_weight', config_manager.get("tts_defaults.cfg_weight", 1.0))
             disable_watermark = kwargs.get('disable_watermark', config_manager.get("tts_defaults.disable_watermark", True))
             
-            logger.info(f"Generating TTS with params: exaggeration={exaggeration}, temperature={temperature}, cfg_weight={cfg_weight}")
+            # Split text into sentences
+            sentences = split_into_sentences(text)
+            logger.info(f"Split text into {len(sentences)} sentences")
             
-            # Call the TTS model (basic implementation)
-            # Note: ref_audio_path could be None for prompt-free generation
-            wav = self.tts_model.generate(
-                text,
-                audio_prompt_path=str(ref_audio_path) if ref_audio_path else None,
-                exaggeration=min(exaggeration, 1.0),
-                temperature=temperature,
-                cfg_weight=cfg_weight,
-                apply_watermark=not disable_watermark
-            )
+            # Group sentences based on batching settings
+            if enable_batching:
+                sentence_groups = group_sentences(sentences, max_chars=400)
+            elif smart_batch_short_sentences:
+                sentence_groups = smart_append_short_sentences(sentences)
+            else:
+                sentence_groups = [[s] for s in sentences]  # Each sentence is its own group
             
-            # Save the generated audio
-            torchaudio.save(str(output_path), wav, self.tts_model.sr)
+            logger.info(f"Created {len(sentence_groups)} sentence groups")
             
-            # Verify the file was created successfully
-            if not output_path.exists() or output_path.stat().st_size < 1024:
-                raise GenerationError("Generated audio file is missing or too small")
+            # Process generations
+            output_paths = []
+            for gen_index in range(num_generations):
+                if kwargs.get('seed', 0) == 0:
+                    this_seed = random.randint(1, 2**32 - 1)
+                else:
+                    this_seed = int(kwargs.get('seed', 0)) + gen_index
+                set_seed(this_seed)
+                
+                logger.info(f"Starting generation {gen_index+1}/{num_generations} with seed {this_seed}")
+                
+                chunk_candidate_map = {}
+                
+                # -------- CHUNK GENERATION --------
+                if enable_parallel:
+                    total_chunks = len(sentence_groups)
+                    completed = 0
+                    with ThreadPoolExecutor(max_workers=num_parallel_workers) as executor:
+                        futures = [
+                            executor.submit(
+                                self.process_one_chunk,
+                                self.tts_model, group, idx, gen_index, this_seed,
+                                str(ref_audio_path) if ref_audio_path else None,
+                                exaggeration, temperature, cfg_weight, disable_watermark,
+                                num_candidates_per_chunk, max_attempts_per_candidate, bypass_whisper_checking
+                            )
+                            for idx, group in enumerate(sentence_groups)
+                        ]
+                        for future in as_completed(futures):
+                            idx, candidates = future.result()
+                            chunk_candidate_map[idx] = candidates
+                            completed += 1
+                            percent = int(100 * completed / total_chunks)
+                            logger.info(f"Generated chunk {completed}/{total_chunks} ({percent}%)")
+                else:
+                    # Sequential mode: Process chunks one by one
+                    for idx, group in enumerate(sentence_groups):
+                        idx, candidates = self.process_one_chunk(
+                            self.tts_model, group, idx, gen_index, this_seed,
+                            str(ref_audio_path) if ref_audio_path else None,
+                            exaggeration, temperature, cfg_weight, disable_watermark,
+                            num_candidates_per_chunk, max_attempts_per_candidate, bypass_whisper_checking
+                        )
+                        chunk_candidate_map[idx] = candidates
+                
+                # -------- WHISPER VALIDATION --------
+                if not bypass_whisper_checking:
+                    await self.ensure_models_loaded(whisper=True, whisper_model=whisper_model_name, use_faster_whisper=use_faster_whisper)
+                    
+                    if self.whisper_model:
+                        logger.info("Validating all candidates with Whisper...")
+                        chunk_validations = {chunk_idx: [] for chunk_idx in chunk_candidate_map}
+                        chunk_failed_candidates = {chunk_idx: [] for chunk_idx in chunk_candidate_map}
+                        
+                        # Initial sequential Whisper validation
+                        for chunk_idx, candidates in chunk_candidate_map.items():
+                            sentence_group = sentence_groups[chunk_idx]
+                            expected_text = " ".join(sentence_group)
+                            
+                            for cand in candidates:
+                                candidate_path = cand['path']
+                                try:
+                                    if not os.path.exists(candidate_path) or os.path.getsize(candidate_path) < 1024:
+                                        logger.error(f"Candidate file missing or too small: {candidate_path}")
+                                        chunk_failed_candidates[chunk_idx].append((0.0, candidate_path, ""))
+                                        continue
+                                    
+                                    path, score, transcribed = whisper_check_mp(candidate_path, expected_text, self.whisper_model, use_faster_whisper)
+                                    logger.debug(f"[Chunk {chunk_idx}] {os.path.basename(candidate_path)}: score={score:.3f}, transcript='{transcribed[:50]}...'")
+                                    
+                                    if score >= 0.95:
+                                        chunk_validations[chunk_idx].append((cand['duration'], cand['path']))
+                                    else:
+                                        chunk_failed_candidates[chunk_idx].append((score, cand['path'], transcribed))
+                                        
+                                except Exception as e:
+                                    logger.error(f"Whisper transcription failed for {candidate_path}: {e}")
+                                    chunk_failed_candidates[chunk_idx].append((0.0, candidate_path, ""))
+                        
+                        # Retry logic for failed chunks
+                        retry_queue = [chunk_idx for chunk_idx in sorted(chunk_candidate_map.keys()) if not chunk_validations[chunk_idx]]
+                        chunk_attempts = {chunk_idx: 1 for chunk_idx in retry_queue}
+                        
+                        while retry_queue:
+                            still_need_retry = [
+                                chunk_idx for chunk_idx in retry_queue
+                                if chunk_attempts[chunk_idx] < max_attempts_per_candidate
+                            ]
+                            if not still_need_retry:
+                                break
+                            
+                            logger.info(f"Retrying {len(still_need_retry)} chunks, attempt {chunk_attempts[still_need_retry[0]]+1} of {max_attempts_per_candidate}")
+                            
+                            retry_candidate_map = {}
+                            with ThreadPoolExecutor(max_workers=num_parallel_workers) as executor:
+                                futures = [
+                                    executor.submit(
+                                        self.process_one_chunk,
+                                        self.tts_model,
+                                        sentence_groups[chunk_idx],
+                                        chunk_idx,
+                                        gen_index,
+                                        random.randint(1, 2**32-1),
+                                        str(ref_audio_path) if ref_audio_path else None,
+                                        exaggeration, temperature, cfg_weight, disable_watermark,
+                                        num_candidates_per_chunk, 1, bypass_whisper_checking,
+                                        chunk_attempts[chunk_idx] + 1
+                                    )
+                                    for chunk_idx in still_need_retry
+                                ]
+                                for future in as_completed(futures):
+                                    idx, candidates = future.result()
+                                    retry_candidate_map[idx] = candidates
+                            
+                            # Validate retry candidates
+                            for chunk_idx, candidates in retry_candidate_map.items():
+                                sentence_group = sentence_groups[chunk_idx]
+                                expected_text = " ".join(sentence_group)
+                                
+                                for cand in candidates:
+                                    candidate_path = cand['path']
+                                    try:
+                                        if not os.path.exists(candidate_path) or os.path.getsize(candidate_path) < 1024:
+                                            logger.error(f"Retry candidate file missing or too small: {candidate_path}")
+                                            continue
+                                        
+                                        path, score, transcribed = whisper_check_mp(candidate_path, expected_text, self.whisper_model, use_faster_whisper)
+                                        logger.debug(f"[Retry Chunk {chunk_idx}] {os.path.basename(candidate_path)}: score={score:.3f}")
+                                        
+                                        if score >= 0.95:
+                                            chunk_validations[chunk_idx].append((cand['duration'], cand['path']))
+                                            break  # Found a good candidate, stop retrying this chunk
+                                        else:
+                                            chunk_failed_candidates[chunk_idx].append((score, candidate_path, transcribed))
+                                            
+                                    except Exception as e:
+                                        logger.error(f"Whisper retry validation failed for {candidate_path}: {e}")
+                                        continue
+                                
+                                chunk_attempts[chunk_idx] += 1
+                            
+                            # Update retry queue - remove chunks that now have valid candidates
+                            retry_queue = [chunk_idx for chunk_idx in retry_queue if not chunk_validations[chunk_idx]]
+                        
+                        # Handle final fallback for chunks that still failed
+                        if use_longest_transcript_on_fail:
+                            for chunk_idx in retry_queue:
+                                if chunk_failed_candidates[chunk_idx]:
+                                    # Sort by score and pick the best one
+                                    best_failed = max(chunk_failed_candidates[chunk_idx], key=lambda x: x[0])
+                                    logger.warning(f"Using best failed candidate for chunk {chunk_idx}: score={best_failed[0]:.3f}")
+                                    chunk_validations[chunk_idx].append((0.0, best_failed[1]))  # Duration 0 for failed
+                        
+                        # Select final candidates (shortest duration for each chunk)
+                        final_candidates = []
+                        for chunk_idx in sorted(chunk_validations.keys()):
+                            if chunk_validations[chunk_idx]:
+                                # Sort by duration and pick shortest
+                                best_candidate = min(chunk_validations[chunk_idx], key=lambda x: x[0])
+                                final_candidates.append(best_candidate[1])
+                            else:
+                                logger.error(f"No valid candidate found for chunk {chunk_idx}")
+                                raise GenerationError(f"Failed to generate valid audio for chunk {chunk_idx}")
+                    else:
+                        logger.warning("Whisper model not loaded, skipping validation")
+                        # Use first candidate from each chunk
+                        final_candidates = []
+                        for chunk_idx in sorted(chunk_candidate_map.keys()):
+                            if chunk_candidate_map[chunk_idx]:
+                                final_candidates.append(chunk_candidate_map[chunk_idx][0]['path'])
+                else:
+                    # No Whisper validation - use first candidate from each chunk
+                    final_candidates = []
+                    for chunk_idx in sorted(chunk_candidate_map.keys()):
+                        if chunk_candidate_map[chunk_idx]:
+                            final_candidates.append(chunk_candidate_map[chunk_idx][0]['path'])
+                
+                # -------- COMBINE CHUNKS --------
+                if len(final_candidates) == 0:
+                    raise GenerationError("No valid audio chunks generated")
+                elif len(final_candidates) == 1:
+                    # Single chunk - just copy it
+                    single_chunk_path = final_candidates[0]
+                    output_filename = f"tts_output_{int(time.time())}_{this_seed}.wav"
+                    output_path = output_dir / output_filename
+                    
+                    # Copy the file
+                    import shutil
+                    shutil.copy2(single_chunk_path, output_path)
+                else:
+                    # Multiple chunks - concatenate them
+                    combined_audio = []
+                    
+                    for chunk_path in final_candidates:
+                        try:
+                            wav_chunk, sr = torchaudio.load(chunk_path)
+                            combined_audio.append(wav_chunk)
+                        except Exception as e:
+                            logger.error(f"Failed to load chunk {chunk_path}: {e}")
+                            continue
+                    
+                    if not combined_audio:
+                        raise GenerationError("Failed to load any audio chunks")
+                    
+                    # Concatenate all chunks
+                    final_audio = torch.cat(combined_audio, dim=1)
+                    
+                    # Save combined result
+                    output_filename = f"tts_output_{int(time.time())}_{this_seed}.wav"
+                    output_path = output_dir / output_filename
+                    torchaudio.save(str(output_path), final_audio, self.tts_model.sr)
+                
+                # Verify the file was created successfully
+                if not output_path.exists() or output_path.stat().st_size < 1024:
+                    raise GenerationError("Generated audio file is missing or too small")
+                
+                logger.info(f"TTS generation successful: {output_path}")
+                output_paths.append(output_path)
             
-            logger.info(f"TTS generation successful: {output_path}")
-            return output_path
+            # Return the first (or only) generated file
+            return output_paths[0]
             
         except Exception as e:
-            logger.error(f"TTS generation failed: {e}")
+            logger.error(f"Full TTS generation failed: {e}")
             if isinstance(e, (ModelLoadError, GenerationError)):
                 raise
             else:
                 raise GenerationError(f"TTS generation failed: {e}")
     
-    async def _process_vc_generation(self, input_path: Path, target_path: Path, **kwargs) -> Path:
+    # ===== FULL VC GENERATION (extracted from Chatter.py) =====
+    
+    async def _process_vc_generation_full(self, input_path: Path, target_path: Path, **kwargs) -> Path:
         """
-        Process voice conversion (simplified version of Chatter.py logic)
-        
-        TODO PHASE 6: Enhance with advanced chunking strategies and edge case handling
-        Current implementation has basic chunking with crossfading.
+        Full voice conversion with advanced chunking (extracted from Chatter.py)
         """
         try:
             if self.vc_model is None:
@@ -564,9 +969,11 @@ class CoreEngine:
                 sr = model_sr
             
             total_sec = len(wav) / model_sr
+            logger.info(f"Input audio duration: {total_sec:.2f} seconds")
             
             if total_sec <= chunk_sec:
                 # Short audio - process directly without chunking
+                logger.info("Processing short audio without chunking")
                 wav_out = self.vc_model.generate(
                     str(input_path),
                     target_voice_path=str(target_path),
@@ -578,7 +985,8 @@ class CoreEngine:
                 sf.write(str(output_path), out_wav, model_sr)
                 
             else:
-                # Long audio - implement chunking
+                # Long audio - implement chunking with crossfading
+                logger.info(f"Processing long audio with chunking: {chunk_sec}s chunks, {overlap_sec}s overlap")
                 chunk_samples = int(chunk_sec * model_sr)
                 overlap_samples = int(overlap_sec * model_sr)
                 step_samples = chunk_samples - overlap_samples
@@ -587,38 +995,63 @@ class CoreEngine:
                 temp_dir = Path(config_manager.get("paths.temp_dir", "temp"))
                 temp_dir.mkdir(exist_ok=True)
                 
-                for start in range(0, len(wav), step_samples):
+                num_chunks = (len(wav) + step_samples - 1) // step_samples
+                logger.info(f"Will process {num_chunks} chunks")
+                
+                for chunk_idx, start in enumerate(range(0, len(wav), step_samples)):
                     end = min(start + chunk_samples, len(wav))
                     chunk = wav[start:end]
                     
+                    logger.info(f"Processing chunk {chunk_idx + 1}/{num_chunks}: samples {start}-{end}")
+                    
                     # Create temporary chunk file
-                    temp_chunk_path = temp_dir / f"temp_vc_chunk_{start}_{end}.wav"
+                    temp_chunk_path = temp_dir / f"temp_vc_chunk_{chunk_idx}_{start}_{end}.wav"
                     sf.write(str(temp_chunk_path), chunk, model_sr)
                     self._temp_files.append(temp_chunk_path)  # Track for cleanup
                     
                     # Process chunk
-                    out_chunk = self.vc_model.generate(
-                        str(temp_chunk_path),
-                        target_voice_path=str(target_path),
-                        apply_watermark=not disable_watermark
-                    )
-                    out_chunk_np = out_chunk.squeeze(0).numpy()
-                    out_chunks.append(out_chunk_np)
+                    try:
+                        out_chunk = self.vc_model.generate(
+                            str(temp_chunk_path),
+                            target_voice_path=str(target_path),
+                            apply_watermark=not disable_watermark
+                        )
+                        out_chunk_np = out_chunk.squeeze(0).numpy()
+                        out_chunks.append(out_chunk_np)
+                        logger.debug(f"Chunk {chunk_idx + 1} processed successfully")
+                    except Exception as e:
+                        logger.error(f"Failed to process chunk {chunk_idx + 1}: {e}")
+                        # Use silence as fallback
+                        silence_samples = len(chunk)
+                        out_chunks.append(np.zeros(silence_samples, dtype=np.float32))
+                
+                if not out_chunks:
+                    raise GenerationError("No chunks were processed successfully")
                 
                 # Combine chunks with crossfading
+                logger.info("Combining chunks with crossfading...")
                 result = out_chunks[0]
+                
                 for i in range(1, len(out_chunks)):
                     overlap = min(overlap_samples, len(out_chunks[i]), len(result))
                     if overlap > 0:
+                        # Create fade curves
                         fade_out = np.linspace(1, 0, overlap)
                         fade_in = np.linspace(0, 1, overlap)
+                        
+                        # Apply crossfade
                         result[-overlap:] = result[-overlap:] * fade_out + out_chunks[i][:overlap] * fade_in
-                        result = np.concatenate([result, out_chunks[i][overlap:]])
+                        
+                        # Append remaining part of the chunk
+                        if len(out_chunks[i]) > overlap:
+                            result = np.concatenate([result, out_chunks[i][overlap:]])
                     else:
+                        # No overlap - just concatenate
                         result = np.concatenate([result, out_chunks[i]])
                 
                 # Save the combined result
                 sf.write(str(output_path), result, model_sr)
+                logger.info(f"Combined {len(out_chunks)} chunks into final result")
             
             # Verify the file was created successfully
             if not output_path.exists() or output_path.stat().st_size < 1024:
@@ -628,11 +1061,34 @@ class CoreEngine:
             return output_path
             
         except Exception as e:
-            logger.error(f"VC generation failed: {e}")
+            logger.error(f"Full VC generation failed: {e}")
             if isinstance(e, (ModelLoadError, GenerationError)):
                 raise
             else:
                 raise GenerationError(f"VC generation failed: {e}")
+    
+    # ===== CLEANUP METHODS =====
+    
+    def cleanup_temp_files(self) -> None:
+        """Clean up temporary files"""
+        if not config_manager.get("api.cleanup_temp_files", True):
+            logger.debug("Temp file cleanup disabled in config")
+            return
+            
+        cleaned_count = 0
+        for temp_file in self._temp_files:
+            try:
+                if temp_file.exists():
+                    temp_file.unlink()
+                    cleaned_count += 1
+                    logger.debug(f"Cleaned up temp file: {temp_file}")
+            except Exception as e:
+                logger.warning(f"Failed to cleanup temp file {temp_file}: {e}")
+        
+        if cleaned_count > 0:
+            logger.info(f"Cleaned up {cleaned_count} temporary files")
+        
+        self._temp_files.clear()
 
 
 # Global engine instance

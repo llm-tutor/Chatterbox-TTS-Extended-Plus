@@ -7,8 +7,95 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Ready for Next Phase
-- **Phase 6: Polish & Production** ready to begin
-- All Gradio integration completed and validated
+- **Phase 7: Enhanced Operations & Monitoring** ready to begin
+- All core features and documentation completed
+
+---
+
+## [1.6.0] - 2025-06-18
+
+### Added
+- **Comprehensive API Documentation** with complete endpoint coverage (612 lines)
+- **OpenAPI 3.0 Specification** for all endpoints with validation schemas (333 lines)
+- **Complete Deployment Guide** with installation, configuration, and troubleshooting (167 lines)
+- **Client Examples** in Python, JavaScript, and curl for all endpoints
+- **Static File Serving Verification** - all generated audio files accessible via HTTP URLs
+- **Enhanced Test Coverage** with proper VC output file display
+- **Production-Ready Documentation** covering all advanced features
+
+### Changed
+- **Reorganized Development Phases** - moved advanced operations to Phase 7
+- **Enhanced File Access** with verified HTTP URL serving for all generated files
+- **Improved Test Output** - VC endpoints now display generated file URLs correctly
+- **Complete Feature Documentation** - all 25+ parameters documented with examples
+
+### Technical Implementation
+- **API Documentation**: Complete coverage of TTS, VC, system endpoints
+- **OpenAPI Specification**: Full schema definitions with validation and examples
+- **Deployment Guide**: Production deployment considerations and troubleshooting
+- **Client Libraries**: Ready-to-use examples for multiple programming languages
+- **Error Handling**: Comprehensive error documentation with response codes
+
+### Tested
+- **✅ Static File Serving:** HTTP URLs for generated files working correctly
+- **✅ API Documentation:** All endpoints and parameters covered
+- **✅ Client Examples:** Python, JavaScript, curl examples validated
+- **✅ Deployment Guide:** Installation and configuration instructions verified
+- **✅ OpenAPI Spec:** Schema validation and examples working
+
+### Notes
+- **Phase 6 Completed:** Core features and comprehensive documentation complete
+- **1,112+ lines** of documentation across 3 comprehensive files
+- **100% API coverage** with examples and troubleshooting
+- **Production ready** with deployment guide and security considerations
+- **Next Phase:** Enhanced operations, monitoring, and advanced features
+- **Ready for production use** with complete documentation and examples
+
+---
+
+## [1.5.0] - 2025-06-18
+
+### Added
+- **Complete TTS Logic Extraction** with full chunking, retry, and Whisper validation from Chatter.py
+- **Complete VC Logic Extraction** with advanced chunking and crossfading capabilities
+- **Advanced Text Processing** with smart sentence batching and preprocessing
+- **Parallel Processing Support** for TTS generation with configurable worker threads
+- **Whisper Model Integration** for audio quality validation with retry mechanisms
+- **Smart Sentence Batching** with configurable grouping strategies
+- **Enhanced URL Download** capabilities with safety validation
+- **Comprehensive Resource Management** with temp file tracking and cleanup
+- **Advanced Error Handling** throughout the generation pipeline
+- **Model Management** for TTS, VC, and Whisper models with device handling
+
+### Changed
+- **MAJOR REWRITE of core_engine.py** with full feature extraction from Chatter.py
+- **Enhanced API Capabilities** now support all advanced TTS/VC features
+- **Improved Text Preprocessing** with comprehensive normalization options
+- **Better Resource Cleanup** with automatic temp file management
+- **Device Detection** with CUDA optimization and fallback handling
+
+### Technical Implementation
+- **Extracted Functions:** `process_one_chunk`, `split_into_sentences`, `group_sentences`, `smart_append_short_sentences`
+- **Helper Functions:** `whisper_check_mp`, `load_whisper_backend`, text normalization utilities
+- **Advanced Features:** Retry logic, candidate selection, crossfading, parallel processing
+- **Model Support:** Full TTS, VC, and Whisper model loading with proper device management
+- **Error Recovery:** Graceful degradation and fallback mechanisms
+
+### Tested
+- **✅ Core Engine Import:** All imports working correctly with CUDA device detection
+- **✅ Model Loading:** TTS, VC, and Whisper models loading successfully
+- **✅ Text Processing:** All preprocessing functions working correctly
+- **✅ File Resolution:** URL and local file handling working properly
+- **✅ Resource Management:** Cleanup and temp file tracking functional
+- **✅ Advanced Features:** Sentence batching, smart grouping, and validation working
+
+### Notes
+- **Phase 6 Task 1 Completed:** Full TTS/VC logic extraction from Chatter.py successful
+- **1060 lines of code:** Complete implementation with all advanced features
+- **All Core Functionality:** Chunking, retry, Whisper validation, parallel processing implemented
+- **API Ready:** Full feature parity with original Chatter.py functionality
+- **Next Phase Task:** Enhanced error handling and logging improvements
+- **Performance:** Optimized for both API and UI usage with shared core logic
 
 ---
 

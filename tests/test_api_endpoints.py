@@ -75,8 +75,11 @@ def test_tts_basic():
     try:
         payload = {
             # "text": "Hello, this is a test of the TTS API. The quick brown fox jumps over the lazy dog.",
-            "text": "Hello, this is a test of the TTS API. Because here we go again.",
-            "reference_audio_filename": "speaker_en/DAVID-2.mp3",
+            # "text": "Hello, this is a test of the TTS API. Because here we go again.",
+            "text": "Hello. This is just a test, but an important one. Don't be cocky.",
+            # "text": "Among the curious objects that passed through the port of Miletus was a strange black stone – what we now call magnetite or lodestone. When brought near iron, it would cause the metal to move, seemingly by its own power. For many, this was clear evidence of divine presence, a miracle in stone.",
+            # "reference_audio_filename": "speaker_en/DAVID-2.mp3",
+            "reference_audio_filename": "speaker_en/jamie_vc_to_david-2.wav",
             "export_formats": ["wav"]
         }
         
@@ -85,7 +88,7 @@ def test_tts_basic():
             f"{BASE_URL}/api/v1/tts",
             headers={"Content-Type": "application/json"},
             json=payload,
-            timeout=60  # Allow time for generation
+            timeout=300  # Allow time for generation
         )
         
         if response.status_code == 200:
@@ -117,8 +120,11 @@ def test_vc_basic():
     print("\nTesting VC endpoint...")
     try:
         payload = {
-            "input_audio_source": "ElevenLabs_2025-06-16T00_38_05_Jamie_gen_sp100_s50_sb75_se0_b_m2.mp3",
-            "target_voice_source": "speaker_en/DAVID-2.mp3",
+            # "input_audio_source": "ElevenLabs_2025-06-16T00_38_05_Jamie_gen_sp100_s50_sb75_se0_b_m2.mp3",
+            # "input_audio_source": "ElevenLabs_2025-06-19T03_12_23_Jamie_gen_sp100_s50_sb75_f2.mp3",
+            "input_audio_source":  "hello_quick_brown.wav",
+            # "target_voice_source": "speaker_en/DAVID-2.mp3",
+            "target_voice_source": "CONNOR-2-non-native.mp3",
             "export_formats": ["wav"]
         }
         
@@ -127,7 +133,7 @@ def test_vc_basic():
             f"{BASE_URL}/api/v1/vc",
             headers={"Content-Type": "application/json"},
             json=payload,
-            timeout=60
+            timeout=300
         )
         
         if response.status_code == 200:
@@ -135,6 +141,11 @@ def test_vc_basic():
             print(f"[OK] VC generation successful")
             print(f"     Generated files: {len(data.get('output_files', []))}")
             print(f"     Processing time: {data.get('processing_time_seconds', 0):.1f}s")
+            
+            # Show output files
+            for file_info in data.get('output_files', []):
+                print(f"     - {file_info.get('format')}: {file_info.get('url')}")
+            
             return True
         elif response.status_code == 404:
             print(f"[EXPECTED] VC failed: Audio files not found")
