@@ -1,12 +1,11 @@
 # main_api.py - FastAPI application entry point
 
 import asyncio
-import logging
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,12 +23,15 @@ from exceptions import (
     ModelLoadError, GenerationError
 )
 
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+# Enhanced monitoring
+from monitoring import (
+    get_logger, get_metrics, get_system_metrics, 
+    RequestLoggingMiddleware, log_request_body_middleware,
+    record_operation_time
 )
-logger = logging.getLogger(__name__)
+
+# Setup enhanced logging
+logger = get_logger(__name__)
 
 # Track startup time for health endpoint
 app_start_time = time.time()
@@ -38,23 +40,24 @@ app_start_time = time.time()
 async def lifespan(app: FastAPI):
     """Application lifespan management"""
     # Startup
-    logger.info("Starting Chatterbox TTS Extended Plus API")
-    
-    # Create necessary directories
-    for dir_key in ["output_dir", "temp_dir", "reference_audio_dir", "vc_input_dir"]:
-        dir_path = Path(config_manager.get(f"paths.{dir_key}", dir_key.replace("_dir", "")))
-        dir_path.mkdir(exist_ok=True, parents=True)
-        logger.info(f"Ensured directory exists: {dir_path}")
-    
-    # Preload models if configured
-    if config_manager.get("models.preload_models", True):
-        try:
-            logger.info("Preloading models...")
-            await engine.load_tts_model()
-            await engine.load_vc_model()
-            logger.info("Models preloaded successfully")
-        except Exception as e:
-            logger.warning(f"Could not preload models: {e}")
+    with logger.operation_timer("application_startup"):
+        logger.info("Starting Chatterbox TTS Extended Plus API")
+        
+        # Create necessary directories
+        for dir_key in ["output_dir", "temp_dir", "reference_audio_dir", "vc_input_dir"]:
+            dir_path = Path(config_manager.get(f"paths.{dir_key}", dir_key.replace("_dir", "")))
+            dir_path.mkdir(exist_ok=True, parents=True)
+            logger.info(f"Ensured directory exists: {dir_path}")
+        
+        # Preload models if configured
+        if config_manager.get("models.preload_models", True):
+            try:
+                logger.info("Preloading models...")
+                await engine.load_tts_model()
+                await engine.load_vc_model()
+                logger.info("Models preloaded successfully")
+            except Exception as e:
+                logger.warning(f"Could not preload models: {e}")
     
     yield
     
@@ -65,10 +68,16 @@ async def lifespan(app: FastAPI):
 # Create FastAPI app
 app = FastAPI(
     title="Chatterbox TTS Extended Plus API",
-    description="API for Text-to-Speech and Voice Conversion",
-    version="1.2.0",
+    description="API for Text-to-Speech and Voice Conversion with Enhanced Monitoring",
+    version="1.7.0",
     lifespan=lifespan
 )
+
+# Add enhanced request logging middleware
+app.add_middleware(RequestLoggingMiddleware)
+
+# Add request body logging middleware for API endpoints
+app.middleware("http")(log_request_body_middleware)
 
 # Add CORS middleware for local development
 app.add_middleware(
@@ -168,14 +177,27 @@ async def generate_vc(request: VCRequest):
 
 @app.get("/api/v1/health", response_model=HealthResponse)
 async def health_check():
-    """Health check endpoint"""
+    """Enhanced health check endpoint with detailed metrics"""
     uptime = time.time() - app_start_time
+    
+    # Get basic metrics
+    basic_metrics = get_metrics()
+    system_metrics = get_system_metrics()
+    
     return HealthResponse(
         status="healthy",
         models_loaded=engine.models_loaded.copy(),
-        version="1.2.0",
-        uptime_seconds=uptime
+        version="1.7.0",
+        uptime_seconds=uptime,
+        metrics=basic_metrics,
+        system_info=system_metrics['system']
     )
+
+@app.get("/api/v1/metrics")
+async def get_detailed_metrics():
+    """Get detailed system and performance metrics"""
+    with logger.operation_timer("get_metrics"):
+        return get_system_metrics()
 
 @app.get("/api/v1/config", response_model=ConfigResponse)
 async def get_config():

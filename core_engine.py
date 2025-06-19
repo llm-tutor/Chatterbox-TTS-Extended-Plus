@@ -1,10 +1,9 @@
-# core_engine.py - Phase 6: Complete TTS and VC Logic Extraction
+# core_engine.py - Phase 7: Enhanced with monitoring and logging
 # Full extraction from Chatter.py with chunking, retry, and Whisper validation
 
 import os
 import time
 import random
-import logging
 import tempfile
 import asyncio
 import json
@@ -26,6 +25,9 @@ import librosa
 import soundfile as sf
 from pydub import AudioSegment
 
+# Enhanced monitoring
+from monitoring import get_logger, record_operation_time
+
 # Chatterbox imports
 from chatterbox.src.chatterbox.tts import ChatterboxTTS
 from chatterbox.src.chatterbox.vc import ChatterboxVC
@@ -41,7 +43,7 @@ from faster_whisper import WhisperModel as FasterWhisperModel
 import nltk
 from nltk.tokenize import sent_tokenize
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 # ===== HELPER FUNCTIONS (extracted from Chatter.py) =====
 
 def normalize_whitespace(text: str) -> str:
@@ -221,6 +223,9 @@ class CoreEngine:
     """Core engine for TTS and VC operations with full feature extraction"""
     
     def __init__(self):
+        # Enhanced logger
+        self.logger = logger
+        
         # Model instances
         self.tts_model: Optional[ChatterboxTTS] = None
         self.vc_model: Optional[ChatterboxVC] = None
@@ -548,60 +553,64 @@ class CoreEngine:
         """
         start_time = time.time()
         
-        try:
-            await self.ensure_models_loaded(tts=True)
-            
-            # Extract and validate parameters
-            text = kwargs.get('text', '').strip()
-            if not text:
-                raise ValidationError("Text cannot be empty")
-            
-            # Validate text length
-            max_length = config_manager.get("api.max_text_length", 10000)
-            if len(text) > max_length:
-                raise ValidationError(f"Text too long. Maximum length: {max_length} characters")
-            
-            # Handle seed
-            seed = kwargs.get('seed', 0)
-            actual_seed = set_seed(seed)
-            
-            # Handle reference audio
-            ref_audio_path = None
-            if kwargs.get('reference_audio_filename'):
-                ref_audio_path = await self.resolve_audio_path(
-                    kwargs['reference_audio_filename'], 
-                    'tts_reference'
-                )
-                logger.info(f"Using reference audio: {ref_audio_path}")
-            
-            # Process text with preprocessing options (exclude 'text' from kwargs to avoid duplicate)
-            preprocessing_kwargs = {k: v for k, v in kwargs.items() if k != 'text'}
-            processed_text = self.process_text_preprocessing(text, **preprocessing_kwargs)
-            
-            # Call the full TTS generation logic (exclude 'text' from kwargs)
-            generation_kwargs = {k: v for k, v in kwargs.items() if k != 'text'}
-            wav_output_path = await self._process_tts_generation_full(processed_text, ref_audio_path, **generation_kwargs)
-            
-            # Convert to requested formats
-            export_formats = kwargs.get('export_formats', ['wav', 'mp3'])
-            output_files = self.convert_audio_formats(wav_output_path, export_formats)
-            
-            processing_time = time.time() - start_time
-            
-            return {
-                'success': True,
-                'output_files': output_files,
-                'generation_seed_used': actual_seed,
-                'processing_time_seconds': processing_time,
-                'message': 'TTS generation completed successfully'
-            }
-            
-        except Exception as e:
-            logger.error(f"TTS generation failed: {e}")
-            if isinstance(e, (ValidationError, ResourceError, ModelLoadError)):
-                raise
-            else:
-                raise GenerationError(f"TTS generation failed: {e}")
+        with logger.operation_timer("tts_generation", record_metrics=True):
+            try:
+                await self.ensure_models_loaded(tts=True)
+                
+                # Extract and validate parameters
+                text = kwargs.get('text', '').strip()
+                if not text:
+                    raise ValidationError("Text cannot be empty")
+                
+                # Validate text length
+                max_length = config_manager.get("api.max_text_length", 10000)
+                if len(text) > max_length:
+                    raise ValidationError(f"Text too long. Maximum length: {max_length} characters")
+                
+                logger.info(f"Starting TTS generation for text: {text[:50]}...", 
+                           extra_data={'text_length': len(text), 'parameters': {k: v for k, v in kwargs.items() if k != 'text'}})
+                
+                # Handle seed
+                seed = kwargs.get('seed', 0)
+                actual_seed = set_seed(seed)
+                
+                # Handle reference audio
+                ref_audio_path = None
+                if kwargs.get('reference_audio_filename'):
+                    ref_audio_path = await self.resolve_audio_path(
+                        kwargs['reference_audio_filename'], 
+                        'tts_reference'
+                    )
+                    logger.info(f"Using reference audio: {ref_audio_path}")
+                
+                # Process text with preprocessing options (exclude 'text' from kwargs to avoid duplicate)
+                preprocessing_kwargs = {k: v for k, v in kwargs.items() if k != 'text'}
+                processed_text = self.process_text_preprocessing(text, **preprocessing_kwargs)
+                
+                # Call the full TTS generation logic (exclude 'text' from kwargs)
+                generation_kwargs = {k: v for k, v in kwargs.items() if k != 'text'}
+                wav_output_path = await self._process_tts_generation_full(processed_text, ref_audio_path, **generation_kwargs)
+                
+                # Convert to requested formats
+                export_formats = kwargs.get('export_formats', ['wav', 'mp3'])
+                output_files = self.convert_audio_formats(wav_output_path, export_formats)
+                
+                processing_time = time.time() - start_time
+                
+                return {
+                    'success': True,
+                    'output_files': output_files,
+                    'generation_seed_used': actual_seed,
+                    'processing_time_seconds': processing_time,
+                    'message': 'TTS generation completed successfully'
+                }
+                
+            except Exception as e:
+                logger.error(f"TTS generation failed: {e}")
+                if isinstance(e, (ValidationError, ResourceError, ModelLoadError)):
+                    raise
+                else:
+                    raise GenerationError(f"TTS generation failed: {e}")
     
     async def generate_vc(self, **kwargs) -> Dict:
         """
@@ -610,43 +619,47 @@ class CoreEngine:
         """
         start_time = time.time()
         
-        try:
-            await self.ensure_models_loaded(vc=True)
-            
-            input_source = kwargs.get('input_audio_source', '').strip()
-            target_source = kwargs.get('target_voice_source', '').strip()
-            
-            if not input_source or not target_source:
-                raise ValidationError("Both input and target audio sources are required")
-            
-            # Resolve audio paths (handles URLs and local files)
-            input_path = await self.resolve_audio_path(input_source, "vc_input")
-            target_path = await self.resolve_audio_path(target_source, "vc_target")
-            
-            logger.info(f"Voice conversion: {input_path} -> {target_path}")
-            
-            # Call the full VC generation logic
-            wav_output_path = await self._process_vc_generation_full(input_path, target_path, **kwargs)
-            
-            # Convert to requested formats
-            export_formats = kwargs.get('export_formats', ['wav', 'mp3'])
-            output_files = self.convert_audio_formats(wav_output_path, export_formats)
-            
-            processing_time = time.time() - start_time
-            
-            return {
-                'success': True,
-                'output_files': output_files,
-                'processing_time_seconds': processing_time,
-                'message': 'Voice conversion completed successfully'
-            }
-            
-        except Exception as e:
-            logger.error(f"VC generation failed: {e}")
-            if isinstance(e, (ValidationError, ResourceError, ModelLoadError)):
-                raise
-            else:
-                raise GenerationError(f"VC generation failed: {e}")
+        with logger.operation_timer("vc_generation", record_metrics=True):
+            try:
+                await self.ensure_models_loaded(vc=True)
+                
+                input_source = kwargs.get('input_audio_source', '').strip()
+                target_source = kwargs.get('target_voice_source', '').strip()
+                
+                if not input_source or not target_source:
+                    raise ValidationError("Both input and target audio sources are required")
+                
+                logger.info(f"Starting VC generation: {input_source} -> {target_source}", 
+                           extra_data={'input_source': input_source, 'target_source': target_source})
+                
+                # Resolve audio paths (handles URLs and local files)
+                input_path = await self.resolve_audio_path(input_source, "vc_input")
+                target_path = await self.resolve_audio_path(target_source, "vc_target")
+                
+                logger.info(f"Voice conversion: {input_path} -> {target_path}")
+                
+                # Call the full VC generation logic
+                wav_output_path = await self._process_vc_generation_full(input_path, target_path, **kwargs)
+                
+                # Convert to requested formats
+                export_formats = kwargs.get('export_formats', ['wav', 'mp3'])
+                output_files = self.convert_audio_formats(wav_output_path, export_formats)
+                
+                processing_time = time.time() - start_time
+                
+                return {
+                    'success': True,
+                    'output_files': output_files,
+                    'processing_time_seconds': processing_time,
+                    'message': 'Voice conversion completed successfully'
+                }
+                
+            except Exception as e:
+                logger.error(f"VC generation failed: {e}")
+                if isinstance(e, (ValidationError, ResourceError, ModelLoadError)):
+                    raise
+                else:
+                    raise GenerationError(f"VC generation failed: {e}")
 
     # ===== FULL TTS GENERATION (extracted from Chatter.py) =====
 

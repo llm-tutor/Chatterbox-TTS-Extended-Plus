@@ -143,11 +143,13 @@ class VCResponse(BaseResponse):
 
 # Utility endpoint models
 class HealthResponse(BaseModel):
-    """Health check response"""
+    """Enhanced health check response with metrics"""
     status: str
     models_loaded: Dict[str, bool]
     version: str
     uptime_seconds: Optional[float] = None
+    metrics: Optional[Dict[str, Any]] = None
+    system_info: Optional[Dict[str, Any]] = None
 
 
 class ConfigResponse(BaseModel):

@@ -33,3 +33,7 @@ pydub>=0.25.1
 
 # YAML configuration
 PyYAML>=6.0.0
+
+
+# System monitoring
+psutil>=5.9.0
