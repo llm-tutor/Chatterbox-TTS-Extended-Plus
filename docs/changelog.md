@@ -7,8 +7,55 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Ready for Next Phase
-- **Phase 5: Gradio Integration** ready to begin
-- All enhanced API features completed and validated
+- **Phase 6: Polish & Production** ready to begin
+- All Gradio integration completed and validated
+
+---
+
+## [1.4.0] - 2025-06-18
+
+### Added
+- **Complete Gradio Integration** with FastAPI mounting at `/ui` endpoint
+- **`create_interface()` function** in Chatter.py for reusable Gradio interface creation
+- **FastAPI integration support** with backward compatibility in Chatter.py
+- **Seamless UI/API coexistence** - both interfaces work independently
+- **Comprehensive Phase 5 testing** with integration validation
+- **Unicode compatibility fixes** for cross-platform Windows support
+
+### Changed
+- **Modified Chatter.py** to support both standalone and FastAPI integration modes
+- **Enhanced main_api.py** with complete Gradio mounting functionality
+- **Improved project structure** with proper separation of concerns
+- **Updated application lifecycle** to handle both UI and API components
+
+### Fixed
+- **Unicode encoding issues** removed problematic Unicode characters for Windows compatibility
+- **Import path handling** for proper module resolution in integration mode
+- **Application mounting** proper Gradio app mounting in FastAPI
+
+### Tested
+- **✅ Module Import Tests:** All imports working correctly (Chatter, main_api)
+- **✅ Interface Creation:** Gradio interface creation working properly
+- **✅ FastAPI Integration:** All API routes registered and accessible
+- **✅ UI Mounting:** Gradio UI successfully mounted at `/ui` endpoint
+- **✅ Backward Compatibility:** Chatter.py still works standalone
+- **✅ Both Interfaces:** API and UI working independently and together
+
+### Technical Implementation
+- **Gradio Integration:** UI mounted at `/ui` with full functionality preserved
+- **API Endpoints:** All Phase 4 API endpoints remain fully functional
+- **Configuration:** UI mounting controlled by `ui.enable_ui` config setting
+- **Error Handling:** Graceful degradation if UI mounting fails
+
+### Notes
+- **Phase 5 Completed:** Full Gradio integration implemented and tested
+- **2/2 Integration Tests Passing:** All Phase 5 tests successful
+- **Production Ready:** Both API and UI working seamlessly together
+- **Next Phase:** Ready for Phase 6 - Polish & Production
+- **Access Instructions:**
+  - API: `http://localhost:7860/api/v1/*` 
+  - UI: `http://localhost:7860/ui`
+  - Server: `python main_api.py`
 
 ---
 

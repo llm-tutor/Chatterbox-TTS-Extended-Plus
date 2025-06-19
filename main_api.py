@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+import gradio as gr
 
 from api_models import (
     TTSRequest, VCRequest, TTSResponse, VCResponse, 
@@ -220,13 +221,14 @@ async def list_voices():
 # Mount Gradio UI (placeholder for Phase 5)
 if config_manager.get("ui.enable_ui", True):
     try:
-        # TODO: Import and mount Gradio app in Phase 5
-        # import Chatter
-        # gradio_app = Chatter.create_interface()
-        # app = gr.mount_gradio_app(app, gradio_app, path="/ui")
-        logger.info("Gradio UI mounting will be implemented in Phase 5")
+        import Chatter
+        gradio_app = Chatter.create_interface()
+        mount_path = config_manager.get("ui.mount_path", "/ui")
+        app = gr.mount_gradio_app(app, gradio_app, path=mount_path)
+        logger.info(f"Gradio UI successfully mounted at {mount_path}")
     except Exception as e:
         logger.warning(f"Could not mount Gradio UI: {e}")
+        logger.warning("API will continue to work, but UI will not be available")
 
 if __name__ == "__main__":
     host = config_manager.get("server.host", "127.0.0.1")

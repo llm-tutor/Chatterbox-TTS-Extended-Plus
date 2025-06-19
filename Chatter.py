@@ -25,6 +25,16 @@ import json
 import csv
 import soundfile as sf
 from chatterbox.src.chatterbox.vc import ChatterboxVC
+
+# FastAPI Integration Support
+try:
+    from core_engine import engine as core_engine
+    from config import config_manager
+    FASTAPI_INTEGRATION = True
+    print("FastAPI integration mode: Enabled")
+except ImportError:
+    FASTAPI_INTEGRATION = False
+    print("FastAPI integration mode: Disabled (standalone mode)")
 SETTINGS_PATH = "settings.json"
 #THIS IS THE START
 def load_settings():
@@ -226,7 +236,7 @@ except LookupError:
 
 os.environ["CUDA_LAUNCH_BLOCKING"] = "0"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-print(f"🚀 Running on device: {DEVICE}")
+print(f"Running on device: {DEVICE}")
 
 MODEL = None
 
@@ -1147,7 +1157,10 @@ def apply_settings_json(settings_json):
 
 
 
-def main():
+def create_interface():
+    """
+    Create and return the Gradio interface for mounting in FastAPI
+    """
     with gr.Blocks() as demo:
         gr.Markdown("# 🎧 Chatterbox TTS Extended")
         with gr.Tabs():
@@ -1623,6 +1636,14 @@ def main():
 
             )
 
-        demo.launch()
+    return demo
+
+def main():
+    """
+    Main function for standalone execution
+    """
+    demo = create_interface()
+    demo.launch()
+
 if __name__ == "__main__":
     main()
