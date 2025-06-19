@@ -244,26 +244,78 @@ This document tracks the implementation progress of adding FastAPI-based HTTP AP
 **Status:** 📋 Ready to Start  
 **Dependencies:** Task 7.1 complete ✅  
 
+#### **Objective:** Basic Resource Management for Local Use
+Implement simple, effective resource monitoring and cleanup for local deployment.
+
 #### Tasks:
-- [ ] Add memory usage monitoring
-- [ ] Implement disk space management for output files
-- [ ] Create advanced temp file cleanup with policies
-- [ ] Add resource usage limits and throttling
-- [ ] Create automated cleanup schedules
+- [ ] Configure resource limits in config.yaml (disk space, file counts, age limits)
+- [ ] Implement disk space monitoring for output and temp directories
+- [ ] Create automated cleanup with configurable policies
+- [ ] Add resource status warnings to health endpoint
+- [ ] Create cleanup scheduler (startup + every 5 hours)
+- [ ] Add comprehensive testing for resource management
+
+#### **Configuration Specifications:**
+- Output directory max size: 5GB
+- Temp directory max files: 200
+- Temp file max age: 7 days
+- VC inputs max size: 2GB
+- Cleanup schedule: Startup + every 5 hours
+- Warning threshold: 80% of limits
 
 #### Files to Create/Modify:
-- [ ] `management/resource_monitor.py` - Resource tracking
-- [ ] `management/cleanup_manager.py` - Advanced cleanup policies
-- [ ] Enhanced `core_engine.py` - Resource monitoring integration
-- [ ] Enhanced `config.yaml` - Resource management settings
+- [ ] `management/resource_manager.py` - Main resource management logic
+- [ ] `management/cleanup_scheduler.py` - Automated cleanup scheduling
+- [ ] Enhanced `config.yaml` - Resource management configuration
+- [ ] Enhanced `main_api.py` - Integrate cleanup scheduler
+- [ ] Enhanced health endpoint - Add resource warnings
+- [ ] `tests/test_resource_management.py` - Resource management tests
+
+### 🔲 Phase 7: Enhanced Operations & Monitoring - Task 7.3
+**Status:** 📋 Waiting for Task 7.2  
+**Dependencies:** Task 7.2 complete  
+
+#### **Objective:** Basic Error Handling & Recovery
+Add basic retry mechanisms and error recovery for common failure scenarios.
+
+#### Tasks:
+- [ ] Implement retry decorators for TTS/VC operations (1 retry, 2s delay)
+- [ ] Add retry logic for file downloads (2 retries, 5s delay)
+- [ ] Enhance model loading with timeout and shutdown on failure
+- [ ] Add comprehensive error tracking and logging
+- [ ] Create comprehensive testing for error handling
+
+#### **Retry Specifications:**
+- TTS/VC generation: 1 retry, 2 second delay
+- File downloads: 2 retries, 5 second delay
+- Model loading vs downloading distinction:
+  - Model downloading: No timeout (can take hours for large models)
+  - Model loading: 5 minute timeout for loading into memory, shutdown on failure
+- No fallback modes - fail after retries exhausted
+
+#### Files to Create/Modify:
+- [ ] `resilience/retry_handler.py` - Retry mechanism implementation
+- [ ] `resilience/error_tracker.py` - Enhanced error tracking
+- [ ] Enhanced `core_engine.py` - Integrate retry mechanisms
+- [ ] Enhanced model loading - Add timeout and shutdown logic
+- [ ] Enhanced `config.yaml` - Error handling configuration
+- [ ] `tests/test_error_handling.py` - Error handling tests
+
+#### **Implementation Reference:**
+See `docs/Phase7_Revised_Implementation_Plan.md` for detailed specifications and requirements.
+
+#### **Estimated Time:** 2.5-4.5 hours total for both tasks
 
 ## Current Status Details
 
 ### Active Development
-- **Current Phase:** Phase 6 - Polish & Production - Core Features  
-- **Current Task:** ✅ PHASE 6 COMPLETED - Core logic extraction and comprehensive documentation complete
+- **Current Phase:** Phase 7 - Enhanced Operations & Monitoring (Revised Scope)
+- **Current Task:** ✅ PHASE 7.1 COMPLETED - Enhanced Logging & Monitoring with comprehensive documentation
+- **Next Task:** **Task 7.2 - Basic Resource Management** (Ready to start)
 - **Blocking Issues:** None
-- **Next Steps:** **Ready to begin Phase 7: Enhanced Operations & Monitoring**
+- **Implementation Reference:** `docs/Phase7_Revised_Implementation_Plan.md`
+- **Revised Scope:** Simplified for local/personal use (removed enterprise features)
+- **Remaining Effort:** 2.5-4.5 hours (Tasks 7.2 + 7.3)
 
 ### Key Decisions Made
 1. **Configuration Management:** Using YamlConfigManager adapted from Chatterbox-TTS-Server
