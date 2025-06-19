@@ -386,3 +386,36 @@ Each implementation phase will be marked with a version increment:
 - **Removed** for now removed features
 - **Fixed** for any bug fixes
 - **Security** for vulnerability fixes
+
+## [1.8.0] - 2025-06-19
+
+### Fixed
+- **CRITICAL: Performance Regression Resolved** - Restored TTS generation time from 8-11 minutes back to ~1 minute
+- **Root Cause Fixed**: Removed async/await overhead from inherently synchronous TTS model operations
+- **Corrected Architecture**: Replaced async core engine with synchronous implementation matching original Chatter.py patterns
+
+### Changed
+- **Replaced `core_engine.py`**: Now uses synchronous patterns for optimal performance
+- **Replaced `main_api.py`**: Corrected FastAPI implementation with proper synchronous core
+- **Moved `test_performance_fix.py`** to `tests/` directory for better organization
+
+### Technical Details
+- **Performance Fix**: Direct synchronous `model.generate()` calls instead of async overhead
+- **Model Loading**: Uses global model variables matching original Chatter.py approach
+- **FastAPI Integration**: Minimal async wrapper only where required by FastAPI
+- **Gradio UI**: Successfully mounted at `/ui` endpoint with full functionality
+
+### Validation
+- **✅ Performance Test**: Confirmed ~1 minute generation time (10x improvement)
+- **✅ API Functionality**: All endpoints working correctly
+- **✅ Gradio UI**: Fully functional at `/ui`
+- **✅ Backward Compatibility**: All existing functionality preserved
+
+### Deployment
+- **Server**: `python main_api.py`
+- **API**: `http://localhost:7860/api/v1/`
+- **UI**: `http://localhost:7860/ui`
+- **Docs**: `http://localhost:7860/docs`
+
+---
+

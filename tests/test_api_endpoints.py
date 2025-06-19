@@ -76,7 +76,9 @@ def test_tts_basic():
         payload = {
             # "text": "Hello, this is a test of the TTS API. The quick brown fox jumps over the lazy dog.",
             # "text": "Hello, this is a test of the TTS API. Because here we go again.",
-            "text": "Hello. This is just a test, but an important one. Don't be cocky.",
+            # "text": "Hello. This is just a test, but an important one. Don't be cocky.",
+            "text": "Listen up! Hear this carefully: The implications were revolutionary. If the Earth's stability could be explained through natural principles rather than divine support, what else might be understood through careful observation and reasoning? If Atlas wasn't needed to hold up the Earth, perhaps other divine explanations could be replaced with natural ones.",
+            # "text": "Among the curious objects that passed through the port of Miletus was a strange black stone – what we now call magnetite or lodestone. When brought near iron, it would cause the metal to move, seemingly by its own power. For many, this was clear evidence of divine presence, a miracle in stone.",
             # "text": "Among the curious objects that passed through the port of Miletus was a strange black stone – what we now call magnetite or lodestone. When brought near iron, it would cause the metal to move, seemingly by its own power. For many, this was clear evidence of divine presence, a miracle in stone.",
             # "reference_audio_filename": "speaker_en/DAVID-2.mp3",
             "reference_audio_filename": "speaker_en/jamie_vc_to_david-2.wav",
@@ -120,9 +122,9 @@ def test_vc_basic():
     print("\nTesting VC endpoint...")
     try:
         payload = {
-            # "input_audio_source": "ElevenLabs_2025-06-16T00_38_05_Jamie_gen_sp100_s50_sb75_se0_b_m2.mp3",
+            "input_audio_source": "ElevenLabs_2025-06-16T00_38_05_Jamie_gen_sp100_s50_sb75_se0_b_m2.mp3",
             # "input_audio_source": "ElevenLabs_2025-06-19T03_12_23_Jamie_gen_sp100_s50_sb75_f2.mp3",
-            "input_audio_source":  "hello_quick_brown.wav",
+            # "input_audio_source":  "hello_quick_brown.wav",
             # "target_voice_source": "speaker_en/DAVID-2.mp3",
             "target_voice_source": "CONNOR-2-non-native.mp3",
             "export_formats": ["wav"]
