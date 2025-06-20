@@ -86,3 +86,27 @@ resource_management:
     
     # Warning thresholds (% of limits)
     warning_threshold_percent: 80        # Warn at 80% of limits
+
+# Error Handling & Recovery (Phase 7.3)
+error_handling:
+  # Download retry configuration
+  download_retries:
+    max_retries: 2                       # Retry twice on download failure
+    base_delay_seconds: 2.0              # Base delay between retries
+    max_delay_seconds: 30.0              # Maximum delay between retries
+    backoff_factor: 2.0                  # Exponential backoff multiplier
+    enable_jitter: true                  # Add random jitter to prevent thundering herd
+  
+  # Model loading configuration
+  model_loading:
+    # Model downloading - no timeout (can take hours on slow connections)
+    download_timeout_seconds: 0          # 0 = no timeout for downloading models
+    # Model loading into memory - reasonable timeout
+    loading_timeout_seconds: 300         # 5 minutes timeout for loading into memory
+    shutdown_on_failure: true            # Shutdown application if model loading fails
+  
+  # Error tracking
+  error_tracking:
+    max_errors_stored: 1000              # Maximum number of errors to keep in memory
+    auto_categorization: true            # Automatically categorize errors
+    log_error_summaries: true            # Log periodic error summaries

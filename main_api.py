@@ -15,7 +15,7 @@ import uvicorn
 from api_models import (
     TTSRequest, VCRequest, TTSResponse, VCResponse, 
     ErrorResponse, HealthResponse, ConfigResponse,
-    VoicesResponse, VoiceInfo
+    VoicesResponse, VoiceInfo, ErrorSummaryResponse
 )
 from core_engine import engine_sync, get_or_load_tts_model, get_or_load_vc_model
 from config import config_manager
@@ -222,15 +222,20 @@ async def health_check():
     resource_status = resource_manager.get_resource_status()
     warnings = resource_status.get("warnings", [])
     
+    # Get error summary from error tracker
+    from resilience import error_tracker
+    error_summary = error_tracker.get_error_summary(hours=24)
+    
     return HealthResponse(
         status="healthy",
         models_loaded={"tts": tts_loaded, "vc": vc_loaded},
-        version="1.7.0",
+        version="1.8.2",  # Updated for error handling features
         uptime_seconds=uptime,
         metrics=basic_metrics,
         system_info=system_metrics['system'],
         resource_status=resource_status,
-        warnings=warnings if warnings else None
+        warnings=warnings if warnings else None,
+        error_summary=error_summary if error_summary['total_errors'] > 0 else None
     )
 
 @app.get("/api/v1/metrics")
@@ -296,6 +301,33 @@ async def get_cleanup_status():
     return {
         "scheduler": cleanup_scheduler.get_status(),
         "history": cleanup_scheduler.get_history(limit=5)
+    }
+
+@app.get("/api/v1/errors/summary", response_model=ErrorSummaryResponse)
+async def get_error_summary():
+    """Get error summary for the last 24 hours"""
+    from resilience import error_tracker
+    
+    summary = error_tracker.get_error_summary(hours=24)
+    recent_errors = error_tracker.get_recent_errors(count=5)
+    
+    return ErrorSummaryResponse(
+        total_errors=summary['total_errors'],
+        by_category=summary['by_category'],
+        by_severity=summary['by_severity'], 
+        by_operation=summary['by_operation'],
+        most_frequent=summary['most_frequent'],
+        unresolved_count=summary['unresolved_count'],
+        recent_errors=recent_errors
+    )
+
+@app.get("/api/v1/errors/recent")
+async def get_recent_errors(count: int = 10):
+    """Get recent errors for debugging"""
+    from resilience import error_tracker
+    return {
+        "recent_errors": error_tracker.get_recent_errors(count=min(count, 50)),
+        "total_stored": len(error_tracker.errors)
     }
 
 # Mount Gradio UI

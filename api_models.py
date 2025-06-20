@@ -152,6 +152,18 @@ class HealthResponse(BaseModel):
     system_info: Optional[Dict[str, Any]] = None
     resource_status: Optional[Dict[str, Any]] = None
     warnings: Optional[List[str]] = None
+    error_summary: Optional[Dict[str, Any]] = None  # NEW: Error tracking summary
+
+
+class ErrorSummaryResponse(BaseModel):
+    """Error summary response for error tracking endpoint"""
+    total_errors: int
+    by_category: Dict[str, int]
+    by_severity: Dict[str, int]
+    by_operation: Dict[str, int]
+    most_frequent: Dict[str, int]
+    unresolved_count: int
+    recent_errors: List[Dict[str, Any]]
 
 
 class ConfigResponse(BaseModel):

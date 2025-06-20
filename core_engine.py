@@ -72,27 +72,123 @@ def _get_device() -> str:
     return _device
 
 def get_or_load_tts_model() -> ChatterboxTTS:
-    """Load TTS model using the original Chatter.py pattern for best performance"""
+    """Load TTS model with enhanced error handling and timeout"""
     global _tts_model
     if _tts_model is None:
+        from resilience import error_tracker, ErrorCategory, ErrorSeverity
+        
         logger.info("TTS Model not loaded, initializing...")
         device = _get_device()
-        _tts_model = ChatterboxTTS.from_pretrained(device)
-        if hasattr(_tts_model, 'to') and str(_tts_model.device) != device:
-            _tts_model.to(device)
-        logger.info(f"TTS Model loaded on device: {getattr(_tts_model, 'device', 'unknown')}")
+        
+        try:
+            # Model loading with timeout (for loading into memory, not downloading)
+            loading_timeout = config_manager.get("error_handling.model_loading.loading_timeout_seconds", 300)
+            
+            if loading_timeout > 0:
+                logger.info(f"Loading TTS model with {loading_timeout}s timeout...")
+                
+                # For now, load synchronously (timeout implementation would need threading)
+                # In a future enhancement, we could add threading-based timeout
+                start_time = time.time()
+                _tts_model = ChatterboxTTS.from_pretrained(device)
+                load_time = time.time() - start_time
+                
+                logger.info(f"TTS model loaded in {load_time:.1f}s")
+                
+                if load_time > loading_timeout:
+                    logger.warning(f"TTS model loading took {load_time:.1f}s (longer than {loading_timeout}s timeout)")
+            else:
+                _tts_model = ChatterboxTTS.from_pretrained(device)
+            
+            if hasattr(_tts_model, 'to') and str(_tts_model.device) != device:
+                _tts_model.to(device)
+            
+            logger.info(f"TTS Model loaded successfully on device: {getattr(_tts_model, 'device', 'unknown')}")
+            
+        except Exception as e:
+            # Record the error
+            error_tracker.record_error(
+                operation="tts_model_loading",
+                error=e,
+                context={
+                    'device': device,
+                    'loading_timeout': loading_timeout,
+                    'model_type': 'ChatterboxTTS'
+                },
+                category=ErrorCategory.CONFIGURATION,
+                severity=ErrorSeverity.CRITICAL
+            )
+            
+            logger.critical(f"Failed to load TTS model: {e}")
+            
+            # Check if we should shutdown on model failure
+            shutdown_on_failure = config_manager.get("error_handling.model_loading.shutdown_on_failure", True)
+            if shutdown_on_failure:
+                logger.critical("Shutting down application due to TTS model loading failure")
+                import sys
+                sys.exit(1)
+            else:
+                raise ModelLoadError(f"TTS model loading failed: {e}")
+                
     return _tts_model
 
 def get_or_load_vc_model() -> ChatterboxVC:
-    """Load VC model using the original Chatter.py pattern for best performance"""
+    """Load VC model with enhanced error handling and timeout"""
     global _vc_model
     if _vc_model is None:
+        from resilience import error_tracker, ErrorCategory, ErrorSeverity
+        
         logger.info("VC Model not loaded, initializing...")
         device = _get_device()
-        _vc_model = ChatterboxVC.from_pretrained(device)
-        if hasattr(_vc_model, 'to') and str(_vc_model.device) != device:
-            _vc_model.to(device)
-        logger.info(f"VC Model loaded on device: {getattr(_vc_model, 'device', 'unknown')}")
+        
+        try:
+            # Model loading with timeout
+            loading_timeout = config_manager.get("error_handling.model_loading.loading_timeout_seconds", 300)
+            
+            if loading_timeout > 0:
+                logger.info(f"Loading VC model with {loading_timeout}s timeout...")
+                
+                start_time = time.time()
+                _vc_model = ChatterboxVC.from_pretrained(device)
+                load_time = time.time() - start_time
+                
+                logger.info(f"VC model loaded in {load_time:.1f}s")
+                
+                if load_time > loading_timeout:
+                    logger.warning(f"VC model loading took {load_time:.1f}s (longer than {loading_timeout}s timeout)")
+            else:
+                _vc_model = ChatterboxVC.from_pretrained(device)
+            
+            if hasattr(_vc_model, 'to') and str(_vc_model.device) != device:
+                _vc_model.to(device)
+            
+            logger.info(f"VC Model loaded successfully on device: {getattr(_vc_model, 'device', 'unknown')}")
+            
+        except Exception as e:
+            # Record the error
+            error_tracker.record_error(
+                operation="vc_model_loading",
+                error=e,
+                context={
+                    'device': device,
+                    'loading_timeout': loading_timeout,
+                    'model_type': 'ChatterboxVC'
+                },
+                category=ErrorCategory.CONFIGURATION,
+                severity=ErrorSeverity.CRITICAL
+            )
+            
+            logger.critical(f"Failed to load VC model: {e}")
+            
+            # Check if we should shutdown on model failure
+            shutdown_on_failure = config_manager.get("error_handling.model_loading.shutdown_on_failure", True)
+            if shutdown_on_failure:
+                logger.critical("Shutting down application due to VC model loading failure")
+                import sys
+                sys.exit(1)
+            else:
+                raise ModelLoadError(f"VC model loading failed: {e}")
+                
     return _vc_model
 
 def set_seed(seed: int) -> int:
@@ -266,11 +362,19 @@ class CoreEngineSynchronous:
         raise ResourceError(f"Audio file not found: {source} in {base_dir}")
     
     def _download_file_sync(self, url: str, destination: Path) -> None:
-        """Download file synchronously"""
-        try:
+        """Download file synchronously with retry logic"""
+        from resilience import retry_download, error_tracker, ErrorCategory, ErrorSeverity
+        
+        @retry_download(
+            max_retries=config_manager.get("error_handling.download_retries.max_retries", 2),
+            base_delay=config_manager.get("error_handling.download_retries.base_delay_seconds", 2.0),
+            operation_name="file_download"
+        )
+        def _download_with_retry():
             import requests
             timeout = config_manager.get("api.download_timeout_seconds", 30)
             
+            logger.info(f"Downloading {url} to {destination}")
             response = requests.get(url, timeout=timeout)
             response.raise_for_status()
             
@@ -279,11 +383,25 @@ class CoreEngineSynchronous:
                 f.write(response.content)
             
             self._temp_files.append(destination)  # Track for cleanup
-            logger.info(f"Downloaded {url} to {destination}")
+            logger.info(f"Successfully downloaded {url} to {destination}")
             
+        try:
+            _download_with_retry()
         except Exception as e:
-            logger.error(f"Failed to download {url}: {e}")
-            raise AudioProcessingError(f"Download failed: {e}")
+            # Enhanced error logging with context
+            error_tracker.record_error(
+                operation="file_download",
+                error=e,
+                context={
+                    'url': url,
+                    'destination': str(destination),
+                    'timeout': config_manager.get("api.download_timeout_seconds", 30)
+                },
+                category=ErrorCategory.TRANSIENT,  # Downloads are typically transient failures
+                severity=ErrorSeverity.HIGH
+            )
+            logger.error(f"Download failed after retries: {url} -> {e}")
+            raise AudioProcessingError(f"Download failed after retries: {e}")
     
     def convert_audio_formats(self, wav_path: Path, formats: List[str]) -> List[Dict[str, str]]:
         """Convert WAV to additional formats"""

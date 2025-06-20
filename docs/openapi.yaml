@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: Chatterbox TTS Extended Plus API
-  description: Advanced Text-to-Speech and Voice Conversion API with chunking, retry logic, and Whisper validation
-  version: 1.0.0
+  description: Advanced Text-to-Speech and Voice Conversion API with chunking, retry logic, Whisper validation, and comprehensive error handling
+  version: 1.8.2
   contact:
     name: API Support
   license:
@@ -287,6 +287,84 @@ paths:
         '404':
           description: File not found
 
+  /api/v1/errors/summary:
+    get:
+      summary: Get Error Summary
+      description: Get comprehensive error summary for the last 24 hours with categorization
+      operationId: getErrorSummary
+      tags:
+        - System
+      responses:
+        '200':
+          description: Error summary retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorSummaryResponse'
+              example:
+                total_errors: 5
+                by_category:
+                  transient: 3
+                  permanent: 2
+                by_severity:
+                  medium: 4
+                  high: 1
+                by_operation:
+                  file_download: 3
+                  tts_generation: 2
+                most_frequent:
+                  "file_download:ConnectionError": 3
+                unresolved_count: 1
+                recent_errors: []
+
+  /api/v1/errors/recent:
+    get:
+      summary: Get Recent Errors
+      description: Get recent errors for debugging purposes
+      operationId: getRecentErrors
+      tags:
+        - System
+      parameters:
+        - name: count
+          in: query
+          description: Number of recent errors to retrieve (max 50)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          example: 10
+      responses:
+        '200':
+          description: Recent errors retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recent_errors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ErrorRecord'
+                  total_stored:
+                    type: integer
+                    description: Total number of errors stored in memory
+              example:
+                recent_errors:
+                  - timestamp: "2025-06-19T10:30:00Z"
+                    operation: "file_download"
+                    error_type: "ConnectionError"
+                    error_message: "Connection timeout"
+                    category: "transient"
+                    severity: "medium"
+                    context:
+                      url: "https://example.com/audio.wav"
+                      attempt: 1
+                    retry_count: 0
+                    resolved: false
+                total_stored: 47
+
 components:
   schemas:
     TTSRequest:
@@ -463,6 +541,9 @@ components:
           items:
             type: string
           description: System warnings
+        error_summary:
+          $ref: '#/components/schemas/ErrorSummaryResponse'
+          description: Error summary for last 24 hours (only present if errors exist)
 
     ConfigResponse:
       type: object
@@ -642,6 +723,113 @@ components:
               duration_seconds:
                 type: number
                 format: float
+
+    ErrorSummaryResponse:
+      type: object
+      description: Comprehensive error summary with categorization
+      properties:
+        total_errors:
+          type: integer
+          description: Total number of errors in the time period
+          example: 5
+        by_category:
+          type: object
+          description: Error count by category
+          additionalProperties:
+            type: integer
+          example:
+            transient: 3
+            permanent: 2
+            resource: 0
+            configuration: 0
+        by_severity:
+          type: object
+          description: Error count by severity level
+          additionalProperties:
+            type: integer
+          example:
+            low: 0
+            medium: 4
+            high: 1
+            critical: 0
+        by_operation:
+          type: object
+          description: Error count by operation type
+          additionalProperties:
+            type: integer
+          example:
+            file_download: 3
+            tts_generation: 2
+        most_frequent:
+          type: object
+          description: Most frequently occurring errors (operation:error_type)
+          additionalProperties:
+            type: integer
+          example:
+            "file_download:ConnectionError": 3
+        unresolved_count:
+          type: integer
+          description: Number of unresolved errors
+          example: 1
+        recent_errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorRecord'
+          description: Recent error details
+
+    ErrorRecord:
+      type: object
+      description: Individual error record with full context
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+          example: "2025-06-19T10:30:00Z"
+        operation:
+          type: string
+          description: Operation that failed
+          example: "file_download"
+        error_type:
+          type: string
+          description: Type of error (exception class name)
+          example: "ConnectionError"
+        error_message:
+          type: string
+          description: Error message details
+          example: "Connection timeout occurred"
+        category:
+          type: string
+          enum: [transient, permanent, resource, configuration]
+          description: Automatic error categorization
+          example: "transient"
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Error severity level
+          example: "medium"
+        context:
+          type: object
+          description: Additional context about the error
+          additionalProperties: true
+          example:
+            url: "https://example.com/audio.wav"
+            attempt: 1
+            timeout: 30
+        retry_count:
+          type: integer
+          description: Number of retry attempts
+          example: 0
+        resolved:
+          type: boolean
+          description: Whether the error has been resolved
+          example: false
+        resolution_timestamp:
+          type: string
+          format: date-time
+          description: When the error was resolved (if applicable)
+          example: "2025-06-19T10:32:00Z"
+          nullable: true
 
     ErrorResponse:
       type: object
