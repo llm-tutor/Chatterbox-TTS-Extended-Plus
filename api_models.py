@@ -150,6 +150,8 @@ class HealthResponse(BaseModel):
     uptime_seconds: Optional[float] = None
     metrics: Optional[Dict[str, Any]] = None
     system_info: Optional[Dict[str, Any]] = None
+    resource_status: Optional[Dict[str, Any]] = None
+    warnings: Optional[List[str]] = None
 
 
 class ConfigResponse(BaseModel):

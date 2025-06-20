@@ -75,6 +75,106 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VoicesResponse'
+
+  /api/v1/resources:
+    get:
+      summary: Get Resource Status
+      description: Get current resource usage status including disk space, file counts, and warnings
+      operationId: getResourceStatus
+      tags:
+        - System
+      responses:
+        '200':
+          description: Resource status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceStatusResponse'
+              example:
+                timestamp: "2025-06-19T23:15:30.123456+00:00"
+                directories:
+                  outputs:
+                    size_bytes: 1073741824
+                    size_mb: 1024.0
+                    max_size_mb: 5120.0
+                    usage_percent: 20.0
+                    file_count: 25
+                  temp:
+                    size_bytes: 52428800
+                    size_mb: 50.0
+                    file_count: 15
+                    max_files: 200
+                    usage_percent: 7.5
+                  vc_inputs:
+                    size_bytes: 524288000
+                    size_mb: 500.0
+                    max_size_mb: 2048.0
+                    usage_percent: 24.4
+                    file_count: 8
+                warnings: []
+
+  /api/v1/cleanup:
+    post:
+      summary: Force Cleanup
+      description: Force immediate cleanup operation
+      operationId: forceCleanup
+      tags:
+        - System
+      responses:
+        '200':
+          description: Cleanup completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanupResponse'
+              example:
+                timestamp: "2025-06-19T23:16:00.123456+00:00"
+                forced: true
+                total_files_removed: 12
+                total_bytes_freed: 104857600
+                duration_seconds: 1.25
+                actions:
+                  temp_age_cleanup:
+                    files_removed: 5
+                    bytes_freed: 52428800
+                  temp_count_cleanup:
+                    files_removed: 3
+                    bytes_freed: 31457280
+                  output_size_cleanup:
+                    files_removed: 4
+                    bytes_freed: 20971520
+
+  /api/v1/cleanup/status:
+    get:
+      summary: Get Cleanup Status
+      description: Get cleanup scheduler status and history
+      operationId: getCleanupStatus
+      tags:
+        - System
+      responses:
+        '200':
+          description: Cleanup status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanupStatusResponse'
+              example:
+                scheduler:
+                  running: true
+                  cleanup_on_startup: true
+                  cleanup_interval_hours: 5
+                  last_cleanup_time: "2025-06-19T18:00:00.123456+00:00"
+                  cleanup_count: 3
+                  next_cleanup_time: "2025-06-19T23:00:00.123456+00:00"
+                history:
+                  - timestamp: "2025-06-19T18:00:00.123456+00:00"
+                    total_files_removed: 8
+                    total_bytes_freed: 83886080
+                    duration_seconds: 0.85
+                  - timestamp: "2025-06-19T13:00:00.123456+00:00"
+                    total_files_removed: 5
+                    total_bytes_freed: 52428800
+                    duration_seconds: 0.62
   /api/v1/tts:
     post:
       summary: Text-to-Speech Generation
@@ -350,6 +450,19 @@ components:
         uptime_seconds:
           type: number
           format: float
+        metrics:
+          type: object
+          description: Performance and system metrics
+        system_info:
+          type: object
+          description: System information
+        resource_status:
+          $ref: '#/components/schemas/ResourceStatusResponse'
+        warnings:
+          type: array
+          items:
+            type: string
+          description: System warnings
 
     ConfigResponse:
       type: object
@@ -380,6 +493,155 @@ components:
               path:
                 type: string
                 description: Relative path to voice file
+
+    ResourceStatusResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of resource status check
+        directories:
+          type: object
+          properties:
+            outputs:
+              $ref: '#/components/schemas/DirectoryInfo'
+            temp:
+              $ref: '#/components/schemas/TempDirectoryInfo'
+            vc_inputs:
+              $ref: '#/components/schemas/DirectoryInfo'
+        warnings:
+          type: array
+          items:
+            type: string
+            description: Resource warning messages
+
+    DirectoryInfo:
+      type: object
+      properties:
+        size_bytes:
+          type: integer
+          description: Directory size in bytes
+        size_mb:
+          type: number
+          format: float
+          description: Directory size in megabytes
+        max_size_mb:
+          type: number
+          format: float
+          description: Maximum allowed size in megabytes
+        usage_percent:
+          type: number
+          format: float
+          description: Usage percentage of maximum size
+        file_count:
+          type: integer
+          description: Number of files in directory
+
+    TempDirectoryInfo:
+      type: object
+      properties:
+        size_bytes:
+          type: integer
+          description: Directory size in bytes
+        size_mb:
+          type: number
+          format: float
+          description: Directory size in megabytes
+        file_count:
+          type: integer
+          description: Number of files in directory
+        max_files:
+          type: integer
+          description: Maximum allowed files
+        usage_percent:
+          type: number
+          format: float
+          description: Usage percentage of maximum file count
+
+    CleanupResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Cleanup operation timestamp
+        forced:
+          type: boolean
+          description: Whether this was a forced cleanup
+        total_files_removed:
+          type: integer
+          description: Total number of files removed
+        total_bytes_freed:
+          type: integer
+          description: Total bytes freed
+        duration_seconds:
+          type: number
+          format: float
+          description: Cleanup operation duration
+        actions:
+          type: object
+          properties:
+            temp_age_cleanup:
+              $ref: '#/components/schemas/CleanupAction'
+            temp_count_cleanup:
+              $ref: '#/components/schemas/CleanupAction'
+            output_size_cleanup:
+              $ref: '#/components/schemas/CleanupAction'
+            vc_inputs_size_cleanup:
+              $ref: '#/components/schemas/CleanupAction'
+
+    CleanupAction:
+      type: object
+      properties:
+        files_removed:
+          type: integer
+          description: Files removed by this action
+        bytes_freed:
+          type: integer
+          description: Bytes freed by this action
+
+    CleanupStatusResponse:
+      type: object
+      properties:
+        scheduler:
+          type: object
+          properties:
+            running:
+              type: boolean
+              description: Whether scheduler is running
+            cleanup_on_startup:
+              type: boolean
+              description: Whether cleanup runs on startup
+            cleanup_interval_hours:
+              type: integer
+              description: Cleanup interval in hours
+            last_cleanup_time:
+              type: string
+              format: date-time
+              description: Last cleanup timestamp
+            cleanup_count:
+              type: integer
+              description: Number of cleanups performed
+            next_cleanup_time:
+              type: string
+              format: date-time
+              description: Next scheduled cleanup time
+        history:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              total_files_removed:
+                type: integer
+              total_bytes_freed:
+                type: integer
+              duration_seconds:
+                type: number
+                format: float
 
     ErrorResponse:
       type: object

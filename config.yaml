@@ -70,3 +70,19 @@ ui:
   title: "Chatterbox TTS Extended Plus"
   mount_path: "/ui"
   enable_ui: true
+
+# Resource Management (Phase 7.2)
+resource_management:
+  cleanup:
+    # Disk space limits
+    output_dir_max_size_gb: 5.0          # 5GB total for outputs/
+    temp_dir_max_files: 200              # Max 200 files in temp/
+    temp_dir_max_age_days: 7             # Max 1 week old temp files
+    vc_inputs_max_size_gb: 2.0           # 2GB total for vc_inputs/
+    
+    # Cleanup schedule
+    cleanup_on_startup: true             # Clean on app startup
+    cleanup_interval_hours: 5            # Every 5 hours
+    
+    # Warning thresholds (% of limits)
+    warning_threshold_percent: 80        # Warn at 80% of limits

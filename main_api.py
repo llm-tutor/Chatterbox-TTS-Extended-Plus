@@ -31,6 +31,9 @@ from monitoring import (
     record_operation_time
 )
 
+# Resource management
+from management import cleanup_scheduler, resource_manager
+
 # Setup enhanced logging
 logger = get_logger(__name__)
 
@@ -58,10 +61,18 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"Could not preload models: {e}")
     
+    # Start cleanup scheduler
+    try:
+        cleanup_scheduler.start()
+        logger.info("Cleanup scheduler started successfully")
+    except Exception as e:
+        logger.warning(f"Could not start cleanup scheduler: {e}")
+    
     yield
     
     # Shutdown
     logger.info("Shutting down application")
+    cleanup_scheduler.stop()
     engine_sync.cleanup_temp_files()
 
 # Create FastAPI app
@@ -207,13 +218,19 @@ async def health_check():
     basic_metrics = get_metrics()
     system_metrics = get_system_metrics()
     
+    # Get resource status and warnings
+    resource_status = resource_manager.get_resource_status()
+    warnings = resource_status.get("warnings", [])
+    
     return HealthResponse(
         status="healthy",
         models_loaded={"tts": tts_loaded, "vc": vc_loaded},
         version="1.7.0",
         uptime_seconds=uptime,
         metrics=basic_metrics,
-        system_info=system_metrics['system']
+        system_info=system_metrics['system'],
+        resource_status=resource_status,
+        warnings=warnings if warnings else None
     )
 
 @app.get("/api/v1/metrics")
@@ -262,6 +279,24 @@ async def list_voices():
                 ))
     
     return VoicesResponse(voices=voices, count=len(voices))
+
+@app.get("/api/v1/resources")
+async def get_resource_status():
+    """Get current resource usage status"""
+    return resource_manager.get_resource_status()
+
+@app.post("/api/v1/cleanup")
+async def force_cleanup():
+    """Force immediate cleanup operation"""
+    return cleanup_scheduler.force_cleanup()
+
+@app.get("/api/v1/cleanup/status")
+async def get_cleanup_status():
+    """Get cleanup scheduler status and history"""
+    return {
+        "scheduler": cleanup_scheduler.get_status(),
+        "history": cleanup_scheduler.get_history(limit=5)
+    }
 
 # Mount Gradio UI
 if config_manager.get("ui.enable_ui", True):
