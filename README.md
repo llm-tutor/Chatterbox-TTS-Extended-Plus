@@ -230,6 +230,25 @@ If FFMPEG isn’t in your PATH, put the executable in the same directory as your
 
 ---
 
+## 🌐 HTTP API Access
+
+This project now includes a FastAPI-based HTTP API that provides programmatic access to all TTS and Voice Conversion features. You can run the application as an API server and access both the original Gradio UI and REST API endpoints.
+
+**📖 For detailed API documentation, see:** [README-API.md](README-API.md)
+
+**Quick Start:**
+```bash
+# Start the API server (includes both API and UI)
+python main_api.py
+
+# Access points:
+# - API: http://localhost:7860/api/v1/
+# - UI: http://localhost:7860/ui (original Gradio interface)  
+# - Docs: http://localhost:7860/docs (interactive API documentation)
+```
+
+---
+
 ## 📣 Feedback & Contributions
 
 Open an issue or pull request for suggestions, bug reports, or improvements!

@@ -1,4 +1,4 @@
-gradio==5.32.0
+gradio==5.34.0
 numpy==2.2.6
 nltk==3.9.1
 faster-whisper==1.1.1
@@ -8,7 +8,7 @@ auto-editor==27.1.1
 resampy==0.4.3
 librosa==0.10.0
 s3tokenizer==0.1.7
-spaces==0.36.0
+spaces==0.37.0
 transformers==4.46.3
 diffusers==0.29.0
 omegaconf==2.3.0
@@ -19,3 +19,20 @@ soundfile==0.13.1
 --extra-index-url=https://download.pytorch.org/whl/cu128
 torch==2.7.0
 torchaudio==2.7.0
+
+# FastAPI and related dependencies
+fastapi==0.115.13
+uvicorn[standard]==0.34.3
+pydantic==2.11.7
+httpx==0.28.1
+python-multipart==0.0.20
+aiofiles==24.1.0
+
+# Audio processing (additional)
+pydub==0.25.1
+
+# YAML configuration
+PyYAML==6.0.2
+
+# System monitoring
+psutil==5.9.8
