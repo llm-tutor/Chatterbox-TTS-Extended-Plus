@@ -69,13 +69,24 @@
 - [x] Define reasonable min/max limits (0.5x to 2.0x)
 - [x] Test pitch preservation and audio quality
 
-#### **Task 10.1.1: Speed Factor Library Revision** (NEW)
-- [ ] Research alternative libraries for pitch-preserving speed adjustment
-- [ ] Evaluate options: PSOLA, phase vocoder, neural approaches
-- [ ] Test quality of different implementations (librosa vs alternatives)
-- [ ] Implement improved speed factor method with better audio quality
-- [ ] Update fallback chain for robust operation
-- [ ] Validate audio quality across all speed ranges
+#### **Task 10.1.1: Speed Factor Library Revision** (RESEARCH COMPLETE - IMPLEMENTATION DEFERRED)
+- [x] Research alternative libraries for pitch-preserving speed adjustment
+- [x] Evaluate options: PSOLA, phase vocoder, neural approaches
+- [x] Test quality of different implementations (librosa vs alternatives)
+- [x] Implement improved speed factor method with better audio quality
+- [x] Update fallback chain for robust operation
+- [x] Validate audio quality across all speed ranges
+- [x] **PERFORMANCE ISSUE IDENTIFIED**: Enhanced implementation causes 10x TTS slowdown
+- [x] **SOLUTION BACKED UP**: Complete working implementation saved for future optimization
+- [x] **REVERTED TO BASELINE**: Phase 10.1 librosa implementation restored
+
+#### **Task 10.1.2: Speed Factor Performance Optimization** (NEW - FUTURE TASK)
+- [ ] Investigate root cause of progressive performance degradation
+- [ ] Optimize library loading and initialization approach
+- [ ] Consider alternative integration strategies (startup pre-loading, separate process, etc.)
+- [ ] Re-implement enhanced speed factor without performance regression
+- [ ] Integrate audiostretchy and pyrubberband for production use
+- [ ] Validate performance matches Phase 10.1 baseline (~23 seconds)
 
 #### **Task 10.2: Enhanced Voice Metadata System**
 - [x] Design voice metadata JSON schema
