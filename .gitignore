@@ -21,6 +21,11 @@ vc_inputs/*.flac
 reference_audio/*/*.mp3
 reference_audio/*/*.wav
 reference_audio/*/*.flac
+reference_audio/*/*.json
+reference_audio/*.mp3
+reference_audio/*.wav
+reference_audio/*.flac
+reference_audio/*.json
 
 # Config
 settings.json

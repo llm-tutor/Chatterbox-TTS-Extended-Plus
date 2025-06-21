@@ -6,7 +6,7 @@ import time
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 
 from fastapi import FastAPI, HTTPException, Request, Query, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
@@ -17,7 +17,7 @@ import uvicorn
 from api_models import (
     TTSRequest, VCRequest, TTSResponse, VCResponse, 
     ErrorResponse, HealthResponse, ConfigResponse,
-    VoicesResponse, VoiceInfo, ErrorSummaryResponse
+    VoicesResponse, VoiceInfo, VoiceMetadata, ErrorSummaryResponse
 )
 from core_engine import engine_sync, get_or_load_tts_model, get_or_load_vc_model
 from config import config_manager
@@ -459,8 +459,16 @@ async def get_config():
     )
 
 @app.get("/api/v1/voices", response_model=VoicesResponse)
-async def list_voices():
-    """List available reference voices"""
+async def list_voices(
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(50, ge=1, le=100, description="Items per page"),
+    search: Optional[str] = Query(None, description="Search term for voice names"),
+    folder: Optional[str] = Query(None, description="Filter by folder path")
+):
+    """List available reference voices with enhanced metadata, pagination, and search"""
+    from utils import load_voice_metadata
+    import math
+    
     voices = []
     
     ref_audio_dir = Path(config_manager.get("paths.reference_audio_dir", "reference_audio"))
@@ -472,19 +480,56 @@ async def list_voices():
             if audio_file.is_file() and audio_file.suffix.lower() in audio_extensions:
                 relative_path = audio_file.relative_to(ref_audio_dir)
                 
-                # Get file info
-                try:
-                    file_size = audio_file.stat().st_size
-                except:
-                    file_size = None
+                # Load enhanced metadata
+                metadata = load_voice_metadata(audio_file)
                 
-                voices.append(VoiceInfo(
-                    path=str(relative_path),
-                    name=audio_file.stem,
-                    size=file_size
-                ))
+                # Calculate folder path
+                folder_path = str(relative_path.parent) if relative_path.parent != Path('.') else None
+                
+                # Apply folder filter
+                if folder and folder_path != folder:
+                    continue
+                
+                # Apply search filter
+                if search:
+                    search_lower = search.lower()
+                    if not (search_lower in metadata.get('name', '').lower() or 
+                           search_lower in metadata.get('description', '').lower() or
+                           any(search_lower in tag.lower() for tag in metadata.get('tags', []))):
+                        continue
+                
+                voice_metadata = VoiceMetadata(
+                    name=metadata.get('name', audio_file.stem),
+                    description=metadata.get('description'),
+                    duration_seconds=metadata.get('duration_seconds'),
+                    sample_rate=metadata.get('sample_rate'),
+                    file_size_bytes=metadata.get('file_size_bytes'),
+                    format=metadata.get('format'),
+                    default_parameters=metadata.get('default_parameters'),
+                    tags=metadata.get('tags', []),
+                    created_date=metadata.get('created_date'),
+                    last_used=metadata.get('last_used'),
+                    usage_count=metadata.get('usage_count', 0),
+                    folder_path=folder_path
+                )
+                voices.append(voice_metadata)
     
-    return VoicesResponse(voices=voices, count=len(voices))
+    # Calculate pagination
+    total_voices = len(voices)
+    total_pages = math.ceil(total_voices / page_size) if total_voices > 0 else 1
+    start_idx = (page - 1) * page_size
+    end_idx = start_idx + page_size
+    paginated_voices = voices[start_idx:end_idx]
+    
+    return VoicesResponse(
+        voices=paginated_voices,
+        count=len(paginated_voices),
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        has_next=page < total_pages,
+        has_previous=page > 1
+    )
 
 @app.get("/api/v1/resources")
 async def get_resource_status():

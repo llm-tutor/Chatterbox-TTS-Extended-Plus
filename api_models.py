@@ -52,6 +52,7 @@ class TTSRequest(BaseModel):
     normalize_tp: float = Field(-2.0, description="True peak level")
     normalize_lra: float = Field(7.0, description="Loudness range")
     sound_words_field: str = Field("", description="Sound words field")
+    speed_factor: float = Field(1.0, ge=0.5, le=2.0, description="Speed adjustment factor (0.5x to 2.0x)")
     export_formats: List[str] = Field(["wav", "mp3"], description="Export formats")
     disable_watermark: bool = Field(True, description="Disable watermark")
 
@@ -182,7 +183,28 @@ class VoiceInfo(BaseModel):
     duration: Optional[float] = None
 
 
+class VoiceMetadata(BaseModel):
+    """Enhanced voice metadata"""
+    name: str
+    description: Optional[str] = None
+    duration_seconds: Optional[float] = None
+    sample_rate: Optional[int] = None
+    file_size_bytes: Optional[int] = None
+    format: Optional[str] = None
+    default_parameters: Optional[Dict[str, Any]] = None
+    tags: List[str] = Field(default_factory=list)
+    created_date: Optional[str] = None
+    last_used: Optional[str] = None
+    usage_count: int = 0
+    folder_path: Optional[str] = None
+
+
 class VoicesResponse(BaseModel):
-    """Available voices response"""
-    voices: List[VoiceInfo]
+    """Enhanced available voices response with pagination"""
+    voices: List[VoiceMetadata]
     count: int
+    page: int = 1
+    page_size: int = 50
+    total_pages: int = 1
+    has_next: bool = False
+    has_previous: bool = False

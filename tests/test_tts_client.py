@@ -211,7 +211,7 @@ def main():
     print("TEST 4: With Reference Audio")
     client.test_tts_streaming(
         text="This is test four with reference audio cloning.",
-        reference_audio_filename="speaker_en/DAVID-2.mp3",  # Adjust this path as needed
+        reference_audio_filename="speaker_en/jamie_vc_to_david-2.wav",  # Adjust this path as needed
         export_formats=["wav", "mp3"],
         return_format="wav",
         temperature=0.8,

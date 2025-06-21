@@ -53,6 +53,8 @@ def generate_enhanced_filename(generation_type: str, parameters: Dict[str, Any],
             param_parts.append(f"seed{parameters['seed']}")
         if "exaggeration" in parameters and parameters["exaggeration"] != 0.5:
             param_parts.append(f"exag{parameters['exaggeration']}")
+        if "speed_factor" in parameters and parameters["speed_factor"] != 1.0:
+            param_parts.append(f"speed{parameters['speed_factor']}")
             
     elif generation_type == "vc":
         # Include key VC parameters
@@ -202,6 +204,253 @@ def format_file_size(size_bytes: int) -> str:
         i += 1
     
     return f"{size_bytes:.1f} {size_names[i]}"
+
+
+def apply_speed_factor(audio_tensor: torch.Tensor, sample_rate: int, speed_factor: float) -> torch.Tensor:
+    """
+    Apply speed factor to audio while preserving pitch using librosa
+    
+    Args:
+        audio_tensor: Input audio tensor (1D or 2D)
+        sample_rate: Audio sample rate
+        speed_factor: Speed multiplier (0.5x to 2.0x)
+    
+    Returns:
+        Speed-adjusted audio tensor
+    """
+    if speed_factor == 1.0:
+        return audio_tensor
+    
+    try:
+        import librosa
+        
+        # Convert tensor to numpy array
+        if isinstance(audio_tensor, torch.Tensor):
+            audio_np = audio_tensor.detach().cpu().numpy()
+        else:
+            audio_np = audio_tensor
+        
+        # Handle different tensor shapes
+        if audio_np.ndim == 2:
+            # Multi-channel audio - process each channel
+            processed_channels = []
+            for channel in range(audio_np.shape[0]):
+                processed_channel = librosa.effects.time_stretch(
+                    audio_np[channel], 
+                    rate=speed_factor
+                )
+                processed_channels.append(processed_channel)
+            processed_audio = np.stack(processed_channels, axis=0)
+        else:
+            # Single channel audio
+            processed_audio = librosa.effects.time_stretch(
+                audio_np, 
+                rate=speed_factor
+            )
+        
+        # Convert back to tensor
+        return torch.from_numpy(processed_audio).to(audio_tensor.device)
+        
+    except ImportError:
+        logger.warning("librosa not available, falling back to torchaudio")
+        return _apply_speed_factor_fallback(audio_tensor, sample_rate, speed_factor)
+    except Exception as e:
+        logger.error(f"Speed factor application failed: {e}")
+        logger.warning("Returning original audio without speed adjustment")
+        return audio_tensor
+
+
+def _apply_speed_factor_fallback(audio_tensor: torch.Tensor, sample_rate: int, speed_factor: float) -> torch.Tensor:
+    """
+    Fallback speed factor implementation using torchaudio resampling
+    
+    Note: This method does NOT preserve pitch and is less ideal than librosa
+    """
+    try:
+        import torchaudio
+        
+        # Calculate new sample rate for speed adjustment
+        new_sample_rate = int(sample_rate * speed_factor)
+        
+        # Resample to achieve speed change (will affect pitch)
+        resampled = torchaudio.functional.resample(
+            audio_tensor,
+            orig_freq=sample_rate,
+            new_freq=new_sample_rate
+        )
+        
+        # Resample back to original rate to maintain expected sample rate
+        return torchaudio.functional.resample(
+            resampled,
+            orig_freq=new_sample_rate, 
+            new_freq=sample_rate
+        )
+        
+    except ImportError:
+        logger.error("Neither librosa nor torchaudio available for speed adjustment")
+        return audio_tensor
+    except Exception as e:
+        logger.error(f"Fallback speed factor application failed: {e}")
+        return audio_tensor
+
+
+def calculate_audio_duration(file_path: Union[str, Path]) -> Optional[float]:
+    """
+    Calculate audio file duration in seconds using multiple methods
+    
+    Args:
+        file_path: Path to audio file
+    
+    Returns:
+        Duration in seconds or None if calculation fails
+    """
+    file_path = Path(file_path)
+    
+    if not file_path.exists():
+        return None
+    
+    try:
+        # Try soundfile first (fastest and most reliable)
+        import soundfile as sf
+        with sf.SoundFile(str(file_path)) as f:
+            return len(f) / f.samplerate
+    except Exception:
+        pass
+    
+    try:
+        # Fallback to librosa
+        import librosa
+        y, sr = librosa.load(str(file_path), sr=None)
+        return len(y) / sr
+    except Exception:
+        pass
+    
+    try:
+        # Fallback to pydub
+        from pydub import AudioSegment
+        audio = AudioSegment.from_file(str(file_path))
+        return len(audio) / 1000.0  # pydub returns milliseconds
+    except Exception:
+        pass
+    
+    logger.warning(f"Could not calculate duration for {file_path}")
+    return None
+
+
+def load_voice_metadata(voice_file_path: Union[str, Path]) -> Dict[str, Any]:
+    """
+    Load voice metadata from companion JSON file or calculate if missing
+    
+    Args:
+        voice_file_path: Path to voice audio file
+    
+    Returns:
+        Dictionary with voice metadata
+    """
+    import json
+    from datetime import datetime
+    
+    voice_path = Path(voice_file_path)
+    metadata_path = voice_path.with_suffix(voice_path.suffix + '.json')
+    
+    # Try to load existing metadata
+    metadata = {}
+    if metadata_path.exists():
+        try:
+            with open(metadata_path, 'r', encoding='utf-8') as f:
+                metadata = json.load(f)
+        except Exception as e:
+            logger.warning(f"Failed to load metadata for {voice_path}: {e}")
+    
+    # Calculate missing metadata
+    if not metadata.get('name'):
+        metadata['name'] = voice_path.stem
+    
+    if not metadata.get('duration_seconds'):
+        metadata['duration_seconds'] = calculate_audio_duration(voice_path)
+    
+    if not metadata.get('file_size_bytes'):
+        try:
+            metadata['file_size_bytes'] = voice_path.stat().st_size
+        except Exception:
+            metadata['file_size_bytes'] = None
+    
+    if not metadata.get('format'):
+        metadata['format'] = voice_path.suffix.lower().lstrip('.')
+    
+    if not metadata.get('sample_rate'):
+        try:
+            import soundfile as sf
+            with sf.SoundFile(str(voice_path)) as f:
+                metadata['sample_rate'] = f.samplerate
+        except Exception:
+            metadata['sample_rate'] = None
+    
+    if not metadata.get('created_date'):
+        try:
+            created_time = voice_path.stat().st_ctime
+            metadata['created_date'] = datetime.fromtimestamp(created_time).isoformat()
+        except Exception:
+            metadata['created_date'] = None
+    
+    # Ensure required fields have defaults
+    metadata.setdefault('description', f"Voice file: {voice_path.name}")
+    metadata.setdefault('tags', [])
+    metadata.setdefault('usage_count', 0)
+    metadata.setdefault('default_parameters', {})
+    
+    return metadata
+
+
+def save_voice_metadata(voice_file_path: Union[str, Path], metadata: Dict[str, Any]) -> bool:
+    """
+    Save voice metadata to companion JSON file
+    
+    Args:
+        voice_file_path: Path to voice audio file
+        metadata: Metadata dictionary to save
+    
+    Returns:
+        True if saved successfully, False otherwise
+    """
+    import json
+    from datetime import datetime
+    
+    try:
+        voice_path = Path(voice_file_path)
+        metadata_path = voice_path.with_suffix(voice_path.suffix + '.json')
+        
+        # Update timestamp
+        metadata['last_updated'] = datetime.now().isoformat()
+        
+        # Save metadata
+        with open(metadata_path, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, indent=2, ensure_ascii=False)
+        
+        logger.debug(f"Voice metadata saved: {metadata_path}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to save voice metadata for {voice_file_path}: {e}")
+        return False
+
+
+def update_voice_usage(voice_file_path: Union[str, Path]) -> None:
+    """
+    Update voice usage statistics
+    
+    Args:
+        voice_file_path: Path to voice audio file
+    """
+    from datetime import datetime
+    
+    try:
+        metadata = load_voice_metadata(voice_file_path)
+        metadata['usage_count'] = metadata.get('usage_count', 0) + 1
+        metadata['last_used'] = datetime.now().isoformat()
+        save_voice_metadata(voice_file_path, metadata)
+    except Exception as e:
+        logger.warning(f"Failed to update voice usage for {voice_file_path}: {e}")
 
 
 def validate_text_length(text: str, max_length: int = 10000) -> bool:

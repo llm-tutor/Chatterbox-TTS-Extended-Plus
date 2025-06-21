@@ -581,6 +581,13 @@ class CoreEngineSynchronous:
                         'tts_reference'
                     )
                     logger.info(f"Using reference audio: {ref_audio_path}")
+                    
+                    # Update voice usage statistics
+                    try:
+                        from utils import update_voice_usage
+                        update_voice_usage(ref_audio_path)
+                    except Exception as e:
+                        logger.warning(f"Failed to update voice usage: {e}")
                 
                 # Process text with preprocessing options (exclude 'text' from kwargs to avoid duplicate)
                 preprocessing_kwargs = {k: v for k, v in kwargs.items() if k != 'text'}
@@ -605,6 +612,7 @@ class CoreEngineSynchronous:
                         'temperature': kwargs.get('temperature', 0.75),
                         'seed': actual_seed,
                         'exaggeration': kwargs.get('exaggeration', 0.5),
+                        'speed_factor': kwargs.get('speed_factor', 1.0),
                         'cfg_weight': kwargs.get('cfg_weight', 1.0),
                         'num_candidates_per_chunk': kwargs.get('num_candidates_per_chunk', 3),
                         'max_attempts_per_candidate': kwargs.get('max_attempts_per_candidate', 3),
@@ -784,6 +792,22 @@ class CoreEngineSynchronous:
                 torchaudio.save(str(output_path), combined_audio, sample_rate)
                 logger.info(f"Combined {len(chunk_paths)} chunks to: {output_path}")
             
+            # Apply speed factor if specified
+            speed_factor = generation_params.get('speed_factor', 1.0) if generation_params else 1.0
+            if speed_factor != 1.0:
+                logger.info(f"Applying speed factor: {speed_factor}x")
+                
+                # Load the combined audio
+                audio_tensor, sample_rate = torchaudio.load(str(output_path))
+                
+                # Apply speed factor using utils function
+                from utils import apply_speed_factor
+                processed_audio = apply_speed_factor(audio_tensor, sample_rate, speed_factor)
+                
+                # Save the speed-adjusted audio
+                torchaudio.save(str(output_path), processed_audio, sample_rate)
+                logger.info(f"Speed factor {speed_factor}x applied successfully")
+            
             return str(output_path)
             
         except Exception as e:
@@ -833,6 +857,13 @@ class CoreEngineSynchronous:
                 
                 logger.info(f"Using input audio: {input_path}")
                 logger.info(f"Using target voice: {target_path}")
+                
+                # Update voice usage statistics for target voice
+                try:
+                    from utils import update_voice_usage
+                    update_voice_usage(target_path)
+                except Exception as e:
+                    logger.warning(f"Failed to update voice usage: {e}")
                 
                 # Call the VC generation logic
                 wav_output_path = self._process_vc_generation_sync(input_path, target_path, **kwargs)

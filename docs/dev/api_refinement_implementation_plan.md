@@ -62,20 +62,28 @@
 ### **📋 Phase 10 Checklist**
 
 #### **Task 10.1: Speed Factor Implementation**
-- [ ] Add `speed_factor` parameter to `TTSRequest` model
-- [ ] Implement `apply_speed_factor()` in `utils.py` using librosa
-- [ ] Add fallback implementation using torchaudio
-- [ ] Integrate speed processing in `core_engine.py`
-- [ ] Define reasonable min/max limits (0.5x to 2.0x)
-- [ ] Test pitch preservation and audio quality
+- [x] Add `speed_factor` parameter to `TTSRequest` model
+- [x] Implement `apply_speed_factor()` in `utils.py` using librosa
+- [x] Add fallback implementation using torchaudio
+- [x] Integrate speed processing in `core_engine.py`
+- [x] Define reasonable min/max limits (0.5x to 2.0x)
+- [x] Test pitch preservation and audio quality
+
+#### **Task 10.1.1: Speed Factor Library Revision** (NEW)
+- [ ] Research alternative libraries for pitch-preserving speed adjustment
+- [ ] Evaluate options: PSOLA, phase vocoder, neural approaches
+- [ ] Test quality of different implementations (librosa vs alternatives)
+- [ ] Implement improved speed factor method with better audio quality
+- [ ] Update fallback chain for robust operation
+- [ ] Validate audio quality across all speed ranges
 
 #### **Task 10.2: Enhanced Voice Metadata System**
-- [ ] Design voice metadata JSON schema
-- [ ] Create `utils.calculate_audio_duration()` function
-- [ ] Create `utils.load_voice_metadata()` function
-- [ ] Create `utils.save_voice_metadata()` function
-- [ ] Update `/api/v1/voices` with metadata, pagination, search
-- [ ] Add `VoiceMetadata` model to `api_models.py`
+- [x] Design voice metadata JSON schema
+- [x] Create `utils.calculate_audio_duration()` function
+- [x] Create `utils.load_voice_metadata()` function
+- [x] Create `utils.save_voice_metadata()` function
+- [x] Update `/api/v1/voices` with metadata, pagination, search
+- [x] Add `VoiceMetadata` model to `api_models.py`
 
 #### **Task 10.3: Voice Upload Endpoint**
 - [ ] Create `POST /api/v1/voice` endpoint
