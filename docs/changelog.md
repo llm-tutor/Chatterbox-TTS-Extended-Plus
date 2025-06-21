@@ -6,9 +6,106 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-### Ready for Production Deployment
-- **Phase 7 Complete**: All enhanced operations and monitoring tasks completed successfully
-- **Production Ready**: Comprehensive monitoring, resource management, and error handling capabilities
+### Ready for Phase 10 Implementation
+- **Phase 9 Complete**: All Core Response & Upload Enhancement tasks completed successfully
+- **Production Ready**: Enhanced filename patterns, metadata system, streaming responses, and direct file uploads with comprehensive testing
+
+---
+
+## [1.9.0] - 2025-06-21
+
+### Added
+- **Enhanced File Naming System** with timestamp and parameter-based patterns (147 lines)
+- **Generation Metadata System** with JSON companion files for complete generation context (85 lines)
+- **Streaming Response Implementation** for direct file downloads with proper headers (45 lines)
+- **Direct File Upload Support** for VC endpoint with multipart/form-data handling (145 lines)
+- **Format Selection Control** via `return_format` query parameter for precise format streaming
+- **Alternative Formats Header** (`X-Alternative-Formats`) for accessing non-streamed formats
+- **Enhanced Filename Patterns**:
+  - TTS: `tts_2025-06-20_143022_456_temp0.75_seed42.wav`
+  - VC: `vc_2025-06-20_143045_789_chunk60_overlap0.1_voicespeaker2.wav`
+  - Metadata: `{filename}.json` companions with complete generation context
+- **Comprehensive Documentation Updates** (300+ lines):
+  - Clear distinction between JSON and Upload modes for VC
+  - Updated API documentation with streaming and upload examples
+  - Enhanced OpenAPI specification with multipart/form-data support
+  - Python and curl examples for all new features
+
+### Changed
+- **Enhanced TTS Generation** now uses timestamp-based naming with key parameters
+- **Enhanced VC Generation** supports both JSON requests and direct file uploads
+- **Streaming Response Default** - API now defaults to direct file downloads (`response_mode=stream`)
+- **Format Selection Logic** - users can specify exact format to stream via `return_format` parameter
+- **Core Engine Integration** with metadata generation and enhanced filename patterns
+- **API Endpoints Enhanced**:
+  - `/api/v1/tts` now supports streaming responses, format selection, and enhanced naming
+  - `/api/v1/vc` now supports file uploads, streaming responses, and dual request modes
+- **Backward Compatibility Maintained** - all existing functionality preserved via `response_mode=url`
+
+### Fixed
+- **FLAC Conversion Issue** - removed invalid `compression_level` parameter for pydub FLAC export
+- **Logging Middleware Crash** - fixed `exc_info` parameter handling in enhanced logger
+- **File Path Resolution** - improved handling of uploaded temp files and absolute paths
+- **VC Endpoint Parameter Binding** - fixed JSON request parsing when mixed with Form parameters
+
+### Technical Implementation
+- **Enhanced Filename Generation**: `generate_enhanced_filename()` with type-specific parameter encoding
+- **Metadata Management**: `save_generation_metadata()` for comprehensive generation tracking
+- **Streaming Utilities**: `create_file_stream_response()` with proper Content-Disposition headers
+- **File Upload Handling**: Secure temp file management with automatic cleanup
+- **Content Type Detection**: Smart request mode detection for JSON vs multipart requests
+- **Format Selection Logic**: Intelligent fallback when requested format unavailable
+
+### Tested
+- **✅ Enhanced Filename Generation**: Timestamp-based naming with parameters working correctly
+- **✅ Metadata System**: JSON companion files created with complete generation context
+- **✅ Streaming Responses**: Direct file downloads with proper headers functional
+- **✅ File Upload Validation**: Format checking, size limits, and security validation working
+- **✅ Format Selection**: MP3, FLAC, WAV streaming with `return_format` parameter
+- **✅ Alternative Formats Header**: Provides URLs to non-streamed formats
+- **✅ Dual VC Modes**: Both JSON (server files) and Upload (direct files) modes functional
+- **✅ Auto-reload Development**: Enabled for efficient development workflow
+- **✅ Comprehensive Test Suite**: Both TTS and VC test clients passing all scenarios
+
+### Security & Performance
+- **File Upload Security**: Extension whitelist, size limits (100MB), content validation
+- **Automatic Cleanup**: Uploaded files cleaned immediately after processing
+- **Path Sanitization**: Secure temp file handling with unique naming
+- **Content Type Safety**: Proper MIME type detection and headers
+- **Efficient Streaming**: 8KB chunks for optimal memory usage
+- **Smart Cleanup**: Automatic temp file cleanup prevents disk space issues
+
+### Documentation
+Enhanced API documentation with:
+```markdown
+### Key Differences:
+| Method | Input Audio | Target Voice | Use Case |
+|--------|-------------|--------------|----------|
+| **JSON** | Must be in `vc_inputs/` | Must be in `reference_audio/` | Server-side files, automation |
+| **Upload** | Uploaded directly | Must be in `reference_audio/` | Client-side files, web apps |
+```
+
+### Configuration
+Enhanced main_api.py with development features:
+```python
+uvicorn.run(
+    "main_api:app",
+    host=host,
+    port=port,
+    log_level=log_level,
+    reload=True  # Auto-reload enabled for development
+)
+```
+
+### Notes
+- **Phase 9 Completed**: All Core Response & Upload Enhancement tasks successfully implemented
+- **522+ lines** of new functionality across utils, core engine, API layers, and documentation
+- **Comprehensive Testing**: Both automated test clients and manual validation completed
+- **Production Ready**: Enhanced user experience with streaming, upload capabilities, and format control
+- **Next Phase**: Ready for Phase 10 - Speed Control & Voice Enhancement
+- **API Evolution**: Modern streaming-first API with backward compatibility
+- **User Experience**: Single-step workflows with direct downloads and file uploads
+- **Developer Experience**: Clear documentation and examples for both request modes
 
 ---
 

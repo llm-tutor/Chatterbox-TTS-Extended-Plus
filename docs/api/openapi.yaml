@@ -178,10 +178,26 @@ paths:
   /api/v1/tts:
     post:
       summary: Text-to-Speech Generation
-      description: Generate speech from text with optional voice cloning and advanced features
+      description: Generate speech from text with optional voice cloning, streaming response, and enhanced features
       operationId: generateTTS
       tags:
         - TTS
+      parameters:
+        - name: response_mode
+          in: query
+          description: Response mode - 'stream' for direct file download, 'url' for JSON response
+          required: false
+          schema:
+            type: string
+            enum: [stream, url, file, download]
+            default: stream
+        - name: return_format
+          in: query
+          description: Format to stream (wav, mp3, flac). If not specified, uses first format from export_formats
+          required: false
+          schema:
+            type: string
+            enum: [wav, mp3, flac]
       requestBody:
         required: true
         content:
@@ -209,6 +225,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TTSResponse'
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              description: Direct audio file download (when response_mode=stream)
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
@@ -219,10 +240,26 @@ paths:
   /api/v1/vc:
     post:
       summary: Voice Conversion
-      description: Convert voice characteristics of input audio to match a target voice
+      description: Convert voice characteristics of input audio to match a target voice with support for file uploads and streaming
       operationId: convertVoice
       tags:
         - Voice Conversion
+      parameters:
+        - name: response_mode
+          in: query
+          description: Response mode - 'stream' for direct file download, 'url' for JSON response
+          required: false
+          schema:
+            type: string
+            enum: [stream, url, file, download]
+            default: stream
+        - name: return_format
+          in: query
+          description: Format to stream (wav, mp3, flac). If not specified, uses first format from export_formats
+          required: false
+          schema:
+            type: string
+            enum: [wav, mp3, flac]
       requestBody:
         required: true
         content:
@@ -243,6 +280,37 @@ paths:
                   target_voice_source: "target_voices/celebrity.wav"
                   chunk_sec: 30
                   export_formats: ["wav", "mp3"]
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                input_audio:
+                  type: string
+                  format: binary
+                  description: Input audio file to convert (max 100MB)
+                target_voice_source:
+                  type: string
+                  description: Target voice source (filename or URL)
+                chunk_sec:
+                  type: integer
+                  default: 60
+                  description: Chunk size in seconds
+                overlap_sec:
+                  type: number
+                  format: float
+                  default: 0.1
+                  description: Overlap in seconds
+                disable_watermark:
+                  type: boolean
+                  default: true
+                  description: Disable watermark
+                export_formats:
+                  type: string
+                  default: "wav,mp3"
+                  description: Comma-separated export formats
+              required:
+                - input_audio
+                - target_voice_source
       responses:
         '200':
           description: Voice conversion successful
@@ -250,6 +318,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VCResponse'
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+              description: Direct audio file download (when response_mode=stream)
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':

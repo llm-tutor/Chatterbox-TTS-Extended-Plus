@@ -21,6 +21,106 @@ def generate_unique_filename(prefix: str = "output", extension: str = "wav") -> 
     return f"{prefix}_{timestamp}_{random_hash}.{extension}"
 
 
+def generate_enhanced_filename(generation_type: str, parameters: Dict[str, Any], extension: str = "wav") -> str:
+    """
+    Generate enhanced filename with timestamp and key parameters
+    
+    Format: {type}_{timestamp}_{microseconds}_{key_params}.{ext}
+    
+    Args:
+        generation_type: 'tts', 'vc', or 'concat'
+        parameters: Dictionary of generation parameters
+        extension: File extension (wav, mp3, etc.)
+    
+    Returns:
+        Enhanced filename string
+    """
+    from datetime import datetime
+    
+    # Get current timestamp with microseconds
+    now = datetime.now()
+    timestamp = now.strftime("%Y-%m-%d_%H%M%S")
+    microseconds = now.microsecond
+    
+    # Extract key parameters based on generation type
+    param_parts = []
+    
+    if generation_type == "tts":
+        # Include key TTS parameters
+        if "temperature" in parameters:
+            param_parts.append(f"temp{parameters['temperature']}")
+        if "seed" in parameters and parameters["seed"] != 0:
+            param_parts.append(f"seed{parameters['seed']}")
+        if "exaggeration" in parameters and parameters["exaggeration"] != 0.5:
+            param_parts.append(f"exag{parameters['exaggeration']}")
+            
+    elif generation_type == "vc":
+        # Include key VC parameters
+        if "chunk_sec" in parameters and parameters["chunk_sec"] != 60:
+            param_parts.append(f"chunk{parameters['chunk_sec']}")
+        if "overlap_sec" in parameters and parameters["overlap_sec"] != 0.1:
+            param_parts.append(f"overlap{parameters['overlap_sec']}")
+        # Include reference to target voice if available
+        if "target_voice_source" in parameters:
+            voice_name = Path(parameters["target_voice_source"]).stem
+            # Sanitize and truncate voice name
+            voice_name = re.sub(r'[^\w\-]', '', voice_name)[:10]
+            param_parts.append(f"voice{voice_name}")
+            
+    elif generation_type == "concat":
+        # Include concat-specific parameters
+        if "file_count" in parameters:
+            param_parts.append(f"{parameters['file_count']}files")
+        if "crossfade_ms" in parameters and parameters["crossfade_ms"] > 0:
+            param_parts.append(f"fade{parameters['crossfade_ms']}")
+        if "normalize_levels" in parameters and parameters["normalize_levels"]:
+            param_parts.append("leveled")
+    
+    # Construct filename
+    param_string = "_".join(param_parts) if param_parts else "default"
+    
+    return f"{generation_type}_{timestamp}_{microseconds:06d}_{param_string}.{extension}"
+
+
+def save_generation_metadata(filename: str, generation_data: Dict[str, Any]) -> bool:
+    """
+    Save generation metadata as JSON companion file
+    
+    Args:
+        filename: Base filename (without path)
+        generation_data: Complete generation context and parameters
+    
+    Returns:
+        True if metadata saved successfully, False otherwise
+    """
+    import json
+    from datetime import datetime
+    from config import config_manager
+    
+    try:
+        # Get output directory
+        output_dir = Path(config_manager.get("paths.output_dir", "outputs"))
+        
+        # Create metadata filename
+        base_name = Path(filename).stem
+        metadata_file = output_dir / f"{base_name}.json"
+        
+        # Add timestamp if not present
+        if "timestamp" not in generation_data:
+            generation_data["timestamp"] = datetime.now().isoformat()
+        
+        # Save metadata
+        with open(metadata_file, 'w', encoding='utf-8') as f:
+            json.dump(generation_data, f, indent=2, ensure_ascii=False)
+        
+        logger.info(f"Metadata saved: {metadata_file}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to save metadata for {filename}: {e}")
+        return False
+
+
 def validate_audio_file(file_path: Path) -> bool:
     """Validate if file is a supported audio format"""
     if not file_path.exists():

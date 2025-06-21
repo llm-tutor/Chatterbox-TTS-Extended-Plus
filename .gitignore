@@ -12,6 +12,7 @@ repomix
 temp
 output
 outputs
+tests/media/
 
 # Audio files
 vc_inputs/*.mp3

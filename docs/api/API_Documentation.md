@@ -124,7 +124,11 @@ Check API health and system status.
 
 **POST** `/api/v1/tts`
 
-Generate speech from text using advanced TTS with optional voice cloning.
+Generate speech from text using advanced TTS with optional voice cloning and streaming response.
+
+**Query Parameters:**
+- `response_mode` (optional): Response mode - `"stream"` for direct file download, `"url"` for JSON response (default: `"stream"`)
+- `return_format` (optional): Format to stream - `"wav"`, `"mp3"`, `"flac"`. If not specified, uses first format from export_formats
 
 **Request Body:**
 ```json
@@ -138,15 +142,16 @@ Generate speech from text using advanced TTS with optional voice cloning.
 }
 ```
 
-**Response:**
+**Response (JSON mode - when response_mode="url"):**
 ```json
 {
   "success": true,
   "output_files": [
     {
       "format": "wav",
-      "filename": "tts_output_1234567890_42.wav",
-      "url": "/outputs/tts_output_1234567890_42.wav"
+      "filename": "tts_2025-06-20_143022_456_temp0.75_seed42.wav",
+      "url": "/outputs/tts_2025-06-20_143022_456_temp0.75_seed42.wav",
+      "path": "/path/to/outputs/tts_2025-06-20_143022_456_temp0.75_seed42.wav"
     },
     {
       "format": "mp3", 
@@ -164,34 +169,61 @@ Generate speech from text using advanced TTS with optional voice cloning.
 
 **POST** `/api/v1/vc`
 
-Convert voice characteristics of input audio to match a target voice.
+Convert voice characteristics of input audio to match a target voice with support for direct file uploads and streaming response.
 
-**Request Body:**
+**Query Parameters:**
+- `response_mode` (optional): Response mode - `"stream"` for direct file download, `"url"` for JSON response (default: `"stream"`)
+- `return_format` (optional): Format to stream - `"wav"`, `"mp3"`, `"flac"`. If not specified, uses first format from export_formats
+
+**Method 1: JSON Request with File References (traditional)**
+> **Important**: Input files must be pre-placed in the `vc_inputs/` directory on the server
+
 ```json
 {
-  "input_audio_source": "recording.wav",
-  "target_voice_source": "target_voices/speaker2.wav", 
+  "input_audio_source": "recording.wav",        // Must exist in vc_inputs/ directory
+  "target_voice_source": "speaker2.wav",        // Must exist in reference_audio/ directory
   "chunk_sec": 60,
   "overlap_sec": 0.1,
   "export_formats": ["wav", "mp3"]
 }
 ```
 
-**Response:**
+**Method 2: Direct File Upload (multipart/form-data)**
+> **Important**: Upload files directly in the request - no pre-staging required
+
+- `input_audio`: File - Input audio file to convert (max 100MB, uploaded directly)
+- `target_voice_source`: String - Target voice source (filename in reference_audio/ or URL)
+- `chunk_sec`: Integer - Chunk size in seconds (default: 60)
+- `overlap_sec`: Float - Overlap in seconds (default: 0.1)
+- `disable_watermark`: Boolean - Disable watermark (default: true)
+- `export_formats`: String - Comma-separated formats (default: "wav,mp3")
+
+### **Key Differences:**
+| Method | Input Audio | Target Voice | Use Case |
+|--------|-------------|--------------|----------|
+| **JSON** | Must be in `vc_inputs/` | Must be in `reference_audio/` | Server-side files, automation |
+| **Upload** | Uploaded directly | Must be in `reference_audio/` | Client-side files, web apps |
+
+**Response (JSON mode - when response_mode="url"):**
 ```json
 {
   "success": true,
   "output_files": [
     {
       "format": "wav",
-      "filename": "vc_output_1234567890.wav",
-      "url": "/outputs/vc_output_1234567890.wav"
+      "filename": "vc_2025-06-20_143045_789_chunk60_overlap0.1_voicespeaker2.wav",
+      "url": "/outputs/vc_2025-06-20_143045_789_chunk60_overlap0.1_voicespeaker2.wav",
+      "path": "/path/to/outputs/vc_2025-06-20_143045_789_chunk60_overlap0.1_voicespeaker2.wav"
     }
   ],
   "processing_time_seconds": 8.7,
   "message": "Voice conversion completed successfully"
 }
 ```
+
+**Response (Stream mode - when response_mode="stream"):**
+Direct audio file download with proper Content-Disposition headers.
+- **X-Alternative-Formats header**: Contains URLs to other formats (e.g., "mp3:/outputs/file.mp3|flac:/outputs/file.flac")
 
 ### 4. Configuration
 
@@ -597,6 +629,130 @@ async function convertVoice(inputFile, targetVoice) {
 // Usage
 generateTTS("Hello world!", "speaker1/formal.wav");
 convertVoice("recording.wav", "target_voice.wav");
+```
+
+## Phase 9 Enhanced Features
+
+### Streaming Responses
+
+Both TTS and VC endpoints now support direct file streaming for immediate downloads:
+
+```bash
+# Get TTS as direct download (default behavior - WAV format)
+curl -X POST http://localhost:7860/api/v1/tts \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Hello world", "export_formats": ["wav", "mp3"]}' \
+  --output speech.wav
+
+# Get TTS as MP3 download (specify return format)
+curl -X POST "http://localhost:7860/api/v1/tts?return_format=mp3" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Hello world", "export_formats": ["wav", "mp3"]}' \
+  --output speech.mp3
+
+# Get JSON response with URLs (legacy mode)
+curl -X POST "http://localhost:7860/api/v1/tts?response_mode=url" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Hello world", "export_formats": ["wav"]}'
+```
+
+### Direct File Upload for Voice Conversion
+
+Upload audio files directly to the VC endpoint:
+
+```bash
+# Upload file with curl
+curl -X POST http://localhost:7860/api/v1/vc \
+  -F "input_audio=@my_recording.wav" \
+  -F "target_voice_source=speaker1.wav" \
+  -F "chunk_sec=30" \
+  -F "export_formats=wav,mp3" \
+  --output converted_voice.wav
+```
+
+### Enhanced File Naming
+
+Generated files now include meaningful parameters in their names:
+
+- **TTS files:** `tts_2025-06-20_143022_456_temp0.75_seed42.wav`
+- **VC files:** `vc_2025-06-20_143045_789_chunk60_overlap0.1_voicespeaker2.wav`
+- **Metadata:** Each generated file has a companion `.json` file with complete generation context
+
+### Python Examples for New Features
+
+```python
+import requests
+
+# Streaming TTS (direct download)
+def download_tts_direct(text, output_path="speech.wav"):
+    response = requests.post(
+        "http://localhost:7860/api/v1/tts",
+        json={"text": text, "export_formats": ["wav"]},
+        stream=True
+    )
+    
+    if response.status_code == 200:
+        with open(output_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        print(f"Downloaded: {output_path}")
+    else:
+        print(f"Error: {response.status_code}")
+
+# File upload VC (direct upload)
+def upload_vc_conversion(audio_file_path, target_voice, output_path="converted.wav"):
+    """Upload audio file directly for conversion"""
+    with open(audio_file_path, 'rb') as audio_file:
+        files = {'input_audio': audio_file}
+        data = {
+            'target_voice_source': target_voice,  # Must exist in reference_audio/
+            'chunk_sec': 30,
+            'export_formats': 'wav'
+        }
+        
+        response = requests.post(
+            "http://localhost:7860/api/v1/vc",
+            files=files,
+            data=data,
+            stream=True
+        )
+        
+        if response.status_code == 200:
+            with open(output_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            print(f"Converted and downloaded: {output_path}")
+        else:
+            print(f"Error: {response.status_code}")
+
+# JSON VC (server-side files)
+def json_vc_conversion(input_filename, target_voice, output_path="converted.wav"):
+    """Convert using files already on server"""
+    # Note: input_filename must exist in vc_inputs/ directory on server
+    payload = {
+        'input_audio_source': input_filename,    # Must be in vc_inputs/
+        'target_voice_source': target_voice,     # Must be in reference_audio/
+        'chunk_sec': 30,
+        'export_formats': ['wav']
+    }
+    
+    response = requests.post(
+        "http://localhost:7860/api/v1/vc",
+        json=payload,
+        stream=True
+    )
+    
+    if response.status_code == 200:
+        with open(output_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        print(f"Converted and downloaded: {output_path}")
+    else:
+        print(f"Error: {response.status_code}")
+
+# Usage examples
+upload_vc_conversion("my_recording.wav", "speaker1.wav")      # Upload mode
+json_vc_conversion("server_file.wav", "speaker1.wav")        # JSON mode (file must be in vc_inputs/)
 ```
 
 ---

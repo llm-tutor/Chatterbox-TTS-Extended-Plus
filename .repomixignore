@@ -3,4 +3,6 @@
 # *.log
 # tmp/
 
-
+chatterbox/src/chatterbox/models
+docs/dev/
+# docs/dev/api-implementation

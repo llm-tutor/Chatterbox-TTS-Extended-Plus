@@ -329,6 +329,18 @@ class CoreEngineSynchronous:
             self._download_file_sync(source, temp_file)
             return temp_file
         
+        # Handle absolute paths (like uploaded temp files)
+        source_path = Path(source)
+        if source_path.is_absolute() and source_path.exists():
+            return source_path
+        
+        # Handle temp directory paths (uploaded files)
+        if source.startswith('temp') or source.startswith('temp/') or source.startswith('temp\\'):
+            # Convert relative temp path to absolute
+            temp_path = Path(source)
+            if temp_path.exists():
+                return temp_path.resolve()  # Convert to absolute path
+        
         # Determine base directory by context
         if context in ['tts_reference', 'vc_target']:
             base_dir = Path(config_manager.get("paths.reference_audio_dir", "reference_audio"))
@@ -423,13 +435,12 @@ class CoreEngineSynchronous:
                     audio = AudioSegment.from_wav(str(wav_path))
                     output_path = output_dir / f"{base_name}.{fmt_lower}"
                     
-                    export_kwargs = {}
+                    # Use the same approach as Chatter.py
                     if fmt_lower == 'mp3':
-                        export_kwargs['bitrate'] = '320k'
-                    elif fmt_lower == 'flac':
-                        export_kwargs['compression_level'] = 5
-                    
-                    audio.export(str(output_path), format=fmt_lower, **export_kwargs)
+                        audio.export(str(output_path), format=fmt_lower, bitrate='320k')
+                    else:
+                        # For FLAC and other formats, use simple export without extra parameters
+                        audio.export(str(output_path), format=fmt_lower)
                     
                     output_files.append({
                         'format': fmt_lower,
@@ -442,6 +453,7 @@ class CoreEngineSynchronous:
                     
                 except Exception as e:
                     logger.error(f"Failed to convert to {fmt}: {e}")
+                    logger.error(f"Conversion error details: {type(e).__name__}: {str(e)}")
                     # Continue with other formats
         
         return output_files
@@ -584,6 +596,39 @@ class CoreEngineSynchronous:
                 
                 processing_time = time.time() - start_time
                 
+                # Save generation metadata
+                metadata = {
+                    'type': 'tts',
+                    'parameters': {
+                        'text': text,
+                        'reference_audio_filename': kwargs.get('reference_audio_filename'),
+                        'temperature': kwargs.get('temperature', 0.75),
+                        'seed': actual_seed,
+                        'exaggeration': kwargs.get('exaggeration', 0.5),
+                        'cfg_weight': kwargs.get('cfg_weight', 1.0),
+                        'num_candidates_per_chunk': kwargs.get('num_candidates_per_chunk', 3),
+                        'max_attempts_per_candidate': kwargs.get('max_attempts_per_candidate', 3),
+                        'bypass_whisper_checking': kwargs.get('bypass_whisper_checking', False),
+                        'whisper_model_name': kwargs.get('whisper_model_name', 'medium'),
+                        'use_faster_whisper': kwargs.get('use_faster_whisper', True),
+                        'enable_batching': kwargs.get('enable_batching', False),
+                        'export_formats': export_formats
+                    },
+                    'generation_info': {
+                        'processing_time_seconds': processing_time,
+                        'seed_used': actual_seed,
+                        'chunks_processed': 1,  # We'll track this properly later
+                        'text_length': len(text),
+                        'processed_text_length': len(processed_text)
+                    },
+                    'files': {file['format']: file['filename'] for file in output_files}
+                }
+                
+                # Save metadata using utility function
+                from utils import save_generation_metadata
+                if output_files:
+                    save_generation_metadata(output_files[0]['filename'], metadata)
+                
                 return {
                     'success': True,
                     'output_files': output_files,
@@ -691,7 +736,7 @@ class CoreEngineSynchronous:
                 
                 if gen_chunks:
                     # Combine chunks for this generation
-                    combined_path = self._combine_audio_chunks(gen_chunks, gen_index)
+                    combined_path = self._combine_audio_chunks(gen_chunks, gen_index, kwargs)
                     final_chunks.append(combined_path)
             
             if not final_chunks:
@@ -704,12 +749,16 @@ class CoreEngineSynchronous:
             logger.error(f"TTS generation failed: {e}")
             raise GenerationError(f"TTS generation failed: {e}")
 
-    def _combine_audio_chunks(self, chunk_paths: List[str], gen_index: int) -> str:
-        """Combine audio chunks into a single file"""
+    def _combine_audio_chunks(self, chunk_paths: List[str], gen_index: int, generation_params: Dict[str, Any] = None) -> str:
+        """Combine audio chunks into a single file with enhanced naming"""
         try:
             output_dir = Path(config_manager.get("paths.output_dir", "outputs"))
-            timestamp = int(time.time())
-            output_path = output_dir / f"tts_output_gen{gen_index}_{timestamp}.wav"
+            
+            # Use enhanced filename generation
+            from utils import generate_enhanced_filename
+            params = generation_params or {}
+            filename = generate_enhanced_filename("tts", params, "wav")
+            output_path = output_dir / filename
             
             if len(chunk_paths) == 1:
                 # Single chunk - just copy it
@@ -794,6 +843,30 @@ class CoreEngineSynchronous:
                 
                 processing_time = time.time() - start_time
                 
+                # Save generation metadata
+                metadata = {
+                    'type': 'vc',
+                    'parameters': {
+                        'input_audio_source': input_source,
+                        'target_voice_source': target_source,
+                        'chunk_sec': kwargs.get('chunk_sec', 60),
+                        'overlap_sec': kwargs.get('overlap_sec', 0.1),
+                        'disable_watermark': kwargs.get('disable_watermark', True),
+                        'export_formats': export_formats
+                    },
+                    'generation_info': {
+                        'processing_time_seconds': processing_time,
+                        'input_path': str(input_path),
+                        'target_path': str(target_path)
+                    },
+                    'files': {file['format']: file['filename'] for file in output_files}
+                }
+                
+                # Save metadata using utility function
+                from utils import save_generation_metadata
+                if output_files:
+                    save_generation_metadata(output_files[0]['filename'], metadata)
+                
                 return {
                     'success': True,
                     'output_files': output_files,
@@ -841,9 +914,15 @@ class CoreEngineSynchronous:
             total_sec = len(wav) / model_sr
             logger.info(f"Input audio: {total_sec:.2f} seconds")
             
-            # Generate unique output filename
-            timestamp = int(time.time())
-            output_path = output_dir / f"vc_output_{timestamp}.wav"
+            # Generate enhanced output filename
+            from utils import generate_enhanced_filename
+            vc_params = {
+                'chunk_sec': kwargs.get('chunk_sec', 60),
+                'overlap_sec': kwargs.get('overlap_sec', 0.1),
+                'target_voice_source': kwargs.get('target_voice_source', 'unknown')
+            }
+            filename = generate_enhanced_filename("vc", vc_params, "wav")
+            output_path = output_dir / filename
             
             if total_sec <= chunk_sec:
                 # Short audio - process directly (matching Chatter.py)

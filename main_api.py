@@ -3,12 +3,14 @@
 import asyncio
 import logging
 import time
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Union
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Query, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
@@ -74,6 +76,42 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down application")
     cleanup_scheduler.stop()
     engine_sync.cleanup_temp_files()
+
+
+# ===== STREAMING RESPONSE UTILITIES =====
+
+def create_file_stream_response(file_path: Path, media_type: str = "audio/wav") -> StreamingResponse:
+    """Create a streaming response for audio file download"""
+    def file_streamer():
+        with open(file_path, "rb") as file:
+            while chunk := file.read(8192):  # 8KB chunks
+                yield chunk
+    
+    # Determine proper media type based on file extension
+    ext = file_path.suffix.lower()
+    content_type = {
+        '.wav': 'audio/wav',
+        '.mp3': 'audio/mpeg', 
+        '.flac': 'audio/flac',
+        '.ogg': 'audio/ogg'
+    }.get(ext, 'application/octet-stream')
+    
+    headers = {
+        'Content-Disposition': f'attachment; filename="{file_path.name}"',
+        'Content-Type': content_type
+    }
+    
+    return StreamingResponse(
+        file_streamer(),
+        media_type=content_type,
+        headers=headers
+    )
+
+
+def should_stream_response(response_mode: str = "stream") -> bool:
+    """Determine if response should be streamed or return JSON URLs"""
+    return response_mode.lower() in ["stream", "file", "download"]
+
 
 # Create FastAPI app
 app = FastAPI(
@@ -157,8 +195,12 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 # API Endpoints
 @app.post("/api/v1/tts", response_model=TTSResponse)
-async def generate_tts(request: TTSRequest):
-    """Generate Text-to-Speech audio"""
+async def generate_tts(
+    request: TTSRequest, 
+    response_mode: str = Query("stream", description="Response mode: 'stream' for direct download, 'url' for JSON response"),
+    return_format: str = Query(None, description="Format to stream (wav, mp3, flac). If not specified, uses first format from export_formats")
+) -> Union[TTSResponse, StreamingResponse]:
+    """Generate Text-to-Speech audio with optional streaming response"""
     try:
         # Convert request to dict and call synchronous method
         request_dict = request.model_dump()
@@ -171,6 +213,46 @@ async def generate_tts(request: TTSRequest):
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(None, run_tts)
         
+        # Check if we should stream the response
+        if should_stream_response(response_mode) and result.get('output_files'):
+            # Determine which file to stream
+            target_format = return_format or request.export_formats[0] if request.export_formats else "wav"
+            target_format = target_format.lower()
+            
+            # Find the requested format in output files
+            stream_file = None
+            for file_info in result['output_files']:
+                if file_info['format'].lower() == target_format:
+                    stream_file = file_info
+                    break
+            
+            if not stream_file:
+                # Fallback to first available format
+                stream_file = result['output_files'][0]
+                logger.warning(f"Requested format '{target_format}' not found, using '{stream_file['format']}'")
+            
+            file_path = Path(stream_file['path'])
+            if file_path.exists():
+                logger.info(f"Streaming TTS output: {file_path.name} (format: {stream_file['format']})")
+                
+                # Create streaming response with additional headers containing alternative formats
+                streaming_response = create_file_stream_response(file_path)
+                
+                # Add alternative format URLs in custom headers
+                alt_formats = []
+                for file_info in result['output_files']:
+                    if file_info['format'] != stream_file['format']:
+                        alt_formats.append(f"{file_info['format']}:{file_info['url']}")
+                
+                if alt_formats:
+                    streaming_response.headers["X-Alternative-Formats"] = "|".join(alt_formats)
+                
+                return streaming_response
+            else:
+                logger.warning(f"Output file not found for streaming: {file_path}")
+                # Fall back to JSON response
+        
+        # Return JSON response (default or fallback)
         return TTSResponse(**result)
     except ChatterboxAPIError:
         raise  # Let the exception handlers deal with these
@@ -179,25 +261,144 @@ async def generate_tts(request: TTSRequest):
         raise GenerationError(f"TTS generation failed: {e}")
 
 @app.post("/api/v1/vc", response_model=VCResponse)
-async def generate_vc(request: VCRequest):
-    """Generate Voice Conversion"""
+async def generate_vc(
+    request: Request,
+    response_mode: str = Query("stream", description="Response mode: 'stream' for direct download, 'url' for JSON response"),
+    return_format: str = Query(None, description="Format to stream (wav, mp3, flac). If not specified, uses first format from export_formats"),
+    # File upload parameters (optional for multipart/form-data)
+    input_audio: UploadFile = File(None, description="Input audio file to convert (alternative to input_audio_source)"),
+    target_voice_source: str = Form(None, description="Target voice source (filename or URL)"),
+    chunk_sec: int = Form(None, description="Chunk size in seconds"),
+    overlap_sec: float = Form(None, description="Overlap in seconds"),
+    disable_watermark: bool = Form(None, description="Disable watermark"),
+    export_formats: str = Form(None, description="Export formats (comma-separated)")
+) -> Union[VCResponse, StreamingResponse]:
+    """Generate Voice Conversion with support for both JSON and file upload"""
+    temp_input_path = None
     try:
-        # Convert request to dict and call synchronous method
-        request_dict = request.model_dump()
+        # Check content type to determine request mode
+        content_type = request.headers.get("content-type", "")
+        logger.info(f"VC request debug - content_type: {content_type}, input_audio: {input_audio is not None}")
         
-        # Run the synchronous VC generation in thread pool for FastAPI compatibility
+        if content_type.startswith("application/json"):
+            # JSON mode - parse manually
+            json_body = await request.json()
+            vc_request = VCRequest(**json_body)
+            request_dict = vc_request.model_dump()
+            logger.info(f"JSON mode: parsed request with keys: {list(request_dict.keys())}")
+            
+        elif input_audio and input_audio.filename:
+            # File upload mode (multipart/form-data)
+            # File upload mode
+            if not target_voice_source:
+                raise ValidationError("target_voice_source is required for file upload")
+            
+            # Validate uploaded file
+            allowed_extensions = {'.wav', '.mp3', '.flac', '.ogg', '.m4a'}
+            file_ext = Path(input_audio.filename).suffix.lower()
+            if file_ext not in allowed_extensions:
+                raise ValidationError(f"Unsupported audio format: {file_ext}. Supported: {allowed_extensions}")
+            
+            # Validate file size (max 100MB)
+            max_size = 100 * 1024 * 1024  # 100MB
+            content = await input_audio.read()
+            if len(content) > max_size:
+                raise ValidationError(f"File too large. Maximum size: {max_size // (1024*1024)}MB")
+            
+            # Create temp directory and save uploaded file
+            temp_dir = Path(config_manager.get("paths.temp_dir", "temp"))
+            temp_dir.mkdir(exist_ok=True)
+            
+            import time
+            timestamp = int(time.time())
+            temp_filename = f"upload_{timestamp}_{input_audio.filename}"
+            temp_input_path = temp_dir / temp_filename
+            
+            with open(temp_input_path, "wb") as temp_file:
+                temp_file.write(content)
+            
+            logger.info(f"Uploaded file saved to: {temp_input_path}")
+            
+            # Build request parameters from form data
+            export_formats_list = [fmt.strip() for fmt in export_formats.split(",")] if export_formats else ["wav", "mp3"]
+            
+            request_dict = {
+                'input_audio_source': str(temp_input_path),
+                'target_voice_source': target_voice_source,
+                'chunk_sec': chunk_sec if chunk_sec is not None else 60,
+                'overlap_sec': overlap_sec if overlap_sec is not None else 0.1,
+                'disable_watermark': disable_watermark if disable_watermark is not None else True,
+                'export_formats': export_formats_list
+            }
+            
+        else:
+            raise ValidationError("Either provide JSON body or upload files with form parameters")
+        
+        # Run the synchronous VC generation
         def run_vc():
             return engine_sync.generate_vc(**request_dict)
         
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(None, run_vc)
         
+        # Check if we should stream the response
+        if should_stream_response(response_mode) and result.get('output_files'):
+            # Determine which file to stream
+            if request_dict.get('export_formats'):
+                target_format = return_format or request_dict['export_formats'][0]
+            else:
+                target_format = return_format or "wav"
+            target_format = target_format.lower()
+            
+            # Find the requested format in output files
+            stream_file = None
+            for file_info in result['output_files']:
+                if file_info['format'].lower() == target_format:
+                    stream_file = file_info
+                    break
+            
+            if not stream_file:
+                # Fallback to first available format
+                stream_file = result['output_files'][0]
+                logger.warning(f"Requested format '{target_format}' not found, using '{stream_file['format']}'")
+            
+            file_path = Path(stream_file['path'])
+            if file_path.exists():
+                logger.info(f"Streaming VC output: {file_path.name} (format: {stream_file['format']})")
+                
+                # Create streaming response with additional headers containing alternative formats
+                streaming_response = create_file_stream_response(file_path)
+                
+                # Add alternative format URLs in custom headers
+                alt_formats = []
+                for file_info in result['output_files']:
+                    if file_info['format'] != stream_file['format']:
+                        alt_formats.append(f"{file_info['format']}:{file_info['url']}")
+                
+                if alt_formats:
+                    streaming_response.headers["X-Alternative-Formats"] = "|".join(alt_formats)
+                
+                return streaming_response
+            else:
+                logger.warning(f"Output file not found for streaming: {file_path}")
+                # Fall back to JSON response
+        
+        # Return JSON response (default or fallback)
         return VCResponse(**result)
+        
     except ChatterboxAPIError:
         raise
     except Exception as e:
         logger.error(f"Unexpected error in VC generation: {e}")
         raise GenerationError(f"VC generation failed: {e}")
+    finally:
+        # Clean up temp file if it was created
+        if temp_input_path and temp_input_path.exists():
+            try:
+                temp_input_path.unlink()
+                logger.debug(f"Cleaned up temp file: {temp_input_path}")
+            except Exception as e:
+                logger.warning(f"Failed to clean up temp file {temp_input_path}: {e}")
 
 @app.get("/api/v1/health", response_model=HealthResponse)
 async def health_check():
@@ -379,5 +580,5 @@ if __name__ == "__main__":
         host=host,
         port=port,
         log_level=log_level,
-        reload=False
+        reload=True  # Enable auto-reload for development
     )

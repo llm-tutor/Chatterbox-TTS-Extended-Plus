@@ -255,11 +255,16 @@ class EnhancedLogger:
         extra = {}
         if extra_data:
             extra['extra_data'] = extra_data
-            
+        
+        # Handle reserved logging parameters separately
+        reserved_params = {}
         for key, value in kwargs.items():
-            extra[key] = value
+            if key in ('exc_info', 'stack_info', 'stacklevel'):
+                reserved_params[key] = value
+            else:
+                extra[key] = value
             
-        self.logger.log(level, message, extra=extra)
+        self.logger.log(level, message, extra=extra, **reserved_params)
 
 def get_logger(name: str) -> EnhancedLogger:
     """Get enhanced logger instance"""
