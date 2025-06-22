@@ -1,8 +1,13 @@
 # api_models.py - Pydantic models for API requests and responses
 
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, model_validator
 from utils import validate_text_length, validate_audio_format, validate_text_input
+from config import config_manager
+
+def get_default_speed_factor() -> float:
+    """Get the configured default speed factor"""
+    return config_manager.get("speed_factor.default_speed_factor", 1.0)
 
 
 # Base models
@@ -55,10 +60,23 @@ class TTSRequest(BaseModel):
     speed_factor: float = Field(1.0, ge=0.5, le=2.0, description="Speed adjustment factor (0.5x to 2.0x)")
     speed_factor_library: Optional[str] = Field(
         "auto", 
-        description="Library for speed adjustment: 'auto', 'audiostretchy', 'pyrubberband', 'librosa', 'torchaudio'. 'auto' selects best library for the speed range."
+        description="Library for speed adjustment: 'auto', 'audiostretchy', 'librosa', 'torchaudio'. 'auto' selects audiostretchy for speech quality, with clean fallback chain."
     )
     export_formats: List[str] = Field(["wav", "mp3"], description="Export formats")
     disable_watermark: bool = Field(True, description="Disable watermark")
+
+    @model_validator(mode='before')
+    @classmethod
+    def apply_config_defaults(cls, values):
+        """Apply configuration-based defaults"""
+        # Apply configured default speed factor if not explicitly set
+        if isinstance(values, dict):
+            if 'speed_factor' not in values or values.get('speed_factor') == 1.0:
+                config_default = get_default_speed_factor()
+                if config_default != 1.0:
+                    values['speed_factor'] = config_default
+        
+        return values
 
     @validator('text')
     def validate_text_content(cls, v):
@@ -77,7 +95,7 @@ class TTSRequest(BaseModel):
     @validator('speed_factor_library')
     def validate_speed_factor_library(cls, v):
         if v is not None:
-            allowed_libraries = ['auto', 'audiostretchy', 'pyrubberband', 'librosa', 'torchaudio']
+            allowed_libraries = ['auto', 'audiostretchy', 'librosa', 'torchaudio']
             if v not in allowed_libraries:
                 raise ValueError(f"speed_factor_library must be one of: {allowed_libraries}")
         return v

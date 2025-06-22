@@ -519,9 +519,9 @@ components:
           description: Speed adjustment factor (0.5x to 2.0x)
         speed_factor_library:
           type: string
-          enum: ["auto", "audiostretchy", "pyrubberband", "librosa", "torchaudio"]
+          enum: ["auto", "audiostretchy", "librosa", "torchaudio"]
           default: "auto"
-          description: Library for speed adjustment. 'auto' selects best library for the speed range.
+          description: Library for speed adjustment. 'auto' selects audiostretchy for speech quality, with clean fallback chain.
         export_formats:
           type: array
           items:

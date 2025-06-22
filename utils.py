@@ -213,22 +213,22 @@ def apply_speed_factor(
     preferred_library: str = "auto"
 ) -> torch.Tensor:
     """
-    Enhanced speed factor implementation for Phase 10.1.3
+    Enhanced speed factor implementation for Phase 10.1.4 (Cleanup)
     
-    Integrates enhanced audio quality libraries while maintaining 
-    the architectural optimizations from Phase 10.1.2
+    Streamlined implementation focused on speech quality using audiostretchy
+    as the primary enhanced library with clean fallback chain.
     
     Optimizations:
     - Early return for speed_factor=1.0 (zero overhead)
-    - Library selection based on quality and compatibility
-    - Efficient fallback chain for robust operation
-    - Minimal import overhead (lazy loading)
+    - audiostretchy preferred for superior speech quality (TDHS algorithm)
+    - Clean fallback chain: audiostretchy → librosa → torchaudio
+    - Removed pyrubberband (artifacts make output unusable for speech)
     
     Args:
         audio_tensor: Input audio tensor (1D or 2D)
         sample_rate: Audio sample rate
         speed_factor: Speed multiplier (0.5x to 2.0x)
-        preferred_library: Library preference - "auto", "audiostretchy", "pyrubberband", "librosa"
+        preferred_library: Library preference - "auto", "audiostretchy", "librosa", "torchaudio"
     
     Returns:
         Speed-adjusted audio tensor with preserved pitch
@@ -237,32 +237,34 @@ def apply_speed_factor(
     if speed_factor == 1.0:
         return audio_tensor
     
-    # Clamp speed factor to safe range
-    speed_factor = max(0.5, min(2.0, speed_factor))
+    # Get configuration limits
+    from config import config_manager
+    min_speed = config_manager.get("speed_factor.min_speed_factor", 0.5)
+    max_speed = config_manager.get("speed_factor.max_speed_factor", 2.0)
     
-    # Smart library selection based on speed factor range and availability
+    # Clamp speed factor to configured range
+    speed_factor = max(min_speed, min(max_speed, speed_factor))
+    
+    # Smart library selection based on configuration and speed factor range
     if preferred_library == "auto":
-        # Choose best library for the speed factor range
-        if 0.9 <= speed_factor <= 1.1:
-            # Small changes - audiostretchy excels here
-            library_order = ["audiostretchy", "pyrubberband", "librosa", "torchaudio"]
-        elif 0.8 <= speed_factor <= 1.25:
-            # Medium changes - pyrubberband is excellent
-            library_order = ["pyrubberband", "audiostretchy", "librosa", "torchaudio"]
+        # Use configuration preference
+        config_preferred = config_manager.get("speed_factor.preferred_library", "audiostretchy")
+        
+        # For speech processing, audiostretchy is preferred across all ranges
+        if config_preferred == "audiostretchy":
+            library_order = ["audiostretchy", "librosa", "torchaudio"]
         else:
-            # Large changes - use robust fallback order
-            library_order = ["librosa", "pyrubberband", "audiostretchy", "torchaudio"]
+            # Fallback to librosa-first if audiostretchy not configured
+            library_order = ["librosa", "audiostretchy", "torchaudio"]
     else:
         # User specified a preferred library
-        library_order = [preferred_library, "librosa", "torchaudio"]
+        library_order = [preferred_library, "audiostretchy", "librosa", "torchaudio"]
     
     # Try each library in order
     for library in library_order:
         try:
             if library == "audiostretchy":
                 return _apply_speed_audiostretchy(audio_tensor, sample_rate, speed_factor)
-            elif library == "pyrubberband":
-                return _apply_speed_pyrubberband(audio_tensor, sample_rate, speed_factor)
             elif library == "librosa":
                 return _apply_speed_librosa(audio_tensor, sample_rate, speed_factor)
             elif library == "torchaudio":
@@ -349,59 +351,6 @@ def _apply_speed_audiostretchy(audio_tensor: torch.Tensor, sample_rate: int, spe
         raise ImportError("audiostretchy not available")
     except Exception as e:
         raise RuntimeError(f"audiostretchy processing failed: {e}")
-
-
-def _apply_speed_pyrubberband(audio_tensor: torch.Tensor, sample_rate: int, speed_factor: float) -> torch.Tensor:
-    """
-    Apply speed factor using pyrubberband (advanced phase vocoder)
-    
-    Industry standard quality with excellent transient handling
-    Uses Rubber Band R3 engine with formant preservation options
-    """
-    try:
-        import pyrubberband as pyrb
-        
-        # Convert tensor to numpy
-        if isinstance(audio_tensor, torch.Tensor):
-            audio_np = audio_tensor.detach().cpu().numpy()
-            original_device = audio_tensor.device
-        else:
-            audio_np = audio_tensor
-            original_device = None
-        
-        # High quality settings for speech
-        rb_args = {
-            "--fine": "",       # Use R3 engine for higher quality
-            "--formant": "",    # Preserve vocal formants
-            "--crisp": "5"      # Transient handling (0-6, 5 good for speech)
-        }
-        
-        # Process with pyrubberband
-        if audio_np.ndim == 2:
-            # Multi-channel processing
-            processed_channels = []
-            for channel in range(audio_np.shape[0]):
-                processed_channel = pyrb.time_stretch(
-                    audio_np[channel], sample_rate, speed_factor, rbargs=rb_args
-                )
-                processed_channels.append(processed_channel)
-            processed_audio = np.stack(processed_channels, axis=0)
-        else:
-            # Single channel processing
-            processed_audio = pyrb.time_stretch(
-                audio_np, sample_rate, speed_factor, rbargs=rb_args
-            )
-        
-        # Convert back to tensor
-        if original_device is not None:
-            return torch.from_numpy(processed_audio).to(original_device)
-        else:
-            return torch.from_numpy(processed_audio)
-            
-    except ImportError:
-        raise ImportError("pyrubberband not available")
-    except Exception as e:
-        raise RuntimeError(f"pyrubberband processing failed: {e}")
 
 
 def _apply_speed_librosa(audio_tensor: torch.Tensor, sample_rate: int, speed_factor: float) -> torch.Tensor:

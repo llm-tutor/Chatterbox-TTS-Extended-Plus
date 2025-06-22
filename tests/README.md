@@ -13,6 +13,7 @@ This folder contains comprehensive test clients for the API implementation acros
 - `test_phase10_task_10_1_2_speed_optimization.py` - Architecture optimization validation
 - `test_phase10_task_10_1_3_enhanced_libraries.py` - Enhanced library integration testing
 - `test_phase10_task_10_1_3_quality_comparison.py` - Audio quality comparison tool
+- `test_phase10_speed_factor_cleanup.py` - Final cleanup validation (audiostretchy focused)
 - `test_voice_metadata_validation.py` - Deep voice metadata accuracy testing
 
 ### Legacy/Reference Tests
@@ -82,12 +83,14 @@ cd tests && python test_phase10_task_10_1_2_speed_optimization.py
 ```bash
 cd tests && python test_phase10_task_10_1_3_enhanced_libraries.py
 ```
-**Comprehensive library integration testing**:
+**Comprehensive library integration testing** (Legacy - includes deprecated pyrubberband):
 - **audiostretchy**: TDHS algorithm for superior speech quality
-- **pyrubberband**: Advanced phase vocoder with formant preservation
+- **pyrubberband**: Advanced phase vocoder (DEPRECATED - removed in 10.1.4)
 - **librosa**: Baseline phase vocoder compatibility
 - **auto selection**: Smart library choice based on speed factor range
 - **Zero overhead**: Confirms 1.0x speed factor performance optimization
+
+> **Note**: This test includes pyrubberband testing which is deprecated. Use `test_phase10_speed_factor_cleanup.py` for current implementation validation.
 
 #### **Phase 10.1.3 Audio Quality Comparison** (`test_phase10_task_10_1_3_quality_comparison.py`)
 ```bash
@@ -98,6 +101,18 @@ cd tests && python test_phase10_task_10_1_3_quality_comparison.py
 - **Real-world speeds**: 0.7x/0.8x (slow down TTS), 1.2x/1.3x (speed up)
 - **Audio file output**: Saves to `tests/media/` with descriptive names
 - **Use case focused**: Primary need is slowing down accelerated TTS speech
+
+#### **Phase 10.1.4 Speed Factor Cleanup** (`test_phase10_speed_factor_cleanup.py`)
+```bash
+cd tests && python test_phase10_speed_factor_cleanup.py
+```
+**Final implementation validation**:
+- **audiostretchy integration**: Validates primary library for speech quality
+- **pyrubberband removal**: Confirms library is properly rejected (HTTP 422)
+- **Configuration defaults**: Tests global speed_factor settings from config.yaml
+- **Fallback chain**: Validates clean progression (audiostretchy → librosa → torchaudio)
+- **API validation**: Ensures updated request validation works correctly
+- **Zero overhead**: Confirms 1.0x speed factor optimization maintained
 
 #### Voice Metadata Deep Testing (`test_voice_metadata_validation.py`)
 ```bash
@@ -150,8 +165,18 @@ python test_vc_client.py
 python test_phase10_tasks_10_1_10_2.py
 python test_phase10_task_10_1_2_speed_optimization.py
 
+# Current implementation (Phase 10.1.4)
+python test_phase10_speed_factor_cleanup.py
+
 # Metadata validation
 python test_voice_metadata_validation.py
+```
+
+### Legacy Tests (for reference)
+```bash
+# Phase 10.1.3 (includes deprecated pyrubberband)
+python test_phase10_task_10_1_3_enhanced_libraries.py
+python test_phase10_task_10_1_3_quality_comparison.py
 ```
 
 ## Test Data Location

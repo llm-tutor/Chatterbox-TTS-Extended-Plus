@@ -57,6 +57,24 @@ tts_defaults:
   normalize_lra: 7.0
   disable_watermark: true
   export_formats: ["wav", "mp3"]
+  speed_factor: 1.0  # Default speed factor for TTS generation (1.0 = normal speed)
+
+# Speed factor processing configuration
+speed_factor:
+  # Global default speed factor (admin configurable)
+  default_speed_factor: 1.0  # Default: 1.0 (normal speed)
+  
+  # Library preferences for speech processing
+  preferred_library: "audiostretchy"  # Primary: audiostretchy for best speech quality
+  
+  # Smart library selection ranges
+  # audiostretchy: Best for speech, TDHS algorithm
+  # librosa: Good compatibility baseline
+  # torchaudio: Basic fallback (changes pitch)
+  
+  # Validation
+  min_speed_factor: 0.5  # Minimum allowed speed factor
+  max_speed_factor: 2.0  # Maximum allowed speed factor
 
 # VC defaults
 vc_defaults:

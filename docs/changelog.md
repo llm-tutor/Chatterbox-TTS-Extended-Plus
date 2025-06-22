@@ -813,6 +813,43 @@ Each implementation phase will be marked with a version increment:
 - **Fixed** for any bug fixes
 - **Security** for vulnerability fixes
 
+## [1.8.1] - 2025-06-21
+
+### Changed
+- **Speed Factor Implementation Cleanup (Phase 10.1.4)** - Streamlined speed factor processing for enhanced speech quality
+- **Removed pyrubberband integration** - Eliminated library causing speech artifacts in TTS output
+- **Enhanced audiostretchy preference** - Now primary library for superior speech quality with TDHS algorithm
+- **Simplified fallback chain** - Clean progression: audiostretchy → librosa → torchaudio
+- **Global speed factor configuration** - Added `speed_factor.default_speed_factor` setting in config.yaml
+- **Updated API validation** - Removed pyrubberband from allowed speed_factor_library options
+- **Requirements files cleanup** - Updated all requirements files to include audiostretchy 1.3.5, removed pyrubberband
+
+### Fixed
+- **Pydantic model validation** - Fixed root_validator deprecation by migrating to model_validator
+- **Configuration-based defaults** - Speed factor now respects global configuration settings
+- **Unicode compatibility** - Resolved encoding issues in test scripts for Windows environments
+
+### Technical Details
+- **Library Selection**: audiostretchy preferred for all speech processing scenarios
+- **Zero Overhead Maintained**: speed_factor=1.0 continues to have zero processing overhead
+- **Enhanced Naming**: Speed factor properly included in generated filenames
+- **Clean Architecture**: Removed complex speed-range-based library selection logic
+
+### Validation
+- **✅ Speed Factor Processing**: Confirmed audiostretchy integration working correctly
+- **✅ Validation Logic**: pyrubberband properly rejected with HTTP 422 responses
+- **✅ Configuration Defaults**: Global speed factor settings applied correctly
+- **✅ Requirements Consistency**: All requirements files updated with correct dependencies
+- **✅ API Compatibility**: Existing functionality preserved with improved quality
+
+### Files Modified
+- `utils.py` - Removed pyrubberband integration, streamlined speed factor processing
+- `api_models.py` - Updated validation and model_validator for Pydantic v2 compatibility
+- `config.yaml` - Added speed factor configuration section with global defaults
+- `docs/api/openapi.yaml` - Updated speed_factor_library enum and descriptions
+- `docs/api/API_Documentation.md` - Removed pyrubberband references, updated library descriptions
+- `requirements.txt`, `requirements.base.with.versions.txt`, `requirements_frozen.txt` - Updated dependencies
+
 ## [1.8.0] - 2025-06-19
 
 ### Fixed

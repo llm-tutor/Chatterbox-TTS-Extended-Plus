@@ -542,11 +542,10 @@ curl -X POST http://localhost:7860/api/v1/tts \
 ```
 
 **Speed Factor Libraries:**
-- `auto` - Smart selection based on speed range (recommended)
-- `audiostretchy` - TDHS algorithm, best for speech quality (±10% range optimal)
-- `pyrubberband` - Industry standard, excellent for larger speed changes (±20-25% range optimal)
-- `librosa` - Good baseline compatibility
-- `torchaudio` - Basic fallback (affects pitch)
+- `auto` - Smart selection with audiostretchy preferred for speech quality (recommended)
+- `audiostretchy` - TDHS algorithm, superior speech quality with formant preservation
+- `librosa` - Good baseline compatibility with adequate quality
+- `torchaudio` - Basic fallback (affects pitch, use only when others unavailable)
 
 ### Voice Conversion with Local Files
 

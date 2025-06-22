@@ -31,6 +31,9 @@ aiofiles==24.1.0
 # Audio processing (additional)
 pydub==0.25.1
 
+# Enhanced speed factor libraries
+audiostretchy==1.3.5
+
 # YAML configuration
 PyYAML==6.0.2
 
