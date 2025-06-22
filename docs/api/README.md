@@ -1,37 +1,90 @@
-# API Documentation
+# Chatterbox TTS Extended Plus - API Documentation
 
-This directory contains documentation for the Chatterbox-TTS-Extended-Plus HTTP API.
+Welcome to the comprehensive API documentation for Chatterbox TTS Extended Plus. This documentation is organized into focused sections to help you find exactly what you need quickly and efficiently.
 
-## Quick Reference
+## How to Use This Documentation
 
-| Document | Purpose | Audience |
-|----------|---------|----------|
-| **[API_Documentation.md](API_Documentation.md)** | Complete API reference with examples | Developers, integrators |
-| **[api_testing_guide.md](api_testing_guide.md)** | Testing procedures and validation | QA, developers |
-| **[openapi.yaml](openapi.yaml)** | Machine-readable API specification | Tools, automated testing |
+### For New Users
+1. Start with the [Quick Start Guide](quick-start.md) to get up and running in minutes
+2. Explore specific endpoints in the [Endpoints](endpoints/) directory
+3. Review [Examples](schemas/examples/) for copy-paste code samples
 
-## Getting Started
+### For Developers
+1. Check [Endpoint Documentation](endpoints/) for detailed API references
+2. Review [Schema Documentation](schemas/) for request/response models
+3. Use [Feature Guides](guides/) for advanced functionality
 
-1. **Start here:** [API_Documentation.md](API_Documentation.md) - Complete guide with examples
-2. **For testing:** [api_testing_guide.md](api_testing_guide.md) - How to validate functionality
-3. **For tools:** [openapi.yaml](openapi.yaml) - OpenAPI 3.0 specification
+### For Integrators
+1. Download the [OpenAPI Specification](openapi.yaml) for tool integration
+2. Review [Compatibility](reference/compatibility.md) for supported standards
+3. Check [Configuration](reference/configuration.md) for deployment options
+
+## Documentation Structure
+
+### Getting Started
+- **[Quick Start Guide](quick-start.md)** - Installation, basic setup, and first API calls
+- **[Error Handling Guide](guides/error-handling.md)** - Understanding and handling API errors
+
+### API Reference
+- **[Health Endpoint](endpoints/health.md)** - Service status and diagnostics
+- **[Text-to-Speech (TTS)](endpoints/tts.md)** - Generate speech from text
+- **[Voice Conversion (VC)](endpoints/voice-conversion.md)** - Transform voice characteristics
+- **[Voice Management](endpoints/voice-management.md)** - Upload and manage reference voices
+- **[File Operations](endpoints/file-operations.md)** - List and download generated files
+
+### Advanced Features
+- **[Streaming Responses](guides/streaming-responses.md)** - Direct file downloads
+- **[File Uploads](guides/file-uploads.md)** - Upload audio files for processing
+- **[Advanced Features](guides/advanced-features.md)** - Speed control, concatenation, and more
+
+### Code Examples
+- **[cURL Examples](schemas/examples/curl-examples.md)** - Command-line API usage
+- **[Python Examples](schemas/examples/python-examples.md)** - Python integration code
+
+### Technical Reference
+- **[Request Models](schemas/request-models.md)** - API request structures
+- **[Response Models](schemas/response-models.md)** - API response formats
+- **[Configuration](reference/configuration.md)** - Server and feature configuration
+- **[File Structure](reference/file-structure.md)** - Audio file organization
+- **[OpenAI Compatibility](reference/compatibility.md)** - Compatible endpoints and differences
 
 ## Interactive Documentation
 
-When the API server is running, you can access interactive documentation at:
-- **Swagger UI:** `http://localhost:7860/docs`
-- **ReDoc:** `http://localhost:7860/redoc`
+When the API server is running, you can access interactive documentation:
+- **Swagger UI:** http://localhost:7860/docs
+- **ReDoc:** http://localhost:7860/redoc
 
-## Quick Start
+## Quick Reference
 
+### Essential Commands
 ```bash
 # Start the API server
 python main_api.py
 
-# Test TTS endpoint
-curl -X POST "http://localhost:7860/api/v1/tts" \
+# Health check
+curl http://localhost:7860/api/v1/health
+
+# Simple TTS generation
+curl -X POST http://localhost:7860/api/v1/tts \
   -H "Content-Type: application/json" \
   -d '{"text": "Hello world!", "export_formats": ["wav", "mp3"]}'
 ```
 
-For more information, see the main [README-API.md](../../README-API.md) in the project root.
+### Key URLs
+- **Base URL:** http://localhost:7860
+- **API Prefix:** /api/v1
+- **Generated Files:** http://localhost:7860/outputs/{filename}
+
+## Project Information
+
+**Version:** 1.0.0  
+**Repository:** [Chatterbox-TTS-Extended-Plus](../../)  
+**Main README:** [README-API.md](../../README-API.md)
+
+## Documentation Maintenance
+
+For information on updating and maintaining this documentation, see [How to Update API Docs](how-to-update-api-docs.md).
+
+---
+
+*Last updated: June 22, 2025*
