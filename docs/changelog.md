@@ -6,6 +6,72 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Phase 10 Complete - Speed Control & Voice Enhancement (Tasks 10.3 & 10.4)
+- **Voice Upload Endpoint**: Complete `POST /api/v1/voice` implementation with file upload and metadata support
+- **Enhanced Voice Management**: Complete voice lifecycle with deletion, metadata updates, and folder structure
+- **Generated Files Listing**: Complete `GET /api/v1/outputs` endpoint with pagination, search, and filtering
+- **Voice Organization**: Full folder organization capability for uploaded voices with metadata management
+- **File Discovery**: Comprehensive generated files listing with metadata from companion JSON files
+- **Advanced Search**: Pagination, filename search, generation type filtering, and bulk file lookup
+- **Performance Tested**: Handles large directories (276+ files) with efficient scanning and filtering
+
+**Voice Upload Features:**
+- **Multipart File Upload**: Support for voice files with metadata in single request
+- **Comprehensive Validation**: File format, size limits, audio signature verification
+- **Smart Metadata**: Automatic audio analysis with user-provided metadata overlay
+- **Folder Organization**: Configurable folder paths for voice library organization
+- **Overwrite Control**: Safe file replacement with explicit overwrite parameter
+- **Default Parameters**: JSON-based default TTS parameters per voice
+
+**Enhanced Voice Management (Task 10.3.1):**
+- **Single Voice Deletion**: `DELETE /api/v1/voice/{filename}` with safety confirmation
+- **Bulk Voice Deletion**: `DELETE /api/v1/voices` with folder/tag/search/filename filters
+- **Metadata Updates**: `PUT /api/v1/voice/{filename}/metadata` for metadata-only changes
+- **Folder Structure**: `GET /api/v1/voices/folders` for voice library organization discovery
+- **Safety Features**: Required `confirm=true` parameter prevents accidental deletions
+- **Complete Lifecycle**: Upload → Update Metadata → Delete workflow fully tested
+
+**Generated Files Management:**
+- **Smart Discovery**: Automatic scanning with companion JSON metadata integration
+- **Generation Type Detection**: Intelligent classification (TTS, VC, concat) from filename patterns
+- **Advanced Filtering**: Generation type, search terms, specific filename lookup
+- **Comprehensive Metadata**: Duration, file size, creation date, parameters, source files
+- **Efficient Pagination**: Configurable page sizes with navigation metadata
+- **Performance Optimized**: Handles large output directories with sorted results
+
+**API Enhancements:**
+```bash
+# Enhanced voice management
+POST /api/v1/voice                          # Upload with metadata
+PUT /api/v1/voice/{filename}/metadata       # Update metadata only
+DELETE /api/v1/voice/{filename}?confirm=true    # Delete single voice
+DELETE /api/v1/voices?folder=test&confirm=true  # Bulk delete by criteria
+GET /api/v1/voices/folders                  # Folder structure
+
+# Generated files management
+GET /api/v1/outputs?generation_type=tts&search=test&page=1&page_size=50
+```
+
+**Technical Implementation:**
+- **Voice Management Utilities**: `delete_voice_file()`, `bulk_delete_voices()`, `update_voice_metadata_only()`, `get_voice_folder_structure()`
+- **Enhanced API Models**: `VoiceMetadataUpdateRequest`, `VoiceDeletionResponse`, `VoiceFoldersResponse`, `GeneratedFileMetadata`
+- **Safety & Validation**: Confirmation parameters, comprehensive error handling, metadata validation
+- **Comprehensive Testing**: Complete lifecycle testing with upload, update, delete, and discovery workflows
+
+**Quality & Performance:**
+- **Safety First**: Required confirmation for all deletion operations prevents accidents
+- **Robust Validation**: Audio file signature verification, size limits, format checking
+- **Metadata Accuracy**: Multi-library audio analysis with automatic fallback calculation
+- **Smart Organization**: Folder structure discovery for efficient voice library browsing
+- **Production Ready**: Handles real-world file volumes with responsive operations
+
+**Testing Results:**
+- **✅ Enhanced Voice Management**: Upload, metadata update, folder structure, single/bulk deletion
+- **✅ Safety Features**: Confirmation requirements and proper error handling working
+- **✅ Generated Files**: Pagination (276 files), filtering (237 TTS, 39 VC), search functional
+- **✅ Complete Lifecycle**: Upload → Update → Delete → Discovery workflow validated
+- **✅ Performance**: Large directory operations and responsive API confirmed
+
 ### Phase 10.1.3 Complete - Enhanced Speed Factor Library Integration
 - **Enhanced Audio Quality**: Integrated audiostretchy (TDHS) and pyrubberband (phase vocoder) for superior speech processing
 - **Smart Library Selection**: Auto mode intelligently selects optimal library based on speed factor range

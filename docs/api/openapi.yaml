@@ -19,6 +19,8 @@ tags:
     description: Text-to-Speech generation
   - name: Voice Conversion
     description: Voice conversion operations
+  - name: Voice Management
+    description: Voice upload, deletion, and organization
   - name: Files
     description: File access and downloads
 
@@ -105,6 +107,246 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VoicesResponse'
+
+  /api/v1/voice:
+    post:
+      summary: Upload Voice File
+      description: Upload a new voice file with metadata and folder organization
+      operationId: uploadVoice
+      tags:
+        - Voice Management
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                voice_file:
+                  type: string
+                  format: binary
+                  description: Voice audio file
+                name:
+                  type: string
+                  description: Voice name (defaults to filename)
+                description:
+                  type: string
+                  description: Voice description
+                tags:
+                  type: string
+                  description: Comma-separated voice tags
+                folder_path:
+                  type: string
+                  description: Folder organization path
+                default_parameters:
+                  type: string
+                  description: JSON string of default TTS parameters
+                overwrite:
+                  type: boolean
+                  default: false
+                  description: Overwrite existing voice file
+              required:
+                - voice_file
+      responses:
+        '200':
+          description: Voice uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceUploadResponse'
+        '400':
+          $ref: '#/responses/BadRequest'
+        '500':
+          $ref: '#/responses/InternalError'
+
+  /api/v1/voice/{filename}:
+    delete:
+      summary: Delete Voice File
+      description: Delete a single voice file and its metadata
+      operationId: deleteVoice
+      tags:
+        - Voice Management
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Voice filename to delete
+        - name: confirm
+          in: query
+          required: true
+          schema:
+            type: boolean
+          description: Confirmation required to delete voice
+      responses:
+        '200':
+          description: Voice deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceDeletionResponse'
+        '400':
+          $ref: '#/responses/BadRequest'
+        '404':
+          $ref: '#/responses/NotFound'
+        '500':
+          $ref: '#/responses/InternalError'
+
+  /api/v1/voice/{filename}/metadata:
+    put:
+      summary: Update Voice Metadata
+      description: Update voice metadata without changing the audio file
+      operationId: updateVoiceMetadata
+      tags:
+        - Voice Management
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Voice filename
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoiceMetadataUpdateRequest'
+      responses:
+        '200':
+          description: Metadata updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceUploadResponse'
+        '400':
+          $ref: '#/responses/BadRequest'
+        '404':
+          $ref: '#/responses/NotFound'
+        '500':
+          $ref: '#/responses/InternalError'
+
+  /api/v1/voices:
+    delete:
+      summary: Bulk Delete Voices
+      description: Bulk delete voices based on criteria (folder, tag, search, or specific filenames)
+      operationId: bulkDeleteVoices
+      tags:
+        - Voice Management
+      parameters:
+        - name: confirm
+          in: query
+          required: true
+          schema:
+            type: boolean
+          description: Confirmation required for bulk deletion
+        - name: folder
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Delete voices in specific folder
+        - name: tag
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Delete voices with specific tag
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Delete voices matching search term
+        - name: filenames
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Comma-separated list of filenames to delete
+      responses:
+        '200':
+          description: Voices deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceDeletionResponse'
+        '400':
+          $ref: '#/responses/BadRequest'
+        '500':
+          $ref: '#/responses/InternalError'
+
+  /api/v1/voices/folders:
+    get:
+      summary: Get Voice Folder Structure
+      description: Get voice library folder structure and organization (includes empty folders)
+      operationId: getVoiceFolders
+      tags:
+        - Voice Management
+      responses:
+        '200':
+          description: Folder structure retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceFoldersResponse'
+        '500':
+          $ref: '#/responses/InternalError'
+
+  /api/v1/outputs:
+    get:
+      summary: List Generated Files
+      description: List generated audio files with metadata, pagination, and search capabilities
+      operationId: listGeneratedFiles
+      tags:
+        - Files
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          description: Items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: generation_type
+          in: query
+          description: Filter by generation type
+          required: false
+          schema:
+            type: string
+            enum: [tts, vc, concat]
+        - name: search
+          in: query
+          description: Search in filenames
+          required: false
+          schema:
+            type: string
+        - name: filenames
+          in: query
+          description: Comma-separated list of specific filenames to find
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Generated files retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneratedFilesResponse'
+        '500':
+          $ref: '#/responses/InternalError'
 
   /api/v1/resources:
     get:
@@ -764,6 +1006,165 @@ components:
           type: string
           nullable: true
           description: Relative folder path within reference_audio/ (null for root)
+
+    VoiceUploadResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+          description: Success message
+        voice_metadata:
+          $ref: '#/components/schemas/VoiceMetadata'
+        filename:
+          type: string
+          description: Saved filename
+
+    VoiceMetadataUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: Voice name
+        description:
+          type: string
+          nullable: true
+          description: Voice description
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: Voice tags
+        folder_path:
+          type: string
+          nullable: true
+          description: Folder organization path
+        default_parameters:
+          type: object
+          nullable: true
+          description: Default TTS parameters
+
+    VoiceDeletionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+          description: Deletion result message
+        deleted_files:
+          type: array
+          items:
+            type: string
+          description: List of deleted files
+        deleted_count:
+          type: integer
+          description: Number of voice files deleted
+
+    VoiceFolderInfo:
+      type: object
+      properties:
+        path:
+          type: string
+          description: Folder path
+        voice_count:
+          type: integer
+          description: Number of voices in folder
+        subfolders:
+          type: array
+          items:
+            type: string
+          description: Direct subfolders
+
+    VoiceFoldersResponse:
+      type: object
+      properties:
+        folders:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoiceFolderInfo'
+        total_folders:
+          type: integer
+          description: Total number of folders
+        total_voices:
+          type: integer
+          description: Total number of voices
+
+    GeneratedFileMetadata:
+      type: object
+      properties:
+        filename:
+          type: string
+          description: Generated file name
+        generation_type:
+          type: string
+          enum: [tts, vc, concat, unknown]
+          description: Type of generation
+        created_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: File creation timestamp
+        file_size_bytes:
+          type: integer
+          nullable: true
+          description: File size in bytes
+        duration_seconds:
+          type: number
+          nullable: true
+          description: Audio duration in seconds
+        format:
+          type: string
+          nullable: true
+          description: Audio format
+        parameters:
+          type: object
+          nullable: true
+          description: Generation parameters
+        source_files:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: Source files used for generation
+        folder_path:
+          type: string
+          nullable: true
+          description: Relative folder path
+
+    GeneratedFilesResponse:
+      type: object
+      properties:
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/GeneratedFileMetadata'
+        count:
+          type: integer
+          description: Number of files in current page
+        page:
+          type: integer
+          description: Current page number
+        page_size:
+          type: integer
+          description: Items per page
+        total_pages:
+          type: integer
+          description: Total number of pages
+        has_next:
+          type: boolean
+          description: Whether there is a next page
+        has_previous:
+          type: boolean
+          description: Whether there is a previous page
+        total_files:
+          type: integer
+          description: Total number of files
 
     ResourceStatusResponse:
       type: object

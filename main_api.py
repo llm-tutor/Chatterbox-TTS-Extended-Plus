@@ -17,7 +17,9 @@ import uvicorn
 from api_models import (
     TTSRequest, VCRequest, TTSResponse, VCResponse, 
     ErrorResponse, HealthResponse, ConfigResponse,
-    VoicesResponse, VoiceInfo, VoiceMetadata, ErrorSummaryResponse
+    VoicesResponse, VoiceInfo, VoiceMetadata, ErrorSummaryResponse,
+    VoiceUploadRequest, VoiceUploadResponse, GeneratedFileMetadata, GeneratedFilesResponse,
+    VoiceMetadataUpdateRequest, VoiceDeletionResponse, VoiceFolderInfo, VoiceFoldersResponse
 )
 from core_engine import engine_sync, get_or_load_tts_model, get_or_load_vc_model
 from config import config_manager
@@ -530,6 +532,275 @@ async def list_voices(
         has_next=page < total_pages,
         has_previous=page > 1
     )
+
+
+@app.post("/api/v1/voice", response_model=VoiceUploadResponse)
+async def upload_voice(
+    voice_file: UploadFile = File(..., description="Voice audio file"),
+    name: Optional[str] = Form(None, description="Voice name (defaults to filename)"),
+    description: Optional[str] = Form(None, description="Voice description"),
+    tags: Optional[str] = Form(None, description="Comma-separated voice tags"),
+    folder_path: Optional[str] = Form(None, description="Folder organization path"),
+    default_parameters: Optional[str] = Form(None, description="JSON string of default TTS parameters"),
+    overwrite: bool = Form(False, description="Overwrite existing voice file")
+):
+    """Upload a new voice file with metadata"""
+    from utils import validate_voice_file, save_uploaded_voice, create_voice_metadata_from_upload, save_voice_metadata
+    from api_models import VoiceMetadata
+    import json
+    
+    try:
+        # Read file content
+        file_content = await voice_file.read()
+        
+        # Validate file
+        is_valid, error_msg = validate_voice_file(file_content, voice_file.filename)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+        
+        # Parse optional fields
+        parsed_tags = []
+        if tags:
+            parsed_tags = [tag.strip() for tag in tags.split(',') if tag.strip()]
+        
+        parsed_default_params = {}
+        if default_parameters:
+            try:
+                parsed_default_params = json.loads(default_parameters)
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=400, detail="Invalid JSON in default_parameters field")
+        
+        # Use provided name or fallback to filename
+        voice_name = name if name else Path(voice_file.filename).stem
+        
+        # Save file
+        success, message, saved_path = save_uploaded_voice(
+            file_content=file_content,
+            filename=voice_file.filename,
+            folder_path=folder_path,
+            overwrite=overwrite
+        )
+        
+        if not success:
+            raise HTTPException(status_code=400, detail=message)
+        
+        # Create metadata
+        upload_metadata = {
+            'name': voice_name,
+            'description': description,
+            'tags': parsed_tags,
+            'folder_path': folder_path,
+            'default_parameters': parsed_default_params
+        }
+        
+        metadata = create_voice_metadata_from_upload(saved_path, upload_metadata)
+        
+        # Save metadata
+        save_voice_metadata(saved_path, metadata)
+        
+        # Create response
+        voice_metadata = VoiceMetadata(**metadata)
+        
+        return VoiceUploadResponse(
+            voice_metadata=voice_metadata,
+            filename=saved_path.name,
+            message=f"Voice '{voice_name}' uploaded successfully"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Voice upload failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Voice upload failed: {str(e)}")
+
+
+@app.delete("/api/v1/voice/{filename}", response_model=VoiceDeletionResponse)
+async def delete_voice(
+    filename: str,
+    confirm: bool = Query(False, description="Confirmation required to delete voice")
+):
+    """Delete a single voice file and its metadata"""
+    from utils import delete_voice_file
+    
+    if not confirm:
+        raise HTTPException(status_code=400, detail="Deletion requires confirm=true parameter for safety")
+    
+    try:
+        success, message, deleted_files = delete_voice_file(filename)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail=message)
+        
+        return VoiceDeletionResponse(
+            message=message,
+            deleted_files=deleted_files,
+            deleted_count=len([f for f in deleted_files if not f.endswith('.json')])
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Voice deletion failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Voice deletion failed: {str(e)}")
+
+
+@app.delete("/api/v1/voices", response_model=VoiceDeletionResponse)
+async def bulk_delete_voices(
+    confirm: bool = Query(False, description="Confirmation required to delete voices"),
+    folder: Optional[str] = Query(None, description="Delete voices in specific folder"),
+    tag: Optional[str] = Query(None, description="Delete voices with specific tag"),
+    search: Optional[str] = Query(None, description="Delete voices matching search term"),
+    filenames: Optional[str] = Query(None, description="Comma-separated list of filenames to delete")
+):
+    """Bulk delete voices based on criteria"""
+    from utils import bulk_delete_voices
+    
+    if not confirm:
+        raise HTTPException(status_code=400, detail="Bulk deletion requires confirm=true parameter for safety")
+    
+    # Parse filenames if provided
+    filename_list = None
+    if filenames:
+        filename_list = [name.strip() for name in filenames.split(',') if name.strip()]
+    
+    try:
+        success, message, deleted_files = bulk_delete_voices(
+            folder=folder,
+            tag=tag,
+            search=search,
+            filenames=filename_list
+        )
+        
+        if not success:
+            raise HTTPException(status_code=400, detail=message)
+        
+        return VoiceDeletionResponse(
+            message=message,
+            deleted_files=deleted_files,
+            deleted_count=len([f for f in deleted_files if not f.endswith('.json')])
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Bulk voice deletion failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Bulk voice deletion failed: {str(e)}")
+
+
+@app.put("/api/v1/voice/{filename}/metadata", response_model=VoiceUploadResponse)
+async def update_voice_metadata(
+    filename: str,
+    metadata_update: VoiceMetadataUpdateRequest
+):
+    """Update voice metadata without changing the audio file"""
+    from utils import update_voice_metadata_only
+    from api_models import VoiceMetadata
+    
+    try:
+        # Convert request to dict, excluding None values
+        updates = metadata_update.model_dump(exclude_unset=True, exclude_none=True)
+        
+        success, message, updated_metadata = update_voice_metadata_only(filename, updates)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail=message)
+        
+        # Create response
+        voice_metadata = VoiceMetadata(**updated_metadata)
+        
+        return VoiceUploadResponse(
+            voice_metadata=voice_metadata,
+            filename=filename,
+            message=message
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Voice metadata update failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Voice metadata update failed: {str(e)}")
+
+
+@app.get("/api/v1/voices/folders", response_model=VoiceFoldersResponse)
+async def get_voice_folders():
+    """Get voice library folder structure"""
+    from utils import get_voice_folder_structure
+    
+    try:
+        folder_data = get_voice_folder_structure()
+        
+        # Convert to response model
+        folders = [VoiceFolderInfo(**folder_info) for folder_info in folder_data['folders']]
+        
+        return VoiceFoldersResponse(
+            folders=folders,
+            total_folders=folder_data['total_folders'],
+            total_voices=folder_data['total_voices']
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to get voice folders: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get voice folders: {str(e)}")
+
+
+@app.get("/api/v1/outputs", response_model=GeneratedFilesResponse)
+async def list_generated_files(
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(50, ge=1, le=100, description="Items per page"),
+    generation_type: Optional[str] = Query(None, description="Filter by generation type (tts, vc, concat)"),
+    search: Optional[str] = Query(None, description="Search in filenames"),
+    filenames: Optional[str] = Query(None, description="Comma-separated list of specific filenames to find")
+):
+    """List generated audio files with metadata, pagination, and search"""
+    from utils import scan_generated_files, find_files_by_names
+    import math
+    
+    try:
+        outputs_dir = Path(config_manager.get("paths.outputs_dir", "outputs"))
+        
+        # Handle specific filename lookup
+        if filenames:
+            filename_list = [name.strip() for name in filenames.split(',') if name.strip()]
+            files_metadata = find_files_by_names(outputs_dir, filename_list)
+        else:
+            # Scan all files
+            files_metadata = scan_generated_files(outputs_dir, generation_type)
+            
+            # Apply search filter
+            if search:
+                search_lower = search.lower()
+                files_metadata = [
+                    file_meta for file_meta in files_metadata
+                    if search_lower in file_meta['filename'].lower()
+                ]
+        
+        # Calculate pagination
+        total_files = len(files_metadata)
+        total_pages = max(1, math.ceil(total_files / page_size))
+        
+        # Apply pagination
+        start_idx = (page - 1) * page_size
+        end_idx = start_idx + page_size
+        paginated_files = files_metadata[start_idx:end_idx]
+        
+        # Convert to response model
+        response_files = [GeneratedFileMetadata(**file_meta) for file_meta in paginated_files]
+        
+        return GeneratedFilesResponse(
+            files=response_files,
+            count=len(response_files),
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
+            has_next=page < total_pages,
+            has_previous=page > 1,
+            total_files=total_files
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to list generated files: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to list generated files: {str(e)}")
+
 
 @app.get("/api/v1/resources")
 async def get_resource_status():

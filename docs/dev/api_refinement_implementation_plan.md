@@ -133,21 +133,30 @@
 - [x] Update `/api/v1/voices` with metadata, pagination, search
 - [x] Add `VoiceMetadata` model to `api_models.py`
 
-#### **Task 10.3: Voice Upload Endpoint**
-- [ ] Create `POST /api/v1/voice` endpoint
-- [ ] Support file upload + metadata in single request
-- [ ] Add folder organization capability
-- [ ] Implement metadata-only updates for existing voices
-- [ ] Add voice file validation and audio analysis
-- [ ] Test various audio formats and edge cases
+#### **Task 10.3: Voice Upload Endpoint** (COMPLETE ✅)
+- [x] Create `POST /api/v1/voice` endpoint
+- [x] Support file upload + metadata in single request
+- [x] Add folder organization capability
+- [x] Implement metadata-only updates for existing voices
+- [x] Add voice file validation and audio analysis
+- [x] Test various audio formats and edge cases
 
-#### **Task 10.4: Generated Files Listing**
-- [ ] Create `GET /api/v1/outputs` endpoint
-- [ ] Add pagination and search functionality
-- [ ] Include metadata from companion JSON files
-- [ ] Support bulk file lookup by filename list
-- [ ] Add filtering by generation type (TTS, VC, concat)
-- [ ] Test performance with large output directories
+#### **Task 10.3.1: Enhanced Voice Management** (COMPLETE ✅)
+- [x] Create `DELETE /api/v1/voice/{filename}` endpoint for single voice deletion
+- [x] Create `DELETE /api/v1/voices` endpoint for bulk deletion with query filters
+- [x] Create `PUT /api/v1/voice/{filename}/metadata` endpoint for metadata-only updates
+- [x] Create `GET /api/v1/voices/folders` endpoint for folder structure discovery
+- [x] Add safety confirmation parameters (`confirm=true`) for deletion operations
+- [x] Support bulk deletion by folder, tag, search, and specific filenames
+- [x] Test complete voice management lifecycle (upload → update → delete)
+
+#### **Task 10.4: Generated Files Listing** (COMPLETE ✅)
+- [x] Create `GET /api/v1/outputs` endpoint
+- [x] Add pagination and search functionality
+- [x] Include metadata from companion JSON files
+- [x] Support bulk file lookup by filename list
+- [x] Add filtering by generation type (TTS, VC, concat)
+- [x] Test performance with large output directories
 
 #### **Testing Focus**
 - Speed factor accuracy and quality testing

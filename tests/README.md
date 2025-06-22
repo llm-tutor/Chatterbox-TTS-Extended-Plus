@@ -15,6 +15,10 @@ This folder contains comprehensive test clients for the API implementation acros
 - `test_phase10_task_10_1_3_quality_comparison.py` - Audio quality comparison tool
 - `test_phase10_speed_factor_cleanup.py` - Final cleanup validation (audiostretchy focused)
 - `test_voice_metadata_validation.py` - Deep voice metadata accuracy testing
+- `test_phase10_task_10_3_voice_upload.py` - Voice upload endpoint testing
+- `test_phase10_task_10_4_outputs_listing.py` - Generated files listing testing
+- `test_phase10_task_10_3_enhanced.py` - Enhanced voice management (delete/update/folders)
+- `test_phase10_comprehensive.py` - Complete Phase 10 integration testing
 
 ### Legacy/Reference Tests
 - `test_api_basic.py` - Basic API functionality
@@ -121,6 +125,49 @@ cd tests && python test_voice_metadata_validation.py
 - Metadata calculation accuracy
 - JSON companion file validation
 - Usage tracking across TTS/VC endpoints
+
+#### **Task 10.3: Voice Upload Testing** (`test_phase10_task_10_3_voice_upload.py`)
+```bash
+cd tests && python test_phase10_task_10_3_voice_upload.py
+```
+**Voice upload endpoint validation**:
+- **Basic upload**: File with metadata, folder organization
+- **Default parameters**: JSON-based TTS parameter defaults per voice
+- **File validation**: Format checking, size limits, security validation
+- **Overwrite functionality**: Safe file replacement with explicit confirmation
+
+#### **Task 10.4: Generated Files Listing** (`test_phase10_task_10_4_outputs_listing.py`)
+```bash
+cd tests && python test_phase10_task_10_4_outputs_listing.py
+```
+**Generated files discovery and management**:
+- **Pagination**: Large directory handling (tested with 276+ files)
+- **Generation type filtering**: TTS, VC, concat file classification
+- **Search functionality**: Filename-based search and filtering
+- **Performance**: Efficient scanning of large output directories
+
+#### **Enhanced Voice Management** (`test_phase10_task_10_3_enhanced.py`)
+```bash
+cd tests && python test_phase10_task_10_3_enhanced.py
+```
+**Complete voice lifecycle management** (Task 10.3.1):
+- **Voice upload**: File upload with metadata and folder organization
+- **Metadata updates**: Update description, tags, default parameters without file changes
+- **Folder structure**: API for discovering voice library organization
+- **Single deletion**: Safe voice deletion with confirmation requirements
+- **Bulk deletion**: Delete multiple voices by folder/tag/search criteria
+- **Safety features**: `confirm=true` parameter prevents accidental deletions
+
+#### **Complete Phase 10 Integration** (`test_phase10_comprehensive.py`)
+```bash
+cd tests && python test_phase10_comprehensive.py
+```
+**End-to-end Phase 10 feature validation**:
+- **Speed factor integration**: TTS with enhanced audio quality
+- **Enhanced voice metadata**: Pagination, search, usage tracking
+- **Voice upload workflow**: Upload with metadata and folder organization
+- **Generated files management**: Large directory listing and filtering
+- **Integration validation**: Complete workflow from upload to discovery
 
 ## Expected Performance (Post-Optimization)
 

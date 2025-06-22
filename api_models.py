@@ -238,3 +238,79 @@ class VoicesResponse(BaseModel):
     total_pages: int = 1
     has_next: bool = False
     has_previous: bool = False
+
+
+# Voice Upload Models
+class VoiceUploadRequest(BaseModel):
+    """Request model for voice upload (metadata part)"""
+    name: Optional[str] = Field(None, description="Voice name (defaults to filename)")
+    description: Optional[str] = Field(None, description="Voice description")
+    tags: Optional[List[str]] = Field(default_factory=list, description="Voice tags")
+    folder_path: Optional[str] = Field(None, description="Folder organization path")
+    default_parameters: Optional[Dict[str, Any]] = Field(None, description="Default TTS parameters")
+    overwrite: bool = Field(False, description="Overwrite existing voice file")
+
+
+class VoiceUploadResponse(BaseModel):
+    """Response model for voice upload"""
+    success: bool = True
+    message: str = "Voice uploaded successfully"
+    voice_metadata: VoiceMetadata
+    filename: str
+
+
+class VoiceMetadataUpdateRequest(BaseModel):
+    """Request model for voice metadata updates"""
+    name: Optional[str] = Field(None, description="Voice name")
+    description: Optional[str] = Field(None, description="Voice description")
+    tags: Optional[List[str]] = Field(None, description="Voice tags")
+    folder_path: Optional[str] = Field(None, description="Folder organization path")
+    default_parameters: Optional[Dict[str, Any]] = Field(None, description="Default TTS parameters")
+
+
+class VoiceDeletionResponse(BaseModel):
+    """Response model for voice deletion"""
+    success: bool = True
+    message: str = "Voice deleted successfully"
+    deleted_files: List[str] = Field(default_factory=list, description="List of deleted files")
+    deleted_count: int = 0
+
+
+class VoiceFolderInfo(BaseModel):
+    """Information about a voice folder"""
+    path: str
+    voice_count: int
+    subfolders: List[str] = Field(default_factory=list)
+
+
+class VoiceFoldersResponse(BaseModel):
+    """Response for voice folders structure"""
+    folders: List[VoiceFolderInfo]
+    total_folders: int
+    total_voices: int
+
+
+# Generated Files Models
+class GeneratedFileMetadata(BaseModel):
+    """Metadata for generated audio files"""
+    filename: str
+    generation_type: str  # 'tts', 'vc', 'concat'
+    created_date: Optional[str] = None
+    file_size_bytes: Optional[int] = None
+    duration_seconds: Optional[float] = None
+    format: Optional[str] = None
+    parameters: Optional[Dict[str, Any]] = None
+    source_files: Optional[List[str]] = None  # For VC and concat operations
+    folder_path: Optional[str] = None
+
+
+class GeneratedFilesResponse(BaseModel):
+    """Response for generated files listing"""
+    files: List[GeneratedFileMetadata]
+    count: int
+    page: int = 1
+    page_size: int = 50
+    total_pages: int = 1
+    has_next: bool = False
+    has_previous: bool = False
+    total_files: int = 0

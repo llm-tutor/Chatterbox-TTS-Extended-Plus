@@ -697,3 +697,525 @@ def validate_text_input(text: str) -> tuple[bool, str]:
     text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', text)
     
     return True, text
+
+
+def validate_voice_file(file_content: bytes, filename: str) -> tuple[bool, str]:
+    """
+    Validate uploaded voice file for security and format
+    
+    Args:
+        file_content: File content bytes
+        filename: Original filename
+    
+    Returns:
+        (is_valid, error_message)
+    """
+    # File size validation (max 100MB)
+    max_size = 100 * 1024 * 1024  # 100MB
+    if len(file_content) > max_size:
+        return False, f"File too large: {len(file_content)} bytes (max {max_size})"
+    
+    # File extension validation
+    allowed_extensions = {'.wav', '.mp3', '.flac', '.ogg', '.m4a'}
+    file_ext = Path(filename).suffix.lower()
+    if file_ext not in allowed_extensions:
+        return False, f"Unsupported file format: {file_ext}. Allowed: {', '.join(allowed_extensions)}"
+    
+    # Basic file signature validation
+    audio_signatures = {
+        b'RIFF': 'wav',
+        b'fLaC': 'flac', 
+        b'OggS': 'ogg',
+        b'ID3': 'mp3',
+        b'\xff\xfb': 'mp3',
+        b'\xff\xf3': 'mp3',
+        b'\xff\xf2': 'mp3'
+    }
+    
+    # Check file signature
+    signature_found = False
+    for sig, format_name in audio_signatures.items():
+        if file_content.startswith(sig):
+            signature_found = True
+            break
+    
+    if not signature_found:
+        return False, "File does not appear to be a valid audio file"
+    
+    return True, ""
+
+
+def save_uploaded_voice(file_content: bytes, filename: str, folder_path: Optional[str] = None, 
+                       overwrite: bool = False) -> tuple[bool, str, Optional[Path]]:
+    """
+    Save uploaded voice file to reference_audio directory
+    
+    Args:
+        file_content: File content bytes
+        filename: Desired filename
+        folder_path: Optional folder organization path
+        overwrite: Whether to overwrite existing files
+    
+    Returns:
+        (success, message, saved_path)
+    """
+    from config import config_manager
+    
+    # Get reference audio directory
+    ref_audio_dir = Path(config_manager.get("paths.reference_audio_dir", "reference_audio"))
+    
+    # Create target directory path
+    if folder_path:
+        # Sanitize folder path
+        folder_path = sanitize_filename(folder_path)
+        target_dir = ref_audio_dir / folder_path
+    else:
+        target_dir = ref_audio_dir
+    
+    # Ensure directory exists
+    try:
+        target_dir.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        return False, f"Failed to create directory: {e}", None
+    
+    # Sanitize filename
+    safe_filename = sanitize_filename(filename)
+    target_path = target_dir / safe_filename
+    
+    # Check if file exists and overwrite policy
+    if target_path.exists() and not overwrite:
+        return False, f"Voice file already exists: {safe_filename}. Use overwrite=true to replace.", None
+    
+    # Save file
+    try:
+        with open(target_path, 'wb') as f:
+            f.write(file_content)
+        logger.info(f"Voice file saved: {target_path}")
+        return True, f"Voice file saved successfully: {safe_filename}", target_path
+    except Exception as e:
+        logger.error(f"Failed to save voice file: {e}")
+        return False, f"Failed to save voice file: {e}", None
+
+
+def create_voice_metadata_from_upload(voice_path: Path, upload_metadata: dict) -> dict:
+    """
+    Create comprehensive voice metadata from uploaded file and user input
+    
+    Args:
+        voice_path: Path to saved voice file
+        upload_metadata: Metadata from upload request
+    
+    Returns:
+        Complete metadata dictionary
+    """
+    from datetime import datetime
+    
+    # Start with calculated metadata
+    metadata = load_voice_metadata(voice_path)
+    
+    # Override with user-provided metadata
+    if upload_metadata.get('name'):
+        metadata['name'] = upload_metadata['name']
+    
+    if upload_metadata.get('description'):
+        metadata['description'] = upload_metadata['description']
+    
+    if upload_metadata.get('tags'):
+        metadata['tags'] = upload_metadata['tags']
+    
+    if upload_metadata.get('default_parameters'):
+        metadata['default_parameters'] = upload_metadata['default_parameters']
+    
+    # Set folder path if provided
+    if upload_metadata.get('folder_path'):
+        metadata['folder_path'] = upload_metadata['folder_path']
+    
+    # Update timestamps
+    metadata['created_date'] = datetime.now().isoformat()
+    metadata['last_used'] = None  # Not used yet
+    metadata['usage_count'] = 0   # Reset usage count for new upload
+    
+    return metadata
+
+
+def scan_generated_files(outputs_dir: Union[str, Path], generation_type: Optional[str] = None) -> List[Dict[str, Any]]:
+    """
+    Scan outputs directory for generated files and their metadata
+    
+    Args:
+        outputs_dir: Path to outputs directory
+        generation_type: Filter by generation type ('tts', 'vc', 'concat')
+    
+    Returns:
+        List of file metadata dictionaries
+    """
+    import json
+    from datetime import datetime
+    
+    outputs_path = Path(outputs_dir)
+    if not outputs_path.exists():
+        return []
+    
+    files_metadata = []
+    audio_extensions = {'.wav', '.mp3', '.flac', '.ogg', '.m4a'}
+    
+    for audio_file in outputs_path.rglob("*"):
+        if audio_file.is_file() and audio_file.suffix.lower() in audio_extensions:
+            # Look for companion JSON metadata file
+            metadata_file = audio_file.with_suffix(audio_file.suffix + '.json')
+            
+            # Initialize metadata
+            metadata = {
+                'filename': audio_file.name,
+                'generation_type': 'unknown',
+                'created_date': None,
+                'file_size_bytes': None,
+                'duration_seconds': None,
+                'format': audio_file.suffix.lower().lstrip('.'),
+                'parameters': {},
+                'source_files': [],
+                'folder_path': None
+            }
+            
+            # Load from companion JSON if available
+            if metadata_file.exists():
+                try:
+                    with open(metadata_file, 'r', encoding='utf-8') as f:
+                        json_metadata = json.load(f)
+                        metadata.update(json_metadata)
+                except Exception as e:
+                    logger.warning(f"Failed to load metadata for {audio_file}: {e}")
+            
+            # Calculate missing metadata
+            try:
+                if not metadata['file_size_bytes']:
+                    metadata['file_size_bytes'] = audio_file.stat().st_size
+                
+                if not metadata['created_date']:
+                    created_time = audio_file.stat().st_ctime
+                    metadata['created_date'] = datetime.fromtimestamp(created_time).isoformat()
+                
+                if not metadata['duration_seconds']:
+                    metadata['duration_seconds'] = calculate_audio_duration(audio_file)
+                
+                # Calculate folder path relative to outputs directory
+                relative_path = audio_file.relative_to(outputs_path)
+                if relative_path.parent != Path('.'):
+                    metadata['folder_path'] = str(relative_path.parent)
+                
+                # Infer generation type from filename pattern if not set
+                if metadata['generation_type'] == 'unknown':
+                    filename_lower = audio_file.name.lower()
+                    if filename_lower.startswith('tts_'):
+                        metadata['generation_type'] = 'tts'
+                    elif filename_lower.startswith('vc_'):
+                        metadata['generation_type'] = 'vc'
+                    elif filename_lower.startswith('concat_'):
+                        metadata['generation_type'] = 'concat'
+                    else:
+                        metadata['generation_type'] = 'unknown'
+                
+            except Exception as e:
+                logger.warning(f"Failed to calculate metadata for {audio_file}: {e}")
+            
+            # Apply generation type filter
+            if generation_type and metadata['generation_type'] != generation_type:
+                continue
+            
+            files_metadata.append(metadata)
+    
+    # Sort by creation date (newest first)
+    files_metadata.sort(key=lambda x: x.get('created_date', ''), reverse=True)
+    
+    return files_metadata
+
+
+def find_files_by_names(outputs_dir: Union[str, Path], filenames: List[str]) -> List[Dict[str, Any]]:
+    """
+    Find specific files by their names in outputs directory
+    
+    Args:
+        outputs_dir: Path to outputs directory
+        filenames: List of filenames to find
+    
+    Returns:
+        List of found file metadata dictionaries
+    """
+    outputs_path = Path(outputs_dir)
+    if not outputs_path.exists():
+        return []
+    
+    found_files = []
+    
+    for filename in filenames:
+        # Try to find the file
+        matches = list(outputs_path.rglob(filename))
+        
+        if matches:
+            # Use the first match
+            audio_file = matches[0]
+            
+            # Get metadata for this file
+            file_metadata = scan_generated_files(outputs_dir)
+            for metadata in file_metadata:
+                if metadata['filename'] == filename:
+                    found_files.append(metadata)
+                    break
+    
+    return found_files
+
+
+def delete_voice_file(voice_filename: str) -> tuple[bool, str, List[str]]:
+    """
+    Delete a voice file and its metadata
+    
+    Args:
+        voice_filename: Name of voice file to delete
+    
+    Returns:
+        (success, message, deleted_files_list)
+    """
+    from config import config_manager
+    
+    ref_audio_dir = Path(config_manager.get("paths.reference_audio_dir", "reference_audio"))
+    deleted_files = []
+    
+    # Find the voice file
+    matches = list(ref_audio_dir.rglob(voice_filename))
+    
+    if not matches:
+        return False, f"Voice file not found: {voice_filename}", []
+    
+    voice_path = matches[0]  # Use first match
+    
+    try:
+        # Delete the audio file
+        if voice_path.exists():
+            voice_path.unlink()
+            deleted_files.append(str(voice_path.name))
+            logger.info(f"Deleted voice file: {voice_path}")
+        
+        # Delete companion metadata file if exists
+        metadata_path = voice_path.with_suffix(voice_path.suffix + '.json')
+        if metadata_path.exists():
+            metadata_path.unlink()
+            deleted_files.append(str(metadata_path.name))
+            logger.info(f"Deleted metadata file: {metadata_path}")
+        
+        return True, f"Voice '{voice_filename}' deleted successfully", deleted_files
+        
+    except Exception as e:
+        logger.error(f"Failed to delete voice {voice_filename}: {e}")
+        return False, f"Failed to delete voice: {e}", deleted_files
+
+
+def bulk_delete_voices(folder: Optional[str] = None, tag: Optional[str] = None, 
+                      search: Optional[str] = None, filenames: Optional[List[str]] = None) -> tuple[bool, str, List[str]]:
+    """
+    Bulk delete voices based on criteria
+    
+    Args:
+        folder: Filter by folder path
+        tag: Filter by tag
+        search: Search term
+        filenames: Specific filenames to delete
+    
+    Returns:
+        (success, message, deleted_files_list)
+    """
+    from config import config_manager
+    
+    ref_audio_dir = Path(config_manager.get("paths.reference_audio_dir", "reference_audio"))
+    if not ref_audio_dir.exists():
+        return False, "Reference audio directory not found", []
+    
+    deleted_files = []
+    audio_extensions = {'.wav', '.mp3', '.flac', '.ogg', '.m4a'}
+    
+    # Handle specific filenames
+    if filenames:
+        for filename in filenames:
+            success, message, files = delete_voice_file(filename)
+            if success:
+                deleted_files.extend(files)
+        
+        total_deleted = len([f for f in deleted_files if not f.endswith('.json')])
+        return True, f"Deleted {total_deleted} voice files", deleted_files
+    
+    # Scan for files matching criteria
+    voices_to_delete = []
+    
+    for audio_file in ref_audio_dir.rglob("*"):
+        if audio_file.is_file() and audio_file.suffix.lower() in audio_extensions:
+            # Load metadata for filtering
+            metadata = load_voice_metadata(audio_file)
+            
+            # Apply filters
+            should_delete = True
+            
+            if folder:
+                relative_path = audio_file.relative_to(ref_audio_dir)
+                file_folder = str(relative_path.parent) if relative_path.parent != Path('.') else None
+                if file_folder != folder:
+                    should_delete = False
+            
+            if tag and should_delete:
+                file_tags = metadata.get('tags', [])
+                if tag not in file_tags:
+                    should_delete = False
+            
+            if search and should_delete:
+                search_lower = search.lower()
+                searchable_text = f"{metadata.get('name', '')} {metadata.get('description', '')} {' '.join(metadata.get('tags', []))}"
+                if search_lower not in searchable_text.lower():
+                    should_delete = False
+            
+            if should_delete:
+                voices_to_delete.append(audio_file.name)
+    
+    # Delete matching voices
+    for voice_filename in voices_to_delete:
+        success, message, files = delete_voice_file(voice_filename)
+        if success:
+            deleted_files.extend(files)
+    
+    total_deleted = len([f for f in deleted_files if not f.endswith('.json')])
+    return True, f"Deleted {total_deleted} voice files matching criteria", deleted_files
+
+
+def update_voice_metadata_only(voice_filename: str, metadata_updates: dict) -> tuple[bool, str, dict]:
+    """
+    Update voice metadata without changing the audio file
+    
+    Args:
+        voice_filename: Name of voice file
+        metadata_updates: Dictionary of metadata updates
+    
+    Returns:
+        (success, message, updated_metadata)
+    """
+    from config import config_manager
+    
+    ref_audio_dir = Path(config_manager.get("paths.reference_audio_dir", "reference_audio"))
+    
+    # Find the voice file
+    matches = list(ref_audio_dir.rglob(voice_filename))
+    
+    if not matches:
+        return False, f"Voice file not found: {voice_filename}", {}
+    
+    voice_path = matches[0]
+    
+    try:
+        # Load existing metadata
+        current_metadata = load_voice_metadata(voice_path)
+        
+        # Apply updates (only for non-None values)
+        for key, value in metadata_updates.items():
+            if value is not None:
+                current_metadata[key] = value
+        
+        # Update timestamp
+        from datetime import datetime
+        current_metadata['last_updated'] = datetime.now().isoformat()
+        
+        # Save updated metadata
+        save_voice_metadata(voice_path, current_metadata)
+        
+        return True, f"Metadata updated for '{voice_filename}'", current_metadata
+        
+    except Exception as e:
+        logger.error(f"Failed to update metadata for {voice_filename}: {e}")
+        return False, f"Failed to update metadata: {e}", {}
+
+
+def get_voice_folder_structure() -> dict:
+    """
+    Get the folder structure of the voice library
+    
+    Returns:
+        Dictionary with folder structure information
+    """
+    from config import config_manager
+    
+    ref_audio_dir = Path(config_manager.get("paths.reference_audio_dir", "reference_audio"))
+    if not ref_audio_dir.exists():
+        return {"folders": [], "total_folders": 0, "total_voices": 0}
+    
+    audio_extensions = {'.wav', '.mp3', '.flac', '.ogg', '.m4a'}
+    folder_info = {}
+    total_voices = 0
+    
+    # First, scan all directories (including empty ones)
+    for item in ref_audio_dir.rglob("*"):
+        if item.is_dir():
+            # Get relative folder path
+            relative_path = item.relative_to(ref_audio_dir)
+            folder_path = str(relative_path) if relative_path != Path('.') else ""
+            
+            if folder_path and folder_path not in folder_info:
+                folder_info[folder_path] = {
+                    "path": folder_path,
+                    "voice_count": 0,
+                    "subfolders": set()
+                }
+    
+    # Add root folder if it doesn't exist
+    if "" not in folder_info:
+        folder_info[""] = {
+            "path": "",
+            "voice_count": 0,
+            "subfolders": set()
+        }
+    
+    # Now scan all audio files and count them in their respective folders
+    for audio_file in ref_audio_dir.rglob("*"):
+        if audio_file.is_file() and audio_file.suffix.lower() in audio_extensions:
+            total_voices += 1
+            
+            # Get relative folder path
+            relative_path = audio_file.relative_to(ref_audio_dir)
+            folder_path = str(relative_path.parent) if relative_path.parent != Path('.') else ""
+            
+            # Ensure folder exists in our tracking (should already exist from directory scan)
+            if folder_path not in folder_info:
+                folder_info[folder_path] = {
+                    "path": folder_path,
+                    "voice_count": 0,
+                    "subfolders": set()
+                }
+            
+            folder_info[folder_path]["voice_count"] += 1
+    
+    # Calculate subfolders for each folder
+    all_folders = list(folder_info.keys())
+    
+    for folder_path in all_folders:
+        for other_folder in all_folders:
+            if other_folder != folder_path:
+                # Check if other_folder is a direct subfolder of folder_path
+                if folder_path == "":
+                    # Root folder - direct subfolders have no "/" in their path
+                    if "/" not in other_folder and other_folder != "":
+                        folder_info[folder_path]["subfolders"].add(other_folder)
+                else:
+                    # Check if it's a direct subfolder (not nested deeper)
+                    if other_folder.startswith(folder_path + "/"):
+                        relative_part = other_folder[len(folder_path + "/"):]
+                        if "/" not in relative_part:  # Direct subfolder
+                            folder_info[folder_path]["subfolders"].add(relative_part)
+    
+    # Convert sets to lists and prepare response
+    folders = []
+    for folder_data in folder_info.values():
+        folder_data["subfolders"] = sorted(list(folder_data["subfolders"]))
+        folders.append(folder_data)
+    
+    # Sort folders by path
+    folders.sort(key=lambda x: x["path"])
+    
+    return {
+        "folders": folders,
+        "total_folders": len(folders),
+        "total_voices": total_voices
+    }

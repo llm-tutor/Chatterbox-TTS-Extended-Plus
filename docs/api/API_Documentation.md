@@ -52,7 +52,23 @@ Generated audio files are accessible via HTTP at: `http://localhost:7860/outputs
 | `/api/v1/tts` | POST | Text-to-Speech generation |
 | `/api/v1/vc` | POST | Voice conversion |
 | `/api/v1/config` | GET | Configuration information |
-| `/api/v1/voices` | GET | Available reference voices |
+| `/api/v1/voices` | GET | Available reference voices (with pagination) |
+
+### Voice Management
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/voice` | POST | Upload voice file with metadata |
+| `/api/v1/voice/{filename}` | DELETE | Delete single voice file |
+| `/api/v1/voice/{filename}/metadata` | PUT | Update voice metadata only |
+| `/api/v1/voices` | DELETE | Bulk delete voices by criteria |
+| `/api/v1/voices/folders` | GET | Get voice folder structure |
+
+### Generated Files
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/outputs` | GET | List generated files with metadata |
 
 ### Static File Serving
 
@@ -310,6 +326,64 @@ GET /api/v1/voices?page=1&page_size=10&search=david&folder=speaker_en
 - `last_used`: ISO timestamp when voice was last used
 - `usage_count`: Number of times voice has been used
 - `folder_path`: Relative folder path within reference_audio/ (null for root)
+
+### Voice Management
+
+#### Upload Voice File
+
+**Endpoint:** `POST /api/v1/voice`  
+**Description:** Upload a new voice file with metadata and folder organization
+
+**Request Format:** `multipart/form-data`
+
+**Form Fields:**
+- `voice_file` (file, required): Voice audio file
+- `name` (string, optional): Voice name (defaults to filename)
+- `description` (string, optional): Voice description
+- `tags` (string, optional): Comma-separated voice tags
+- `folder_path` (string, optional): Folder organization path
+- `default_parameters` (string, optional): JSON string of default TTS parameters
+- `overwrite` (boolean, optional): Overwrite existing voice file (default: false)
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:7860/api/v1/voice \
+  -F "voice_file=@my_voice.wav" \
+  -F "name=My Custom Voice" \
+  -F "description=A test voice for demonstrations" \
+  -F "tags=test,custom,demo" \
+  -F "folder_path=custom_voices"
+```
+
+#### Update Voice Metadata
+
+**Endpoint:** `PUT /api/v1/voice/{filename}/metadata`  
+**Description:** Update voice metadata without changing the audio file
+
+#### Delete Single Voice
+
+**Endpoint:** `DELETE /api/v1/voice/{filename}`  
+**Description:** Delete a single voice file and its metadata
+**Query Parameters:** `confirm=true` (required for safety)
+
+#### Bulk Delete Voices
+
+**Endpoint:** `DELETE /api/v1/voices`  
+**Description:** Bulk delete voices based on criteria
+**Query Parameters:** `confirm=true`, `folder`, `tag`, `search`, `filenames`
+
+#### Get Voice Folder Structure
+
+**Endpoint:** `GET /api/v1/voices/folders`  
+**Description:** Get voice library folder structure and organization
+
+### Generated Files Management
+
+#### List Generated Files
+
+**Endpoint:** `GET /api/v1/outputs`  
+**Description:** List generated audio files with metadata, pagination, and search capabilities
+**Query Parameters:** `page`, `page_size`, `generation_type`, `search`, `filenames`
 
 ## Error Handling
 
