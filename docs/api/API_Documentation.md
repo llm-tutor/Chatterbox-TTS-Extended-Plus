@@ -256,18 +256,60 @@ Get API configuration and default values.
 
 **GET** `/api/v1/voices`
 
-List available reference voice files.
+List available reference voice files with enhanced metadata, pagination, and search capabilities.
+
+**Query Parameters:**
+- `page` (integer, optional): Page number (default: 1, min: 1)
+- `page_size` (integer, optional): Items per page (default: 50, max: 100)
+- `search` (string, optional): Search term for voice names, descriptions, or tags
+- `folder` (string, optional): Filter by folder path
+
+**Example Request:**
+```
+GET /api/v1/voices?page=1&page_size=10&search=david&folder=speaker_en
+```
 
 **Response:**
 ```json
 {
   "voices": [
-    {"path": "speaker1/formal.wav"},
-    {"path": "speaker1/casual.wav"}, 
-    {"path": "speaker2/energetic.wav"}
-  ]
+    {
+      "name": "DAVID-2",
+      "description": "Voice file: DAVID-2.mp3",
+      "duration_seconds": 83.91,
+      "sample_rate": 44100,
+      "file_size_bytes": 2015645,
+      "format": "mp3",
+      "default_parameters": {},
+      "tags": [],
+      "created_date": "2025-06-18T15:01:48.465839",
+      "last_used": "2025-06-21T13:04:47.606227",
+      "usage_count": 1,
+      "folder_path": "speaker_en"
+    }
+  ],
+  "count": 1,
+  "page": 1,
+  "page_size": 10,
+  "total_pages": 1,
+  "has_next": false,
+  "has_previous": false
 }
 ```
+
+**Voice Metadata Fields:**
+- `name`: Voice identifier (filename without extension)
+- `description`: Human-readable description
+- `duration_seconds`: Audio duration in seconds
+- `sample_rate`: Audio sample rate (Hz)
+- `file_size_bytes`: File size in bytes
+- `format`: Audio format (wav, mp3, flac, etc.)
+- `default_parameters`: Recommended TTS parameters for this voice
+- `tags`: Array of descriptive tags
+- `created_date`: ISO timestamp when voice was first added
+- `last_used`: ISO timestamp when voice was last used
+- `usage_count`: Number of times voice has been used
+- `folder_path`: Relative folder path within reference_audio/ (null for root)
 
 ## Error Handling
 

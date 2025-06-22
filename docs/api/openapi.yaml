@@ -64,10 +64,40 @@ paths:
   /api/v1/voices:
     get:
       summary: List Available Voices
-      description: Get list of available reference voice files
+      description: Get list of available reference voice files with enhanced metadata, pagination, and search
       operationId: listVoices
       tags:
         - System
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          description: Items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: search
+          in: query
+          description: Search term for voice names, descriptions, or tags
+          required: false
+          schema:
+            type: string
+        - name: folder
+          in: query
+          description: Filter by folder path
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: Voices retrieved successfully
@@ -642,11 +672,78 @@ components:
         voices:
           type: array
           items:
-            type: object
-            properties:
-              path:
-                type: string
-                description: Relative path to voice file
+            $ref: '#/components/schemas/VoiceMetadata'
+        count:
+          type: integer
+          description: Number of voices in current page
+        page:
+          type: integer
+          description: Current page number
+        page_size:
+          type: integer
+          description: Items per page
+        total_pages:
+          type: integer
+          description: Total number of pages
+        has_next:
+          type: boolean
+          description: Whether there is a next page
+        has_previous:
+          type: boolean
+          description: Whether there is a previous page
+
+    VoiceMetadata:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Voice identifier (filename without extension)
+        description:
+          type: string
+          nullable: true
+          description: Human-readable description
+        duration_seconds:
+          type: number
+          nullable: true
+          description: Audio duration in seconds
+        sample_rate:
+          type: integer
+          nullable: true
+          description: Audio sample rate (Hz)
+        file_size_bytes:
+          type: integer
+          nullable: true
+          description: File size in bytes
+        format:
+          type: string
+          nullable: true
+          description: Audio format (wav, mp3, flac, etc.)
+        default_parameters:
+          type: object
+          nullable: true
+          description: Recommended TTS parameters for this voice
+        tags:
+          type: array
+          items:
+            type: string
+          description: Descriptive tags
+        created_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: ISO timestamp when voice was first added
+        last_used:
+          type: string
+          format: date-time
+          nullable: true
+          description: ISO timestamp when voice was last used
+        usage_count:
+          type: integer
+          description: Number of times voice has been used
+        folder_path:
+          type: string
+          nullable: true
+          description: Relative folder path within reference_audio/ (null for root)
 
     ResourceStatusResponse:
       type: object
