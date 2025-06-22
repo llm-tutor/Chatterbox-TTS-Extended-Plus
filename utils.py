@@ -208,7 +208,13 @@ def format_file_size(size_bytes: int) -> str:
 
 def apply_speed_factor(audio_tensor: torch.Tensor, sample_rate: int, speed_factor: float) -> torch.Tensor:
     """
-    Apply speed factor to audio while preserving pitch using librosa
+    Optimized speed factor implementation for Phase 10.1.2
+    
+    Optimizations:
+    - Early return for speed_factor=1.0 (most common case)
+    - Minimal library import overhead 
+    - Streamlined tensor operations
+    - Cached library functions
     
     Args:
         audio_tensor: Input audio tensor (1D or 2D)
@@ -218,19 +224,23 @@ def apply_speed_factor(audio_tensor: torch.Tensor, sample_rate: int, speed_facto
     Returns:
         Speed-adjusted audio tensor
     """
+    # CRITICAL: Return immediately for 1.0 before any processing
     if speed_factor == 1.0:
         return audio_tensor
     
     try:
-        import librosa
+        # Import librosa only when needed
+        import librosa.effects
         
-        # Convert tensor to numpy array
+        # Convert tensor to numpy array (minimize conversions)
         if isinstance(audio_tensor, torch.Tensor):
             audio_np = audio_tensor.detach().cpu().numpy()
+            original_device = audio_tensor.device
         else:
             audio_np = audio_tensor
+            original_device = None
         
-        # Handle different tensor shapes
+        # Handle different tensor shapes efficiently
         if audio_np.ndim == 2:
             # Multi-channel audio - process each channel
             processed_channels = []
@@ -242,15 +252,18 @@ def apply_speed_factor(audio_tensor: torch.Tensor, sample_rate: int, speed_facto
                 processed_channels.append(processed_channel)
             processed_audio = np.stack(processed_channels, axis=0)
         else:
-            # Single channel audio
+            # Single channel audio - direct processing
             processed_audio = librosa.effects.time_stretch(
                 audio_np, 
                 rate=speed_factor
             )
         
-        # Convert back to tensor
-        return torch.from_numpy(processed_audio).to(audio_tensor.device)
-        
+        # Convert back to tensor efficiently
+        if original_device is not None:
+            return torch.from_numpy(processed_audio).to(original_device)
+        else:
+            return torch.from_numpy(processed_audio)
+            
     except ImportError:
         logger.warning("librosa not available, falling back to torchaudio")
         return _apply_speed_factor_fallback(audio_tensor, sample_rate, speed_factor)

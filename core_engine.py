@@ -743,8 +743,16 @@ class CoreEngineSynchronous:
                         gen_chunks.append(all_candidates[key][0])  # Take first candidate
                 
                 if gen_chunks:
-                    # Combine chunks for this generation
+                    # Phase 10.1.2 Optimization: Separate speed factor processing
+                    # Step 1: Combine chunks (always at 1.0x speed)
                     combined_path = self._combine_audio_chunks(gen_chunks, gen_index, kwargs)
+                    
+                    # Step 2: Apply speed factor as post-processing if needed
+                    speed_factor = kwargs.get('speed_factor', 1.0)
+                    if abs(speed_factor - 1.0) >= 1e-6:
+                        # Only apply speed factor processing if actually needed
+                        combined_path = self.apply_speed_factor_post_processing(combined_path, speed_factor, kwargs)
+                    
                     final_chunks.append(combined_path)
             
             if not final_chunks:
@@ -758,14 +766,21 @@ class CoreEngineSynchronous:
             raise GenerationError(f"TTS generation failed: {e}")
 
     def _combine_audio_chunks(self, chunk_paths: List[str], gen_index: int, generation_params: Dict[str, Any] = None) -> str:
-        """Combine audio chunks into a single file with enhanced naming"""
+        """
+        Combine audio chunks into a single file
+        
+        Phase 10.1.2 Optimization: Speed factor processing moved to separate method
+        This eliminates overhead for speed_factor=1.0 (most common case)
+        """
         try:
             output_dir = Path(config_manager.get("paths.output_dir", "outputs"))
             
-            # Use enhanced filename generation
+            # Use enhanced filename generation (excluding speed_factor for base file)
             from utils import generate_enhanced_filename
             params = generation_params or {}
-            filename = generate_enhanced_filename("tts", params, "wav")
+            # Create base filename without speed_factor
+            base_params = {k: v for k, v in params.items() if k != 'speed_factor'}
+            filename = generate_enhanced_filename("tts", base_params, "wav")
             output_path = output_dir / filename
             
             if len(chunk_paths) == 1:
@@ -792,27 +807,55 @@ class CoreEngineSynchronous:
                 torchaudio.save(str(output_path), combined_audio, sample_rate)
                 logger.info(f"Combined {len(chunk_paths)} chunks to: {output_path}")
             
-            # Apply speed factor if specified
-            speed_factor = generation_params.get('speed_factor', 1.0) if generation_params else 1.0
-            if speed_factor != 1.0:
-                logger.info(f"Applying speed factor: {speed_factor}x")
-                
-                # Load the combined audio
-                audio_tensor, sample_rate = torchaudio.load(str(output_path))
-                
-                # Apply speed factor using utils function
-                from utils import apply_speed_factor
-                processed_audio = apply_speed_factor(audio_tensor, sample_rate, speed_factor)
-                
-                # Save the speed-adjusted audio
-                torchaudio.save(str(output_path), processed_audio, sample_rate)
-                logger.info(f"Speed factor {speed_factor}x applied successfully")
-            
+            # OPTIMIZATION: Return base file path without speed factor processing
+            # Speed factor will be applied separately if needed
             return str(output_path)
             
         except Exception as e:
             logger.error(f"Failed to combine audio chunks: {e}")
             raise AudioProcessingError(f"Audio combination failed: {e}")
+
+    def apply_speed_factor_post_processing(self, audio_path: str, speed_factor: float, generation_params: Dict[str, Any] = None) -> str:
+        """
+        Apply speed factor as post-processing step (Phase 10.1.2 optimization)
+        
+        This method is called separately after generation to apply speed factor,
+        eliminating overhead for speed_factor=1.0 cases.
+        """
+        if abs(speed_factor - 1.0) < 1e-6:
+            # No processing needed for 1.0x speed
+            return audio_path
+        
+        try:
+            logger.info(f"Applying speed factor {speed_factor}x as post-processing")
+            
+            # Load the audio
+            audio_tensor, sample_rate = torchaudio.load(audio_path)
+            
+            # Apply speed factor using optimized utils function
+            from utils import apply_speed_factor
+            processed_audio = apply_speed_factor(audio_tensor, sample_rate, speed_factor)
+            
+            # Create new filename with speed factor
+            from utils import generate_enhanced_filename
+            
+            params = generation_params or {}
+            # Include speed_factor in the filename for the final version
+            filename_params = {**params, "speed_factor": speed_factor}
+            
+            speed_filename = generate_enhanced_filename("tts", filename_params, "wav")
+            speed_output_path = Path(config_manager.get("paths.output_dir", "outputs")) / speed_filename
+            
+            # Save speed-adjusted audio
+            torchaudio.save(str(speed_output_path), processed_audio, sample_rate)
+            logger.info(f"Speed factor {speed_factor}x applied successfully: {speed_output_path}")
+            
+            return str(speed_output_path)
+            
+        except Exception as e:
+            logger.error(f"Speed factor post-processing failed: {e}")
+            # Return original path as fallback
+            return audio_path
     
     def cleanup_temp_files(self) -> None:
         """Clean up temporary files"""
