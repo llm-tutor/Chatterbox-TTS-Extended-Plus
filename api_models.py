@@ -53,6 +53,10 @@ class TTSRequest(BaseModel):
     normalize_lra: float = Field(7.0, description="Loudness range")
     sound_words_field: str = Field("", description="Sound words field")
     speed_factor: float = Field(1.0, ge=0.5, le=2.0, description="Speed adjustment factor (0.5x to 2.0x)")
+    speed_factor_library: Optional[str] = Field(
+        "auto", 
+        description="Library for speed adjustment: 'auto', 'audiostretchy', 'pyrubberband', 'librosa', 'torchaudio'. 'auto' selects best library for the speed range."
+    )
     export_formats: List[str] = Field(["wav", "mp3"], description="Export formats")
     disable_watermark: bool = Field(True, description="Disable watermark")
 
@@ -68,6 +72,14 @@ class TTSRequest(BaseModel):
         for fmt in v:
             if not validate_audio_format(fmt):
                 raise ValueError(f"Unsupported audio format: {fmt}")
+        return v
+
+    @validator('speed_factor_library')
+    def validate_speed_factor_library(cls, v):
+        if v is not None:
+            allowed_libraries = ['auto', 'audiostretchy', 'pyrubberband', 'librosa', 'torchaudio']
+            if v not in allowed_libraries:
+                raise ValueError(f"speed_factor_library must be one of: {allowed_libraries}")
         return v
 
     @validator('whisper_model_name')

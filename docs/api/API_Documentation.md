@@ -516,6 +516,38 @@ curl -X POST http://localhost:7860/api/v1/tts \
   }'
 ```
 
+### TTS with Enhanced Speed Control
+
+```bash
+# High-quality speed adjustment with audiostretchy
+curl -X POST http://localhost:7860/api/v1/tts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "This demonstrates high-quality speed adjustment with enhanced libraries.",
+    "reference_audio_filename": "speaker1/formal.wav",
+    "speed_factor": 1.5,
+    "speed_factor_library": "audiostretchy",
+    "export_formats": ["wav"]
+  }'
+
+# Auto library selection based on speed range
+curl -X POST http://localhost:7860/api/v1/tts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Automatic library selection for optimal quality.",
+    "speed_factor": 0.8,
+    "speed_factor_library": "auto",
+    "export_formats": ["wav"]
+  }'
+```
+
+**Speed Factor Libraries:**
+- `auto` - Smart selection based on speed range (recommended)
+- `audiostretchy` - TDHS algorithm, best for speech quality (±10% range optimal)
+- `pyrubberband` - Industry standard, excellent for larger speed changes (±20-25% range optimal)
+- `librosa` - Good baseline compatibility
+- `torchaudio` - Basic fallback (affects pitch)
+
 ### Voice Conversion with Local Files
 
 ```bash

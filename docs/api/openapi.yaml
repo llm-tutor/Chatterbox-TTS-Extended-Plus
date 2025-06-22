@@ -248,6 +248,14 @@ paths:
                   exaggeration: 0.7
                   temperature: 0.8
                   export_formats: ["wav", "mp3"]
+              with_speed_control:
+                summary: TTS with Enhanced Speed Control
+                value:
+                  text: "This demonstrates high-quality speed adjustment."
+                  reference_audio_filename: "speaker1/formal.wav"
+                  speed_factor: 1.5
+                  speed_factor_library: "audiostretchy"
+                  export_formats: ["wav"]
       responses:
         '200':
           description: TTS generation successful
@@ -502,6 +510,18 @@ components:
           type: integer
           default: 0
           description: Random seed (0 for random)
+        speed_factor:
+          type: number
+          format: float
+          minimum: 0.5
+          maximum: 2.0
+          default: 1.0
+          description: Speed adjustment factor (0.5x to 2.0x)
+        speed_factor_library:
+          type: string
+          enum: ["auto", "audiostretchy", "pyrubberband", "librosa", "torchaudio"]
+          default: "auto"
+          description: Library for speed adjustment. 'auto' selects best library for the speed range.
         export_formats:
           type: array
           items:

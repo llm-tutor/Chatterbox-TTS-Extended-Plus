@@ -834,7 +834,13 @@ class CoreEngineSynchronous:
             
             # Apply speed factor using optimized utils function
             from utils import apply_speed_factor
-            processed_audio = apply_speed_factor(audio_tensor, sample_rate, speed_factor)
+            speed_factor_library = generation_params.get('speed_factor_library', 'auto')
+            processed_audio = apply_speed_factor(
+                audio_tensor, 
+                sample_rate, 
+                speed_factor,
+                preferred_library=speed_factor_library
+            )
             
             # Create new filename with speed factor
             from utils import generate_enhanced_filename

@@ -11,6 +11,8 @@ This folder contains comprehensive test clients for the API implementation acros
 ### Phase 10 - Speed Control & Voice Enhancement  
 - `test_phase10_tasks_10_1_10_2.py` - Speed factor and voice metadata testing
 - `test_phase10_task_10_1_2_speed_optimization.py` - Architecture optimization validation
+- `test_phase10_task_10_1_3_enhanced_libraries.py` - Enhanced library integration testing
+- `test_phase10_task_10_1_3_quality_comparison.py` - Audio quality comparison tool
 - `test_voice_metadata_validation.py` - Deep voice metadata accuracy testing
 
 ### Legacy/Reference Tests
@@ -75,6 +77,27 @@ cd tests && python test_phase10_task_10_1_2_speed_optimization.py
 - **speed_factor≠1.0**: Minimal post-processing overhead (<15% target)
 - Consistent performance without first-request penalties
 - Architectural separation validation
+
+#### **Phase 10.1.3 Enhanced Speed Factor Libraries** (`test_phase10_task_10_1_3_enhanced_libraries.py`)
+```bash
+cd tests && python test_phase10_task_10_1_3_enhanced_libraries.py
+```
+**Comprehensive library integration testing**:
+- **audiostretchy**: TDHS algorithm for superior speech quality
+- **pyrubberband**: Advanced phase vocoder with formant preservation
+- **librosa**: Baseline phase vocoder compatibility
+- **auto selection**: Smart library choice based on speed factor range
+- **Zero overhead**: Confirms 1.0x speed factor performance optimization
+
+#### **Phase 10.1.3 Audio Quality Comparison** (`test_phase10_task_10_1_3_quality_comparison.py`)
+```bash
+cd tests && python test_phase10_task_10_1_3_quality_comparison.py
+```
+**Focused quality testing tool**:
+- **Configurable library**: Edit `TEST_LIBRARY` to test different libraries
+- **Real-world speeds**: 0.7x/0.8x (slow down TTS), 1.2x/1.3x (speed up)
+- **Audio file output**: Saves to `tests/media/` with descriptive names
+- **Use case focused**: Primary need is slowing down accelerated TTS speech
 
 #### Voice Metadata Deep Testing (`test_voice_metadata_validation.py`)
 ```bash
