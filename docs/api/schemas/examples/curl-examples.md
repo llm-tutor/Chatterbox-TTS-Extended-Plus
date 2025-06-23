@@ -42,7 +42,7 @@ curl -X POST http://localhost:7860/api/v1/tts \
 -H "Content-Type: application/json" \
 -d '{
   "text": "This text will be spoken in the reference voice style.",
-  "reference_audio_filename": "speaker1/formal.wav",
+  "reference_audio_filename": "speaker_en/DAVID-2.mp3",
   "exaggeration": 0.7,
   "temperature": 0.8,
   "export_formats": ["wav", "mp3"]
@@ -56,7 +56,7 @@ curl -X POST http://localhost:7860/api/v1/tts \
 -H "Content-Type: application/json" \
 -d '{
   "text": "This demonstrates high-quality speed adjustment with enhanced libraries.",
-  "reference_audio_filename": "speaker1/formal.wav",
+  "reference_audio_filename": "speaker_en/DAVID-2.mp3",
   "speed_factor": 1.5,
   "speed_factor_library": "audiostretchy",
   "export_formats": ["wav"]
@@ -79,7 +79,7 @@ curl -X POST http://localhost:7860/api/v1/tts \
 -H "Content-Type: application/json" \
 -d '{
   "text": "Advanced TTS generation with all parameters.",
-  "reference_audio_filename": "speaker2/energetic.wav",
+  "reference_audio_filename": "speaker_en/CONNOR-2-non-native.mp3",
   "exaggeration": 0.6,
   "temperature": 0.75,
   "seed": 42,
@@ -109,29 +109,30 @@ curl -X POST http://localhost:7860/api/v1/tts \
 curl -X POST http://localhost:7860/api/v1/vc \
 -H "Content-Type: application/json" \
 -d '{
-  "input_audio_source": "my_recording.wav",
-  "target_voice_source": "target_voices/celebrity.wav",
+  "input_audio_source": "hello_quick_brown.wav",
+  "target_voice_source": "speaker_en/DAVID-2.mp3",
   "chunk_sec": 30,
   "export_formats": ["wav", "mp3"]
 }'
 ```
 
-### Voice Conversion with URLs
+### Voice Conversion with URLs (Demo - URL won't work)
 ```bash
 curl -X POST http://localhost:7860/api/v1/vc \
 -H "Content-Type: application/json" \
 -d '{
-  "input_audio_source": "https://example.com/speech.wav",
-  "target_voice_source": "speaker2/style.wav",
+  "input_audio_source": "alex.mp3",
+  "target_voice_source": "speaker_en/CONNOR-2-non-native.mp3",
   "export_formats": ["wav", "mp3"]
 }'
 ```
 
-### Voice Conversion with Direct File Upload
+### Voice Conversion with Direct File Upload (Example - requires existing file)
 ```bash
+# Note: This example requires you to have an actual audio file in the current directory
 curl -X POST http://localhost:7860/api/v1/vc \
--F "input_audio=@my_recording.wav" \
--F "target_voice_source=speaker1.wav" \
+-F "input_audio=@sample_audio.wav" \
+-F "target_voice_source=speaker_en/DAVID-2.mp3" \
 -F "chunk_sec=30" \
 -F "export_formats=wav,mp3" \
 --output converted_voice.wav
@@ -142,8 +143,8 @@ curl -X POST http://localhost:7860/api/v1/vc \
 curl -X POST http://localhost:7860/api/v1/vc \
 -H "Content-Type: application/json" \
 -d '{
-  "input_audio_source": "long_speech.wav",
-  "target_voice_source": "custom_voices/narrator.wav",
+  "input_audio_source": "alex.mp3",
+  "target_voice_source": "speaker_en/DAVID-2.mp3",
   "chunk_sec": 60,
   "overlap_sec": 0.1,
   "export_formats": ["wav", "mp3", "flac"],
@@ -201,9 +202,9 @@ curl http://localhost:7860/api/v1/voices
 curl "http://localhost:7860/api/v1/voices?page=1&page_size=50&search=professional"
 ```
 
-### Get Voice Details
+### Get Voice Details (Note: Endpoint may not be implemented)
 ```bash
-curl http://localhost:7860/api/v1/voices/speaker1.wav
+curl http://localhost:7860/api/v1/voices/speaker_en/DAVID-2.mp3
 ```
 
 ---
@@ -215,14 +216,16 @@ curl http://localhost:7860/api/v1/voices/speaker1.wav
 curl http://localhost:7860/api/v1/outputs
 ```
 
-### Download Generated File
+### Download Generated File (Example - requires actual generated file)
 ```bash
-curl http://localhost:7860/outputs/tts_output_1234567890_42.wav --output downloaded_file.wav
+# Note: Replace with actual generated filename from outputs
+curl http://localhost:7860/outputs/tts_output_example.wav --output downloaded_file.wav
 ```
 
-### Get File Metadata
+### Get File Metadata (Example - requires actual generated file)
 ```bash
-curl http://localhost:7860/api/v1/outputs/tts_output_1234567890_42.wav/metadata
+# Note: Replace with actual generated filename from outputs
+curl http://localhost:7860/api/v1/outputs/tts_output_example.wav/metadata
 ```
 
 ---

@@ -202,12 +202,50 @@ import requests
 
 ## Validation Procedures
 
+> **📁 Validation Scripts**: Complete documentation available in [`scripts/README.md`](../../scripts/README.md)
+
 ### 1. Example Testing
 
-**Test all code examples**:
+**Quick Validation (Implementation Protocol)**:
 ```bash
 # Start the API server
 python main_api.py
+
+# Core functionality test (2-3 minutes)
+python scripts/test_working_examples.py
+
+# Link validation after doc changes
+python scripts/check_links.py
+
+# API sync verification
+python scripts/sync_openapi.py
+```
+
+**Comprehensive Validation (Major Releases)**:
+```bash
+# Full cURL examples test (8-15 minutes)
+python scripts/test_curl_examples.py --timeout 90
+
+# Python examples validation
+python scripts/test_examples.py
+
+# Complete validation suite
+python scripts/check_links.py
+python scripts/sync_openapi.py
+```
+
+**Available Validation Scripts**:
+
+| Script | Purpose | Time | Usage |
+|--------|---------|------|-------|
+| `test_working_examples.py` | Core functionality validation | 2-3 min | Implementation protocol |
+| `test_curl_examples.py` | Comprehensive cURL testing | 8-15 min | Major releases |
+| `test_examples.py` | Python code examples | ~1 min | Regular validation |
+| `check_links.py` | Documentation links | ~30 sec | After doc changes |
+| `sync_openapi.py` | API spec synchronization | ~10 sec | API changes |
+| `diagnose_curl_examples.py` | Troubleshooting tool | ~5 sec | Debugging |
+
+> **💡 See [`scripts/README.md`](../../scripts/README.md) for detailed usage, requirements, and troubleshooting.**
 
 # Test cURL examples
 ./test_curl_examples.sh

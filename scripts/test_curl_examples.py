@@ -33,41 +33,24 @@ class CurlExampleTester:
         for i, match in enumerate(matches):
             block_content = match.group(1).strip()
             
-            # Look for curl commands in the block
-            lines = block_content.split('\n')
-            curl_lines = []
-            in_curl = False
-            
-            for line in lines:
-                line = line.strip()
-                if line.startswith('curl '):
-                    in_curl = True
-                    curl_lines.append(line)
-                elif in_curl and (line.startswith('-') or line.startswith('"') or 
-                                line.startswith("'") or line.endswith('\\')):
-                    curl_lines.append(line)
-                elif in_curl and line == '':
-                    continue
-                else:
-                    if in_curl:
-                        # End of curl command
-                        curl_command = ' '.join(curl_lines).replace(' \\', '')
-                        curl_commands.append({
-                            'index': len(curl_commands),
-                            'command': curl_command,
-                            'line_start': content[:match.start()].count('\n') + 1
-                        })
-                        curl_lines = []
-                        in_curl = False
-            
-            # Handle curl command at end of block
-            if in_curl and curl_lines:
-                curl_command = ' '.join(curl_lines).replace(' \\', '')
-                curl_commands.append({
-                    'index': len(curl_commands),
-                    'command': curl_command,
-                    'line_start': content[:match.start()].count('\n') + 1
-                })
+            # Handle complete curl command blocks including multiline JSON
+            if 'curl ' in block_content:
+                # Clean up the command - remove line breaks and extra spaces
+                curl_command = block_content
+                
+                # Remove backslashes used for line continuation
+                curl_command = re.sub(r'\s*\\\s*\n\s*', ' ', curl_command)
+                
+                # Clean up multiple spaces
+                curl_command = re.sub(r'\s+', ' ', curl_command)
+                
+                # Only add if it contains a proper curl command
+                if curl_command.strip().startswith('curl '):
+                    curl_commands.append({
+                        'index': len(curl_commands),
+                        'command': curl_command.strip(),
+                        'line_start': content[:match.start()].count('\n') + 1
+                    })
         
         return curl_commands    
     def parse_curl_command(self, curl_cmd: str) -> Optional[Dict[str, Any]]:
@@ -77,8 +60,9 @@ class CurlExampleTester:
             if not curl_cmd.strip().startswith('curl'):
                 return None
             
-            # Extract URL
-            url_match = re.search(r'curl\s+(?:-[A-Z]\s+\S+\s+)*(?:-H\s+[^-]*)*(?:-d\s+[^-]*)*(\S+)', curl_cmd)
+            # Extract URL - look for the first argument after curl that looks like a URL
+            url_pattern = r'curl\s+(?:[^h\s]+\s+)*?(https?://[^\s]+|/[^\s]*)'
+            url_match = re.search(url_pattern, curl_cmd)
             if not url_match:
                 return None
             
@@ -108,15 +92,22 @@ class CurlExampleTester:
                     key, value = header.split(':', 1)
                     headers[key.strip()] = value.strip()
             
-            # Extract data
+            # Extract JSON data from -d parameter
             data = None
-            data_match = re.search(r'-d\s+["\']([^"\']+)["\']', curl_cmd)
+            # Look for -d followed by a JSON object
+            data_match = re.search(r'-d\s+["\']({.*?})["\']', curl_cmd, re.DOTALL)
             if data_match:
                 data_str = data_match.group(1)
                 try:
                     data = json.loads(data_str)
-                except json.JSONDecodeError:
-                    data = data_str
+                except json.JSONDecodeError as e:
+                    # Try to fix common JSON issues
+                    # Remove any trailing commas
+                    data_str = re.sub(r',(\s*[}\]])', r'\1', data_str)
+                    try:
+                        data = json.loads(data_str)
+                    except json.JSONDecodeError:
+                        data = data_str
             
             return {
                 'method': method,
