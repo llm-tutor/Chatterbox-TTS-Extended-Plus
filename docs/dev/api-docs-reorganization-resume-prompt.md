@@ -71,10 +71,10 @@ Follow the checklist items in the order specified in the plan document.
 ## **Key Files to Reference**
 
 ### **Original Documentation (for extraction)**
-- `docs/api/API_Documentation.md` - Main documentation file
-- `docs/api/openapi.yaml` - OpenAPI specification
-- `docs/api/api_testing_guide.md` - Testing examples
-- `docs/api/README.md` - Current overview
+- `docs/api/API_Documentation.md.backup` - Main documentation file
+- `docs/api/openapi.yaml.backup` - OpenAPI specification
+- `docs/api/api_testing_guide.md.backup` - Testing examples
+- `docs/api/README.md.backup` - Current overview
 
 ### **Project Implementation (for validation)**
 - `main_api.py` - Main FastAPI application
@@ -115,6 +115,7 @@ Follow the checklist items in the order specified in the plan document.
 ### **Reading Progress**
 ```bash
 desktop-commander:read_file docs/dev/api-docs-reorganization-plan.md
+desktop-commander:read_file docs/changelog.md
 ```
 
 ### **Checking File Structure**
@@ -127,10 +128,22 @@ desktop-commander:list_directory docs/api
 desktop-commander:write_file path/to/new/file.md "content"
 ```
 
-### **Backing Up Files**
-```bash
-desktop-commander:move_file original.md original.md.backup
+
+### **Git Operations**
+You should use the proper PowerShell syntax, and move to the path of the repository before doing git operations. Not a bad idea to run first 'git status' or 'dir' to make sure you are in the right directory.
+
 ```
+`command`: `cd "E:\Repos\Chatterbox-TTS-Extended-Plus"; git command`
+```
+### **Writing long files**
+
+A good idea for creating long files is to write them in chunks, instead of trying to write them in a single command.
+
+
+### **There is a reload after making a code change**
+
+When you make a code change, the server reloads, so your first request may take longer. Take this into consideration for your tests. You may want to make a simple request and wait for its return, before making generative tests, as to avoid distortions about the response time due to the server loading.
+
 
 ## **Success Indicators**
 
@@ -139,6 +152,7 @@ desktop-commander:move_file original.md original.md.backup
 - New files created and populated with relevant content
 - Cross-references updated to point to new structure
 - Examples tested and validated
+- Changelog file updated
 
 ### **Session End Criteria**
 - Clear stopping point identified in plan
@@ -155,13 +169,12 @@ Check the conceptual design documents in project knowledge:
 
 ### **If API Behavior Is Unclear**
 Reference the working implementation in:
-- `E:\Repos\Chatterbox-TTS-Server` - Working FastAPI reference
 - Current `main_api.py` - Live implementation
 
 ### **If Unsure About Content Organization**
 Examine current content structure:
 ```bash
-desktop-commander:search_code docs/api/API_Documentation.md "^#+ .*"
+desktop-commander:search_code docs/api/API_Documentation.md.backup "^#+ .*"
 ```
 
 This will show the current heading structure to guide reorganization decisions.
