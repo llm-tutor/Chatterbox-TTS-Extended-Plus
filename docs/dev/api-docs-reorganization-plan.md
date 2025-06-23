@@ -125,23 +125,30 @@
 - [x] Create `scripts/sync_openapi.py` - Verify OpenAPI spec matches implementation - Core API
 
 ### **Task 4.3: Script Validation & Refinement**
-- [ ] Fix link validator path resolution bugs (script implemented, needs debugging)
-- [ ] Validate Python example tester against all documentation
-- [ ] Validate cURL example tester against all documentation  
-- [ ] Test OpenAPI sync checker against live implementation
+- [x] Fix link validator path resolution bugs (script implemented and debugged)
+- [x] Validate Python example tester against all documentation
+- [x] Validate cURL example tester against all documentation  
+- [x] Test OpenAPI sync checker against live implementation
 - [ ] Set up pre-commit hooks for automated validation (after scripts are debugged)
 
 ### **Task 4.4: Final Integration**
-- [ ] Update README-API.md to reference new structure
-- [ ] Verify server `/docs` endpoint still works
-- [ ] Test documentation with fresh eyes
-- [ ] Update deployment guides if needed
+- [x] Update README-API.md to reference new structure
+- [x] Verify server `/docs` endpoint still works
+- [x] Test documentation with fresh eyes
+- [x] Update deployment guides if needed
 
 ### **Task 4.5: Cleanup & Archive**
-- [ ] Remove `.backup` files after validation
-- [ ] Archive old documentation structure
-- [ ] Update contribution guidelines
-- [ ] Create maintenance schedule
+- [x] Remove `.backup` files after validation
+- [x] Archive old documentation structure
+- [x] Update contribution guidelines
+- [x] Create maintenance schedule
+
+### **Task 4.6: Final Refinements**
+- [ ] Fix cURL examples testing script and resolve JSON formatting issues in examples
+- [ ] Ensure documentation structure is properly documented across all relevant files
+- [ ] Enhance OpenAPI sync checker to properly handle Core vs Administrative API distinction
+- [ ] Add Core vs Administrative API explanation to README-API.md for consistency
+- [ ] Complete pre-commit hooks setup after all validation scripts are perfected
 
 ---
 
@@ -165,9 +172,9 @@
   - Established endpoint classification system for future automation support
 
 ### **Current Status**
-- **Phase**: Phase 4 - Validation & Cleanup IN PROGRESS
-- **Last Task Completed**: Task 4.2 (Documentation Maintenance Scripts - all core scripts created)
-- **Next Task**: Begin Task 4.3 (Script Validation & Refinement - fix link validator path resolution bugs)
+- **Phase**: Phase 4 - Validation & Cleanup (Extension: Final Refinements)
+- **Last Task Completed**: Task 4.5 (Cleanup & Archive - all backup files archived, documentation validated)
+- **Next Task**: Begin Task 4.6 (Final Refinements - fix cURL testing, enhance OpenAPI sync checker, ensure consistency)
 
 ### **Known Issues & Notes**
 - Ensure OpenAPI.yaml remains single file for `/docs` endpoint

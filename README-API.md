@@ -302,7 +302,9 @@ else:
 
 ## Additional Resources
 
-- **📖 Full API Documentation:** `docs/API_Documentation.md`
+- **📖 API Documentation:** `docs/api/README.md` (navigation hub)
+- **🚀 Quick Start Guide:** `docs/api/quick-start.md`
+- **📚 Complete API Reference:** `docs/api/` (organized documentation)
 - **🚀 Deployment Guide:** `docs/Deployment_Guide.md`
 - **🔧 Configuration Reference:** `config.yaml`
 - **📊 Monitoring Guide:** `docs/monitoring/`
@@ -317,7 +319,7 @@ For issues with the API:
 1. Check the **health endpoint** for system status
 2. Review **logs** in the `logs/` directory  
 3. Consult the **error summary** endpoint for recent issues
-4. See the **full documentation** in `docs/API_Documentation.md`
+4. See the **organized documentation** in `docs/api/README.md`
 5. Test with the **original Gradio UI** at `/ui` to isolate API issues
 
 The API maintains full compatibility with the original Chatterbox-TTS-Extended functionality while providing modern HTTP API access for integration and automation.

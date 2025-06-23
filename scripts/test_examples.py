@@ -6,6 +6,7 @@ Tests all Python code examples in the API documentation
 
 import asyncio
 import json
+import os
 import re
 import sys
 import time
@@ -118,8 +119,16 @@ client = ChatterboxClient()
         test_globals = {}
         
         try:
+            # Capture stdout to avoid encoding issues
+            import io
+            import contextlib
+            
+            captured_output = io.StringIO()
+            
             start_time = time.time()
-            exec(full_code, test_globals)
+            with contextlib.redirect_stdout(captured_output):
+                exec(full_code, test_globals)
+            
             result['execution_time'] = time.time() - start_time
             result['success'] = True
             result['output'] = "Code executed successfully"
@@ -206,9 +215,9 @@ client = ChatterboxClient()
                     print(f"Error: {result['error']}")
         
         if stats['examples_failed'] == 0 and stats['examples_tested'] > 0:
-            print("\n✅ All Python examples passed!")
+            print("\n[OK] All Python examples passed!")
         elif stats['examples_tested'] == 0:
-            print("\n⚠️  No executable Python examples found")
+            print("\n[WARNING] No executable Python examples found")
 
 
 def main():

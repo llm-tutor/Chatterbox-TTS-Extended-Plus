@@ -356,4 +356,4 @@ def check_disk_usage():
 - [Configuration Reference](configuration.md) - Path configuration
 - [File Uploads Guide](../guides/file-uploads.md) - Upload file handling
 - [Advanced Features Guide](../guides/advanced-features.md) - File management features
-- [Audio Files Directory Structure](../../../audio_files_directory_structure.md) - Detailed structure guide
+- [Audio Files Directory Structure](../../audio_files_directory_structure.md) - Detailed structure guide

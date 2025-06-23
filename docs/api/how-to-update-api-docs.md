@@ -518,7 +518,7 @@ Added documentation for new speed_factor parameter in TTS requests.
 
 ## See Also
 
-- [API Docs Reorganization Plan](../../dev/api-docs-reorganization-plan.md) - Project structure
-- [Configuration Reference](../reference/configuration.md) - System configuration
-- [Compatibility Reference](../reference/compatibility.md) - Version requirements
-- [Quick Start Guide](../quick-start.md) - Getting started
+- [API Docs Reorganization Plan](../dev/api-docs-reorganization-plan.md) - Project structure
+- [Configuration Reference](reference/configuration.md) - System configuration
+- [Compatibility Reference](reference/compatibility.md) - Version requirements
+- [Quick Start Guide](quick-start.md) - Getting started

@@ -15,6 +15,9 @@ outputs
 tests/media/
 
 # Audio files
+*.wav
+*.mp3
+*.flac
 vc_inputs/*.mp3
 vc_inputs/*.wav
 vc_inputs/*.flac

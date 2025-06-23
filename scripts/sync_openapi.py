@@ -128,7 +128,7 @@ class OpenAPISyncChecker:
         print(f"\n=== OpenAPI Synchronization Check ===")
         
         if not results:
-            print("❌ Failed to perform sync check - see errors above")
+            print("[ERROR] Failed to perform sync check - see errors above")
             return
         
         print(f"File spec version: {results['file_spec_version']}")
@@ -159,9 +159,9 @@ class OpenAPISyncChecker:
                 print(f"WARNING: {warning}")
         
         if results['sync_status'] == 'synced':
-            print("\n✅ OpenAPI spec is synchronized!")
+            print("\n[OK] OpenAPI spec is synchronized!")
         else:
-            print("\n⚠️  OpenAPI spec is out of sync")
+            print("\n[WARNING] OpenAPI spec is out of sync")
 
 
 def main():

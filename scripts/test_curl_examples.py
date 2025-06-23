@@ -5,6 +5,7 @@ Tests all cURL command examples in the API documentation by converting them to P
 """
 
 import json
+import os
 import re
 import sys
 import time

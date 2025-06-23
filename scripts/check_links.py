@@ -28,22 +28,67 @@ class LinkChecker:
                     md_files.append(Path(root) / file)
         return md_files
     
+    def remove_code_blocks(self, content: str) -> str:
+        """Remove all code blocks from content to avoid false link detection"""
+        # Remove fenced code blocks (```...```)
+        content = re.sub(r'```.*?```', '', content, flags=re.DOTALL)
+        # Remove indented code blocks (4+ spaces at start of line)
+        lines = content.split('\n')
+        filtered_lines = []
+        in_indented_code = False
+        
+        for line in lines:
+            if line.startswith('    ') or line.startswith('\t'):
+                in_indented_code = True
+                continue
+            elif in_indented_code and line.strip() == '':
+                continue  # Skip blank lines in code blocks
+            else:
+                in_indented_code = False
+                # Remove inline code (`...`)
+                line = re.sub(r'`[^`]*`', '', line)
+                filtered_lines.append(line)
+        
+        return '\n'.join(filtered_lines)
+    
     def extract_links(self, content: str) -> List[Tuple[str, str]]:
-        """Extract markdown links from content"""
+        """Extract markdown links from content, excluding code blocks"""
+        # Remove code blocks first to avoid false positives
+        clean_content = self.remove_code_blocks(content)
+        
         # Match both [text](link) and [text]: link patterns
         link_patterns = [
             r'\[([^\]]+)\]\(([^)]+)\)',  # [text](link)
-            r'\[([^\]]+)\]:\s*([^\s]+)',  # [text]: link
+            r'^\[([^\]]+)\]:\s*([^\s]+)',  # [text]: link (reference style)
         ]
         
         links = []
         for pattern in link_patterns:
-            matches = re.finditer(pattern, content)
+            matches = re.finditer(pattern, clean_content, re.MULTILINE)
             for match in matches:
                 text, link = match.groups()
-                links.append((text.strip(), link.strip()))
+                # Additional filtering for suspicious content
+                if self._is_valid_link_format(text, link):
+                    links.append((text.strip(), link.strip()))
         
         return links
+    
+    def _is_valid_link_format(self, text: str, link: str) -> bool:
+        """Check if the extracted text and link look like valid markdown links"""
+        # Skip if link contains characters that suggest it's not a real link
+        suspicious_chars = ['"', "'", '{', '}', '\\n', '\\t', '\\r']
+        if any(char in link for char in suspicious_chars):
+            return False
+            
+        # Skip if text is too short or looks like code
+        if len(text.strip()) < 3:
+            return False
+            
+        # Skip if it looks like a code variable or constant
+        if text.isupper() and '_' in text:  # ALL_CAPS_WITH_UNDERSCORES
+            return False
+            
+        return True
     
     def is_internal_link(self, link: str) -> bool:
         """Check if link is internal (relative path or anchor)"""
@@ -65,22 +110,29 @@ class LinkChecker:
         if not link:
             return current_file
             
-        # Resolve relative to current file's directory
+        # Handle absolute paths from docs root
+        if link.startswith('/'):
+            return self.docs_root / link[1:]
+            
+        # Handle relative paths
         if link.startswith('./'):
             link = link[2:]
-        elif link.startswith('../'):
-            # Handle parent directory references
-            parts = link.split('/')
-            current_dir = current_file.parent
-            for part in parts:
-                if part == '..':
-                    current_dir = current_dir.parent
-                elif part and part != '.':
-                    current_dir = current_dir / part
-            return current_dir
         
-        # Relative to current file's directory
-        return current_file.parent / link    
+        # Handle parent directory references and all relative paths
+        # Start from current file's directory and resolve step by step
+        current_dir = current_file.parent
+        parts = link.split('/')
+        
+        for part in parts:
+            if part == '..':
+                current_dir = current_dir.parent
+            elif part == '.' or part == '':
+                continue  # Skip current directory references and empty parts
+            else:
+                current_dir = current_dir / part
+                
+        return current_dir
+    
     def check_file_links(self, file_path: Path) -> int:
         """Check all links in a single file"""
         try:
@@ -106,7 +158,7 @@ class LinkChecker:
                     f"'{link_text}' -> '{link_url}' (resolved to {target_path})"
                 )
                 error_count += 1
-            elif target_path.is_file() and not target_path.suffix == '.md':
+            elif target_path.is_file() and target_path.suffix not in ['.md', '.yaml', '.yml', '.json']:
                 self.warnings.append(
                     f"Non-markdown link in {file_path.relative_to(self.docs_root)}: "
                     f"'{link_text}' -> '{link_url}'"
@@ -152,6 +204,7 @@ class LinkChecker:
         
         if not self.errors and not self.warnings:
             print("\n[OK] All links are valid!")
+
 
 
 def main():
