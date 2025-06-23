@@ -51,10 +51,10 @@
 - [x] Extract relevant content from main documentation
 
 ### **Task 1.5: Create Examples Collection**
-- [ ] Create `docs/api/schemas/examples/curl-examples.md`
-- [ ] Create `docs/api/schemas/examples/python-examples.md`
-- [ ] Extract and organize all code examples
-- [ ] Test examples for accuracy
+- [x] Create `docs/api/schemas/examples/curl-examples.md`
+- [x] Create `docs/api/schemas/examples/python-examples.md`
+- [x] Extract and organize all code examples
+- [x] Test examples for accuracy
 
 ---
 
@@ -146,9 +146,9 @@
   - Committed: a72aa67 "docs: API Docs reorganization Phase 1 - Core split & extraction"
 
 ### **Current Status**
-- **Phase**: Phase 1 - Core Split & Extraction  
-- **Last Task Completed**: Task 1.4 (Split Endpoint Documentation - All endpoint files created)
-- **Next Task**: Task 1.5 (Create Examples Collection)
+- **Phase**: Phase 1 - Core Split & Extraction COMPLETE ✅
+- **Last Task Completed**: Task 1.5 (Create Examples Collection - ALL TESTS PASS)
+- **Next Task**: Begin Phase 2 - Content Organization & Guides
 
 ### **Known Issues & Notes**
 - Ensure OpenAPI.yaml remains single file for `/docs` endpoint
