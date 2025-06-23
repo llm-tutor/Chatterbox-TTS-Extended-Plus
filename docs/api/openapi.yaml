@@ -1,0 +1,647 @@
+openapi: 3.0.3
+info:
+  title: Chatterbox TTS Extended Plus API
+  description: Text-to-Speech and Voice Conversion API with enhanced features
+  version: 1.7.0
+  contact:
+    name: API Support
+  license:
+    name: MIT
+    
+servers:
+  - url: http://localhost:7860
+    description: Local development server
+
+tags:
+  - name: System
+    description: System operations (health, config, voices)
+  - name: TTS
+    description: Text-to-Speech generation
+  - name: Voice Conversion
+    description: Voice conversion operations
+  - name: Voice Management
+    description: Voice upload and management
+  - name: Files
+    description: File operations and downloads
+
+paths:
+  /api/v1/health:
+    get:
+      summary: Health Check
+      description: Check API health and system status
+      operationId: healthCheck
+      tags:
+        - System
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /api/v1/config:
+    get:
+      summary: Get Configuration
+      description: Get current system configuration
+      operationId: getConfig
+      tags:
+        - System
+      responses:
+        '200':
+          description: Configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigResponse'
+
+  /api/v1/voices:
+    get:
+      summary: List Available Voices
+      description: Get list of available reference voice files
+      operationId: listVoices
+      tags:
+        - System
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          description: Items per page
+          schema:
+            type: integer
+            default: 50
+        - name: search
+          in: query
+          description: Search term
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Voices retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoicesResponse'
+    delete:
+      summary: Bulk Delete Voices
+      description: Bulk delete voices based on criteria
+      operationId: bulkDeleteVoices
+      tags:
+        - Voice Management
+      parameters:
+        - name: confirm
+          in: query
+          required: true
+          schema:
+            type: boolean
+          description: Confirmation required for bulk deletion
+        - name: folder
+          in: query
+          schema:
+            type: string
+          description: Delete voices in specific folder
+        - name: tag
+          in: query
+          schema:
+            type: string
+          description: Delete voices with specific tag
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Delete voices matching search term
+        - name: filenames
+          in: query
+          schema:
+            type: string
+          description: Comma-separated list of filenames to delete
+      responses:
+        '200':
+          description: Voices deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceDeletionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/voices/folders:
+    get:
+      summary: List Voice Folders
+      description: Get list of voice folder organization
+      operationId: listVoiceFolders
+      tags:
+        - Voice Management
+      responses:
+        '200':
+          description: Voice folders retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceFoldersResponse'
+
+  /api/v1/voice:
+    post:
+      summary: Upload Voice File
+      description: Upload a new voice file with metadata
+      operationId: uploadVoice
+      tags:
+        - Voice Management
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                voice_file:
+                  type: string
+                  format: binary
+                  description: Voice audio file
+                name:
+                  type: string
+                  description: Voice name
+                description:
+                  type: string
+                  description: Voice description
+              required:
+                - voice_file
+      responses:
+        '200':
+          description: Voice uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceUploadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/voice/{filename}:
+    delete:
+      summary: Delete Voice File
+      description: Delete a specific voice file
+      operationId: deleteVoice
+      tags:
+        - Voice Management
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Voice filename to delete
+        - name: confirm
+          in: query
+          required: true
+          schema:
+            type: boolean
+          description: Confirmation required to delete voice
+      responses:
+        '200':
+          description: Voice deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceDeletionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/voice/{filename}/metadata:
+    put:
+      summary: Update Voice Metadata
+      description: Update voice metadata without changing the audio file
+      operationId: updateVoiceMetadata
+      tags:
+        - Voice Management
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Voice filename
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VoiceMetadataUpdate'
+      responses:
+        '200':
+          description: Metadata updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceUploadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/tts:
+    post:
+      summary: Text-to-Speech Generation
+      description: Generate speech from text with optional voice cloning
+      operationId: generateTTS
+      tags:
+        - TTS
+      parameters:
+        - name: response_mode
+          in: query
+          description: Response mode ('stream' or 'url')
+          schema:
+            type: string
+            enum: [stream, url]
+            default: stream
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TTSRequest'
+      responses:
+        '200':
+          description: TTS generation successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TTSResponse'
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/vc:
+    post:
+      summary: Voice Conversion
+      description: Convert voice characteristics to match a target voice
+      operationId: convertVoice
+      tags:
+        - Voice Conversion
+      parameters:
+        - name: response_mode
+          in: query
+          description: Response mode ('stream' or 'url')
+          schema:
+            type: string
+            enum: [stream, url]
+            default: stream
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VCRequest'
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                input_audio:
+                  type: string
+                  format: binary
+                  description: Input audio file
+                target_voice_source:
+                  type: string
+                  description: Target voice filename
+                export_formats:
+                  type: string
+                  default: "wav"
+                  description: Export formats
+              required:
+                - input_audio
+                - target_voice_source
+      responses:
+        '200':
+          description: Voice conversion successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VCResponse'
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v1/outputs:
+    get:
+      summary: List Generated Files
+      description: Get list of generated audio files
+      operationId: listOutputs
+      tags:
+        - Files
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Files retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneratedFilesResponse'
+
+  /outputs/{filename}:
+    get:
+      summary: Download Generated File
+      description: Download a generated audio file
+      operationId: downloadFile
+      tags:
+        - Files
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File downloaded successfully
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: healthy
+        models_loaded:
+          type: object
+          properties:
+            tts:
+              type: boolean
+            vc:
+              type: boolean
+        version:
+          type: string
+        uptime_seconds:
+          type: number
+
+    ConfigResponse:
+      type: object
+      properties:
+        tts_model:
+          type: string
+        vc_model:
+          type: string
+        paths:
+          type: object
+
+    TTSRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          description: Text to synthesize
+        reference_audio_filename:
+          type: string
+          description: Reference voice file
+        exaggeration:
+          type: number
+          default: 0.5
+          minimum: 0
+          maximum: 2.0
+        temperature:
+          type: number
+          default: 0.75
+          minimum: 0.1
+          maximum: 2.0
+        seed:
+          type: integer
+          default: 0
+          minimum: 0
+          description: Random seed (0 for random)
+        speed_factor:
+          type: number
+          default: 1.0
+          minimum: 0.5
+          maximum: 2.0
+        export_formats:
+          type: array
+          items:
+            type: string
+            enum: [wav, mp3, flac]
+          default: [wav, mp3]
+        disable_watermark:
+          type: boolean
+          default: true
+          description: Disable watermark
+
+    VCRequest:
+      type: object
+      required:
+        - input_audio_source
+        - target_voice_source
+      properties:
+        input_audio_source:
+          type: string
+          description: Input audio file or URL
+        target_voice_source:
+          type: string
+          description: Target voice file
+        chunk_sec:
+          type: integer
+          default: 60
+          minimum: 1
+          maximum: 300
+        overlap_sec:
+          type: number
+          default: 0.1
+          minimum: 0.0
+          maximum: 5.0
+        disable_watermark:
+          type: boolean
+          default: true
+          description: Disable watermark
+        export_formats:
+          type: array
+          items:
+            type: string
+            enum: [wav, mp3, flac]
+          default: [wav, mp3]
+
+    TTSResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        files:
+          type: object
+        generation_info:
+          type: object
+
+    VCResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        files:
+          type: object
+        processing_info:
+          type: object
+
+    VoicesResponse:
+      type: object
+      properties:
+        voices:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoiceInfo'
+        pagination:
+          type: object
+
+    VoiceInfo:
+      type: object
+      properties:
+        filename:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        duration_seconds:
+          type: number
+
+    VoiceUploadResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        filename:
+          type: string
+        message:
+          type: string
+
+    VoiceDeletionResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        deleted_files:
+          type: array
+          items:
+            type: string
+
+    VoiceMetadataUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Voice name
+        description:
+          type: string
+          description: Voice description
+        tags:
+          type: array
+          items:
+            type: string
+          description: Voice tags
+        default_parameters:
+          type: object
+          description: Default TTS parameters for this voice
+
+    VoiceFoldersResponse:
+      type: object
+      properties:
+        folders:
+          type: array
+          items:
+            $ref: '#/components/schemas/VoiceFolderInfo'
+
+    VoiceFolderInfo:
+      type: object
+      properties:
+        path:
+          type: string
+        voice_count:
+          type: integer
+        subfolders:
+          type: array
+          items:
+            type: string
+
+    GeneratedFilesResponse:
+      type: object
+      properties:
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/GeneratedFileMetadata'
+        pagination:
+          type: object
+
+    GeneratedFileMetadata:
+      type: object
+      properties:
+        filename:
+          type: string
+        created_at:
+          type: string
+        size_bytes:
+          type: integer
+        format:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+        error_code:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad request - validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

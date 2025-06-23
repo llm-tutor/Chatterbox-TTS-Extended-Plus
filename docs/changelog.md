@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### API Documentation Reorganization Project - Phase 3 Complete (OpenAPI Optimization & Integration)
+- **OpenAPI Simplification**: Dramatically simplified the OpenAPI specification while adding completeness:
+  - Reduced `openapi.yaml` from 1,462 lines to 648 lines (56% reduction from original)
+  - Added all essential voice management endpoints: DELETE `/voice/{filename}`, bulk DELETE `/voices`, PUT `/voice/{filename}/metadata`, GET `/voices/folders`
+  - Removed excessive description text and consolidated duplicate examples
+  - Maintained complete coverage of core user-facing functionality
+- **Administrative Endpoint Separation**: Created clear documentation structure for different audiences:
+  - **Core API** (main `openapi.yaml`): User-facing functionality for developers and integrators
+  - **Administrative API** (`reference/administrative-endpoints.md`): System monitoring, cleanup, debugging for DevOps teams
+  - Documented `/metrics`, `/resources`, `/cleanup*`, `/errors*` endpoints separately
+  - Established classification rules for future endpoint additions
+- **Schema Validation & Enhancement**: Ensured consistency between documentation and implementation:
+  - Updated TTSRequest schema with correct parameter ranges (temperature: 0.1-2.0, exaggeration: 0-2.0)
+  - Enhanced VCRequest schema with proper defaults and validation constraints
+  - Added missing but important parameters (seed, disable_watermark) for API completeness
+  - Validated all endpoint definitions against actual FastAPI routes in `main_api.py`
+- **Documentation Infrastructure**: Built foundation for future automation:
+  - Updated maintenance guide with endpoint classification procedures
+  - Added automation-ready patterns for core vs administrative endpoint detection
+  - Enhanced cross-reference system with proper separation indicators
+  - Ensured OpenAPI spec passes YAML validation and Swagger UI compatibility
+
 ### API Documentation Reorganization Project - Phase 2 Complete (Content Organization & Guides)
 - **Feature-Specific Guides**: Created comprehensive guides for advanced API capabilities:
   - `docs/api/guides/streaming-responses.md` (249 lines) - Direct file downloads, response handling, programming examples

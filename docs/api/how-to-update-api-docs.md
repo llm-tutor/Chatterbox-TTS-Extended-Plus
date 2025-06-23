@@ -8,6 +8,38 @@ This guide explains how to maintain and update the API documentation as the syst
 
 ## Documentation Structure
 
+### Endpoint Classification System
+
+The API documentation uses a two-tier classification system to organize endpoints by intended audience:
+
+#### Core API Documentation
+- **Target Audience**: End users, application developers, API integrators
+- **Coverage**: Primary user-facing functionality
+- **Documentation Location**: Main `openapi.yaml` + `endpoints/` directory
+- **Endpoint Patterns**: `/tts`, `/vc`, `/voice*`, `/voices*`, `/outputs`, `/health`, `/config`
+
+#### Administrative API Documentation  
+- **Target Audience**: System administrators, DevOps teams, monitoring systems
+- **Coverage**: System monitoring, resource management, cleanup, debugging
+- **Documentation Location**: `reference/administrative-endpoints.md`
+- **Endpoint Patterns**: `/metrics`, `/resources`, `/cleanup*`, `/errors*`
+
+#### Classification Rules for New Endpoints
+When adding new endpoints, classify them based on:
+
+1. **Purpose**: User functionality (core) vs system management (administrative)
+2. **Audience**: Application developers (core) vs system operators (administrative)
+3. **URL Patterns**: 
+   - Core: `/tts`, `/vc`, `/voice`, `/voices`, `/outputs`, `/health`, `/config`
+   - Administrative: `/metrics`, `/resources`, `/cleanup`, `/errors`, `/admin`, `/debug`
+4. **Response Models**: User-facing data (core) vs system metrics/status (administrative)
+
+#### Future Automation Support
+This classification is designed to support automated documentation maintenance:
+- Endpoint detection by scanning `main_api.py`
+- Automatic classification based on URL patterns and response models
+- Separate documentation generation for core vs administrative endpoints
+
 ### File Organization
 
 ```
@@ -417,6 +449,47 @@ repos:
 - Include both success and error cases
 - Show realistic use cases
 - Provide copy-pasteable code
+
+## Endpoint Classification Procedures
+
+### Adding New Core Endpoints
+For endpoints intended for end users and application developers:
+
+1. **Add to OpenAPI Specification**: Update `openapi.yaml` with full endpoint definition
+2. **Create/Update Endpoint Documentation**: Add detailed docs in `endpoints/` directory
+3. **Update Examples**: Add working examples to `schemas/examples/`
+4. **Test Integration**: Verify Swagger UI generates correctly
+
+### Adding New Administrative Endpoints
+For endpoints intended for system administration and monitoring:
+
+1. **Document in Administrative Reference**: Add to `reference/administrative-endpoints.md`
+2. **Include Integration Examples**: Provide monitoring/automation examples
+3. **Update README**: Add reference link if it's a new category
+4. **Security Considerations**: Document access control recommendations
+
+### Classification Decision Process
+When uncertain about endpoint classification:
+
+1. **Ask**: "Who is the primary user of this endpoint?"
+   - Application developers → Core
+   - System administrators → Administrative
+
+2. **Consider**: "What type of data does this return?"
+   - User-facing content → Core  
+   - System metrics/status → Administrative
+
+3. **Check URL Pattern**: Does it match existing patterns?
+   - `/tts`, `/vc`, `/voice*` → Core
+   - `/metrics`, `/cleanup*`, `/errors*` → Administrative
+
+### Future Automation Readiness
+When adding endpoints, structure them to support future automation:
+
+- Use consistent URL patterns within classification
+- Follow response model naming conventions (`*Response` for core, metric objects for admin)
+- Include clear docstrings in `main_api.py`
+- Use appropriate HTTP methods and status codes
 
 ### Version Control
 

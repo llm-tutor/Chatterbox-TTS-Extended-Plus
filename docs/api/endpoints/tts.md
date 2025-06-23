@@ -42,7 +42,8 @@ Convert text to speech with extensive customization options including voice clon
 ### Advanced Processing Parameters
 
 | Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|| `num_candidates_per_chunk` | integer | 3 | Number of generation candidates per text chunk |
+|-----------|------|---------|-------------|
+| `num_candidates_per_chunk` | integer | 3 | Number of generation candidates per text chunk |
 | `max_attempts_per_candidate` | integer | 3 | Maximum retry attempts for failed generations |
 | `bypass_whisper_checking` | boolean | false | Skip Whisper quality validation |
 | `whisper_model_name` | string | `"medium"` | Whisper model size: `"tiny"`, `"base"`, `"small"`, `"medium"`, `"large"` |

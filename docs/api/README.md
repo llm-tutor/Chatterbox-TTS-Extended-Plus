@@ -47,6 +47,27 @@ Welcome to the comprehensive API documentation for Chatterbox TTS Extended Plus.
 - **[Configuration](reference/configuration.md)** - Server and feature configuration
 - **[File Structure](reference/file-structure.md)** - Audio file organization
 - **[OpenAI Compatibility](reference/compatibility.md)** - Compatible endpoints and differences
+- **[Administrative Endpoints](reference/administrative-endpoints.md)** - System monitoring, cleanup, and debugging endpoints
+
+## API Endpoint Classification
+
+This documentation uses a two-tier approach to organize endpoints based on their intended audience:
+
+### Core API (Main Documentation)
+**Audience**: End users, application developers, API integrators  
+**Coverage**: Primary functionality for TTS, voice conversion, and voice management  
+**Location**: Main `openapi.yaml` specification and endpoint documentation
+
+**Includes**: `/tts`, `/vc`, `/voice*`, `/voices*`, `/outputs`, `/health`, `/config`
+
+### Administrative API (Separate Documentation)
+**Audience**: System administrators, DevOps teams, monitoring systems  
+**Coverage**: System monitoring, resource management, cleanup, and debugging  
+**Location**: [Administrative Endpoints Reference](reference/administrative-endpoints.md)
+
+**Includes**: `/metrics`, `/resources`, `/cleanup*`, `/errors*`
+
+> **Note**: This separation supports future automation where endpoint classification and documentation generation will be handled automatically based on endpoint patterns and purposes.
 
 ## Interactive Documentation
 
