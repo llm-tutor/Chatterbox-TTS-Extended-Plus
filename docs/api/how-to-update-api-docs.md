@@ -94,7 +94,7 @@ docs/api/
 5. **Test all examples** against running API
 
 **Template for new endpoint**:
-```markdown
+~~~markdown
 # [Endpoint Name]
 
 > **[HTTP Method]** `[endpoint path]` - Brief description
@@ -153,7 +153,7 @@ import requests
 
 ## See Also
 - [Related docs links]
-```
+~~~
 
 ### 2. Updating Existing Endpoints
 
