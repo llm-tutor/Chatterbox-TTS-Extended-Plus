@@ -1,52 +1,134 @@
 # Development Documentation
 
-This directory contains development and implementation documentation for the API integration project.
+This directory contains development and implementation documentation for the Chatterbox TTS Extended Plus project.
 
-## Directory Structure
+## 📁 Directory Structure
 
-### Implementation Standards and Protocols
-| Document | Purpose |
-|----------|---------|
-| **[implementation-protocols.md](implementation-protocols.md)** | Common protocols, guidelines, and testing procedures for all development projects |
-| **[two-tier-testing-strategy.md](two-tier-testing-strategy.md)** | Detailed strategy for balanced testing approach |
-| **[two-tier-testing-implementation-plan.md](two-tier-testing-implementation-plan.md)** | Implementation progress tracking and task checklists |
+### **Active Development**
+Documents for ongoing projects and foundational standards:
 
-### Project-Specific Resume Prompts
-| Document | Purpose |
-|----------|---------|
-| **[api_refinement_resume_prompt.md](api_refinement_resume_prompt.md)** | API refinement project guidelines and protocols |
-| **[api-docs-reorganization-resume-prompt.md](api-docs-reorganization-resume-prompt.md)** | API documentation reorganization project guide |
-| **[two-tier-testing-resume-prompt.md](two-tier-testing-resume-prompt.md)** | Two-tier testing strategy implementation guide |
+| Document | Purpose | Status |
+|----------|---------|---------|
+| **[implementation-protocols.md](implementation-protocols.md)** | Common protocols, guidelines, and testing procedures for all development projects | **Foundation** |
+| **[api_refinement_implementation_plan.md](api_refinement_implementation_plan.md)** | API refinement project progress tracking and task checklists | **Active** |
+| **[api_refinement_resume_prompt.md](api_refinement_resume_prompt.md)** | API refinement project guidelines and protocols | **Active** |
+| **phase10_*.*** | API refinement research files and performance data | **Active** |
 
-### `api-implementation/` - API Implementation Documentation
-Historical documentation of the API development process, implementation phases, and technical decisions.
+### **Project Archives**
+Completed projects organized by category:
 
-| Document | Purpose |
-|----------|---------|
-| **[api-implementation_tracking.md](api-implementation/api-implementation_tracking.md)** | Complete implementation history and phase tracking |
-| **[Phase7_Revised_Implementation_Plan.md](api-implementation/Phase7_Revised_Implementation_Plan.md)** | Detailed plan for monitoring and operations |
-| **[performance_fix_summary.md](api-implementation/performance_fix_summary.md)** | Performance optimization documentation |
-| **[cross_platform_compatibility_analysis.md](api-implementation/cross_platform_compatibility_analysis.md)** | Cross-platform testing and compatibility |
-| **[phase4_completion_summary.md](api-implementation/phase4_completion_summary.md)** | Phase 4 completion report |
-| **[phase7_task2_completion_summary.md](api-implementation/phase7_task2_completion_summary.md)** | Resource management implementation |
+```
+archives/
+├── api-implementation/          # Original API development (Phases 1-7)
+├── api-docs-reorganization/     # API documentation restructuring  
+└── two-tier-testing/           # Testing strategy implementation
+```
 
-## For Developers
+## 🔄 **Archival Workflow & Conventions**
 
-### Getting Started with Development
-1. **Read Implementation Protocols**: See `implementation-protocols.md` for comprehensive development standards
-2. **Testing Strategy**: Use two-tier validation approach - core validation (2-3 min) for routine checks, comprehensive (8-15 min) for releases
-3. **Resume Prompts**: Use project-specific `*_resume_prompt.md` files for continuing development work
+### **When to Archive**
+Projects are archived when:
+- ✅ All implementation phases are completed
+- ✅ Final testing and validation passed
+- ✅ Documentation is complete and up-to-date
+- ✅ Project commit is merged and tagged
 
-### Testing & Validation
+### **Archive Organization**
+1. **Directory Naming**: Use kebab-case matching the project focus
+   - Example: `two-tier-testing`, `api-docs-reorganization`
+2. **File Preservation**: All project files moved as-is to maintain history
+3. **Documentation Links**: Update any active references to archived files
+
+### **Active vs Archived**
+- **Active**: Root-level files for ongoing development
+- **Foundation**: Core documents that support multiple projects (e.g., `implementation-protocols.md`)
+- **Archived**: Completed projects in organized subdirectories
+
+### **Archive Contents**
+Each project archive typically contains:
+- **Strategy/Plan Documents**: Original design and planning files
+- **Implementation Plans**: Detailed task tracking and progress
+- **Resume Prompts**: Project-specific development guidelines
+- **Research Files**: Analysis, performance data, and investigation results
+
+## 📖 **For Developers**
+
+### **Getting Started with Development**
+1. **Read Foundation Documents**: Start with `implementation-protocols.md` for comprehensive development standards
+2. **Active Projects**: Check root-level files for ongoing work
+3. **Historical Context**: Review archived projects for patterns and lessons learned
+4. **Resume Development**: Use project-specific `*_resume_prompt.md` files when continuing work
+
+### **Testing & Validation Standards**
 - **Core Validation**: `python scripts/test_core_examples.py` (2-3 minutes, implementation protocol)
 - **Comprehensive Testing**: `python scripts/test_curl_examples.py --timeout 90` (8-15 minutes, release quality)
-- **Documentation**: Complete validation documentation in [`../scripts/README.md`](../../scripts/README.md)
+- **Complete Documentation**: [`../../scripts/README.md`](../../scripts/README.md)
 
-### Implementation History
-- **Implementation History:** See `api-implementation_tracking.md` for complete development timeline
-- **Architecture Decisions:** Review implementation plan documents for design rationale
-- **Performance Issues:** Check `performance_fix_summary.md` for optimization details
+### **Project Lifecycle Pattern**
+1. **Planning**: Create strategy and implementation plan documents
+2. **Development**: Track progress with detailed task checklists
+3. **Documentation**: Maintain resume prompts and guidelines
+4. **Completion**: Full testing, documentation updates, commit
+5. **Archival**: Move project files to `archives/[project-name]/`
 
-## Note
+## 🗂️ **Archived Projects Reference**
 
-These documents represent the development history and current standards for the API integration project. For current API usage documentation, see the `../api/` directory.
+### **API Implementation** (`archives/api-implementation/`)
+- **Scope**: Original API development (Phases 1-7)
+- **Key Achievements**: FastAPI server, endpoints, error handling, resource management
+- **Reference**: Complete implementation history and architecture decisions
+
+### **API Documentation Reorganization** (`archives/api-docs-reorganization/`)
+- **Scope**: Modular documentation structure implementation
+- **Key Achievements**: Organized endpoint docs, improved navigation, validation scripts
+- **Reference**: Documentation patterns and maintenance procedures
+
+### **Two-Tier Testing Strategy** (`archives/two-tier-testing/`)
+- **Scope**: Balanced testing approach implementation
+- **Key Achievements**: Core validation (2-3 min), comprehensive testing (8-15 min), implementation protocols
+- **Reference**: Testing patterns and validation procedures
+
+## 🔍 **Finding Information**
+
+### **Current Development**
+- **Active Projects**: Check root-level `*_implementation_plan.md` files
+- **Guidelines**: Use `*_resume_prompt.md` for project-specific protocols
+- **Standards**: Reference `implementation-protocols.md` for common procedures
+
+### **Historical Information**
+- **Implementation History**: `archives/api-implementation/api-implementation_tracking.md`
+- **Architecture Decisions**: Review implementation plan documents in archives
+- **Performance Data**: Check `phase*.*` files for research and benchmarks
+- **Lessons Learned**: Review completed project documentation patterns
+
+### **Development Patterns**
+- **Project Structure**: Examine archived projects for organizational patterns
+- **Documentation Standards**: See how previous projects handled documentation
+- **Testing Approaches**: Review testing evolution across projects
+- **Workflow Evolution**: Track how development processes improved over time
+
+## 📝 **Contributing to Documentation**
+
+### **Adding New Projects**
+1. Create project-specific implementation plan and resume prompt
+2. Follow established naming conventions (kebab-case for archives)
+3. Reference `implementation-protocols.md` for common standards
+4. Document progress with detailed task tracking
+
+### **Maintaining Archives**
+1. **Preserve History**: Never delete or significantly modify archived files
+2. **Update Links**: Ensure active documents properly reference archived content
+3. **Cross-Reference**: Link related projects and shared patterns
+4. **Documentation Quality**: Maintain clear README files in each archive
+
+### **Future Archive Guidelines**
+When archiving new completed projects:
+1. Create `archives/[project-name]/` directory
+2. Move all project-specific files maintaining their structure
+3. Update this README with project reference
+4. Verify and update any broken links in active documents
+5. Add archive entry to project lifecycle tracking
+
+---
+
+**Note**: This documentation structure supports the complete development lifecycle from active development through historical preservation, enabling effective knowledge management and development continuity.
