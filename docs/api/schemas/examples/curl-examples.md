@@ -42,7 +42,7 @@ curl -X POST http://localhost:7860/api/v1/tts \
 -H "Content-Type: application/json" \
 -d '{
   "text": "This text will be spoken in the reference voice style.",
-  "reference_audio_filename": "speaker_en/DAVID-2.mp3",
+  "reference_audio_filename": "test_voices/linda_johnson_01.mp3",
   "exaggeration": 0.7,
   "temperature": 0.8,
   "export_formats": ["wav", "mp3"]
@@ -56,7 +56,7 @@ curl -X POST http://localhost:7860/api/v1/tts \
 -H "Content-Type: application/json" \
 -d '{
   "text": "This demonstrates high-quality speed adjustment with enhanced libraries.",
-  "reference_audio_filename": "speaker_en/DAVID-2.mp3",
+  "reference_audio_filename": "test_voices/linda_johnson_01.mp3",
   "speed_factor": 1.5,
   "speed_factor_library": "audiostretchy",
   "export_formats": ["wav"]
@@ -79,7 +79,7 @@ curl -X POST http://localhost:7860/api/v1/tts \
 -H "Content-Type: application/json" \
 -d '{
   "text": "Advanced TTS generation with all parameters.",
-  "reference_audio_filename": "speaker_en/CONNOR-2-non-native.mp3",
+  "reference_audio_filename": "test_voices/linda_johnson_02.mp3",
   "exaggeration": 0.6,
   "temperature": 0.75,
   "seed": 42,
@@ -109,8 +109,8 @@ curl -X POST http://localhost:7860/api/v1/tts \
 curl -X POST http://localhost:7860/api/v1/vc \
 -H "Content-Type: application/json" \
 -d '{
-  "input_audio_source": "hello_quick_brown.wav",
-  "target_voice_source": "speaker_en/DAVID-2.mp3",
+  "input_audio_source": "test_inputs/chatterbox-hello_quick_brown.wav",
+  "target_voice_source": "test_voices/linda_johnson_01.mp3",
   "chunk_sec": 30,
   "export_formats": ["wav", "mp3"]
 }'
@@ -121,8 +121,8 @@ curl -X POST http://localhost:7860/api/v1/vc \
 curl -X POST http://localhost:7860/api/v1/vc \
 -H "Content-Type: application/json" \
 -d '{
-  "input_audio_source": "alex.mp3",
-  "target_voice_source": "speaker_en/CONNOR-2-non-native.mp3",
+  "input_audio_source": "test_inputs/chatterbox-in-a-village-of-la-mancha.mp3",
+  "target_voice_source": "test_voices/linda_johnson_02.mp3",
   "export_formats": ["wav", "mp3"]
 }'
 ```
@@ -132,7 +132,7 @@ curl -X POST http://localhost:7860/api/v1/vc \
 # Note: This example requires you to have an actual audio file in the current directory
 curl -X POST http://localhost:7860/api/v1/vc \
 -F "input_audio=@sample_audio.wav" \
--F "target_voice_source=speaker_en/DAVID-2.mp3" \
+-F "target_voice_source=test_voices/linda_johnson_01.mp3" \
 -F "chunk_sec=30" \
 -F "export_formats=wav,mp3" \
 --output converted_voice.wav
@@ -143,8 +143,8 @@ curl -X POST http://localhost:7860/api/v1/vc \
 curl -X POST http://localhost:7860/api/v1/vc \
 -H "Content-Type: application/json" \
 -d '{
-  "input_audio_source": "alex.mp3",
-  "target_voice_source": "speaker_en/DAVID-2.mp3",
+  "input_audio_source": "test_inputs/chatterbox-in-a-village-of-la-mancha.mp3",
+  "target_voice_source": "test_voices/linda_johnson_01.mp3",
   "chunk_sec": 60,
   "overlap_sec": 0.1,
   "export_formats": ["wav", "mp3", "flac"],
@@ -204,7 +204,7 @@ curl "http://localhost:7860/api/v1/voices?page=1&page_size=50&search=professiona
 
 ### Get Voice Details (Note: Endpoint may not be implemented)
 ```bash
-curl http://localhost:7860/api/v1/voices/speaker_en/DAVID-2.mp3
+curl http://localhost:7860/api/v1/voices/test_voices/linda_johnson_01.mp3
 ```
 
 ---

@@ -45,8 +45,8 @@ Use this method when input files are already stored on the server.
 
 ```json
 {
-  "input_audio_source": "recording.wav",
-  "target_voice_source": "speaker2.wav",
+  "input_audio_source": "test_inputs/chatterbox-in-a-village-of-la-mancha.mp3",
+  "target_voice_source": "test_voices/linda_johnson_02.mp3",
   "chunk_sec": 60,
   "overlap_sec": 0.1,
   "export_formats": ["wav", "mp3"]
@@ -75,7 +75,7 @@ Use this method to upload input audio files directly without pre-staging.
 ```bash
 curl -X POST http://localhost:7860/api/v1/vc \
   -F "input_audio=@my_recording.wav" \
-  -F "target_voice_source=celebrity_voice.wav" \
+  -F "target_voice_source=test_voices/linda_johnson_02.mp3" \
   -F "chunk_sec=30" \
   -F "export_formats=wav,mp3"
 ```
@@ -154,8 +154,8 @@ When `response_mode="url"`, returns JSON with file information:
 curl -X POST http://localhost:7860/api/v1/vc?response_mode=url \
   -H "Content-Type: application/json" \
   -d '{
-    "input_audio_source": "my_recording.wav",
-    "target_voice_source": "target_voices/celebrity.wav",
+    "input_audio_source": "test_inputs/chatterbox-hello_quick_brown.wav",
+    "target_voice_source": "test_voices/linda_johnson_01.mp3",
     "chunk_sec": 30,
     "export_formats": ["wav"]
   }'
@@ -168,7 +168,7 @@ curl -X POST http://localhost:7860/api/v1/vc \
   -H "Content-Type: application/json" \
   -d '{
     "input_audio_source": "https://example.com/speech.wav",
-    "target_voice_source": "speaker2/style.wav",
+    "target_voice_source": "test_voices/linda_johnson_01.mp3",
     "export_formats": ["wav", "mp3"]
   }' \
   --output converted_voice.wav
@@ -179,7 +179,7 @@ curl -X POST http://localhost:7860/api/v1/vc \
 ```bash
 curl -X POST http://localhost:7860/api/v1/vc \
   -F "input_audio=@/path/to/recording.wav" \
-  -F "target_voice_source=celebrity_voice.wav" \
+  -F "target_voice_source=test_voices/linda_johnson_02.mp3" \
   -F "chunk_sec=45" \
   -F "export_formats=wav" \
   --output converted_output.wav
@@ -216,7 +216,7 @@ def convert_voice_json(input_file, target_voice, chunk_size=60):
         print(f"Error {response.status_code}: {response.text}")
 
 # Usage
-convert_voice_json("recording.wav", "target_voice.wav")
+convert_voice_json("test_inputs/chatterbox-hello_quick_brown.wav", "test_voices/linda_johnson_01.mp3")
 ```
 
 #### File Upload Method
@@ -247,7 +247,7 @@ def convert_voice_upload(audio_file_path, target_voice, chunk_size=60):
         print(f"Error {response.status_code}: {response.text}")
 
 # Usage
-convert_voice_upload("/path/to/audio.wav", "celebrity_voice.wav")
+convert_voice_upload("/path/to/audio.wav", "test_voices/linda_johnson_02.mp3")
 ```
 
 #### Direct Download Method
@@ -279,7 +279,7 @@ def download_converted_voice(audio_file_path, target_voice, output_path):
         print(f"Error {response.status_code}: {response.text}")
 
 # Usage
-download_converted_voice("input.wav", "target.wav", "converted.wav")
+download_converted_voice("test_inputs/chatterbox-in-a-village-of-la-mancha.mp3", "test_voices/linda_johnson_02.mp3", "converted.wav")
 ```
 
 ### JavaScript Examples
@@ -322,7 +322,7 @@ async function convertVoiceUpload(audioFile, targetVoice, options = {}) {
 // Usage with file input
 document.getElementById('audioFile').addEventListener('change', (event) => {
     const file = event.target.files[0];
-    convertVoiceUpload(file, 'celebrity_voice.wav', { responseMode: 'url' });
+    convertVoiceUpload(file, 'test_voices/linda_johnson_01.mp3', { responseMode: 'url' });
 });
 ```
 

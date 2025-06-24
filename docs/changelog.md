@@ -23,7 +23,7 @@ Completed final refinements of the API documentation reorganization project, foc
 
 #### Documentation Examples Updates  
 - **Updated cURL Examples**: 
-  - Replaced fictional file references (e.g., "speaker1/formal.wav") with actual files ("speaker_en/DAVID-2.mp3")
+  - Replaced fictional file references (e.g., "speaker1/formal.wav") with actual files ("test_voices/linda_johnson_01.mp3")
   - Updated VC examples to use real audio files from `vc_inputs/` directory
   - Added appropriate notes for examples requiring user-specific files
   - Clarified which examples are demonstrations vs. working tests

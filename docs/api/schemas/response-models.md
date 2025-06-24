@@ -312,7 +312,7 @@ All successful API responses inherit from this base structure.
     "text": "Hello world",
     "temperature": 0.75,
     "speed_factor": 1.0,
-    "reference_audio_filename": "speaker1.wav"
+    "reference_audio_filename": "test_voices/linda_johnson_02.mp3"
   },
   "source_files": ["speaker1.wav"],
   "folder_path": "outputs"

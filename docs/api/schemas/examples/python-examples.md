@@ -154,7 +154,7 @@ def generate_tts_with_voice(
 # Usage
 generate_tts_with_voice(
     text="This will sound like the reference speaker.",
-    reference_voice="speaker1/formal.wav",
+    reference_voice="test_voices/linda_johnson_01.mp3",
     exaggeration=0.7,
     temperature=0.8,
     seed=42
@@ -235,7 +235,7 @@ tts = TTSGenerator(client)
 
 result = tts.generate(
     text="This is advanced TTS with speed control and high quality.",
-    reference_audio_filename="speaker2/energetic.wav",
+    reference_audio_filename="test_voices/linda_johnson_02.mp3",
     speed_factor=1.2,
     speed_factor_library="audiostretchy",
     temperature=0.8,
@@ -283,8 +283,8 @@ def convert_voice_basic(
 
 # Usage
 convert_voice_basic(
-    input_file="my_recording.wav",
-    target_voice="celebrity_voices/actor1.wav"
+    input_file="test_inputs/chatterbox-hello_quick_brown.wav",
+    target_voice="test_voices/linda_johnson_01.mp3"
 )
 ```
 

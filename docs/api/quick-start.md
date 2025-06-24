@@ -61,7 +61,7 @@ curl -X POST http://localhost:7860/api/v1/tts \
   -H "Content-Type: application/json" \
   -d '{
     "text": "This will sound like the reference speaker.",
-    "reference_audio_filename": "speaker1.wav",
+    "reference_audio_filename": "test_voices/linda_johnson_02.mp3",
     "export_formats": ["wav"]
   }'
 ```
@@ -74,8 +74,8 @@ Transform an existing audio file to sound like a different speaker:
 curl -X POST http://localhost:7860/api/v1/vc \
   -H "Content-Type: application/json" \
   -d '{
-    "input_audio_source": "my_recording.wav",
-    "target_voice_source": "target_speaker.wav",
+    "input_audio_source": "test_inputs/chatterbox-in-a-village-of-la-mancha.mp3",
+    "target_voice_source": "test_voices/linda_johnson_02.mp3",
     "export_formats": ["wav"]
   }'
 ```
@@ -168,7 +168,7 @@ def generate_speech(text, voice_file=None):
 
 # Usage
 generate_speech("Hello world!")
-generate_speech("Custom voice test", "my_voice.wav")
+generate_speech("Custom voice test", "test_voices/linda_johnson_01.mp3")
 ```
 
 ## Common Issues and Solutions

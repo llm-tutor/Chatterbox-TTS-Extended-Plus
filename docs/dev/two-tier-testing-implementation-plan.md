@@ -56,8 +56,8 @@ core_tests = [
         "export_formats": ["wav"]
     }),
     ("Basic VC", "POST", "/api/v1/vc", {
-        "input_audio_source": "hello_quick_brown.wav",  # existing project file
-        "target_voice_source": "speaker_en/DAVID-2.mp3",  # existing project file
+        "input_audio_source": "test_inputs/chatterbox-hello_quick_brown.wav",  # existing project file
+        "target_voice_source": "test_voices/linda_johnson_01.mp3",  # existing project file
         "export_formats": ["wav"]
     }),
     
@@ -137,10 +137,10 @@ core_tests = [
 
 #### **Voice File Requirements Documentation**:
 - [ ] Document required files for advanced examples:
-  - `reference_audio/speaker_en/DAVID-2.mp3`
-  - `reference_audio/speaker_en/CONNOR-2-non-native.mp3`
-  - `vc_inputs/hello_quick_brown.wav`
-  - `vc_inputs/alex.mp3`
+  - `reference_audio/test_voices/linda_johnson_01.mp3`
+  - `reference_audio/test_voices/linda_johnson_02.mp3`
+  - `vc_inputs/test_inputs/chatterbox-hello_quick_brown.wav`
+  - `vc_inputs/test_inputs/chatterbox-in-a-village-of-la-mancha.mp3`
 - [ ] Add setup instructions for advanced examples
 - [ ] Add voice verification commands (`curl /api/v1/voices`)
 - [ ] Add guidance for replacing file references with available voices
@@ -295,7 +295,7 @@ core_tests = [
 ## **Implementation Notes**
 
 ### **File Compatibility Strategy**
-- **Core examples**: Use existing project files only (`hello_quick_brown.wav`, `speaker_en/DAVID-2.mp3`)
+- **Core examples**: Use existing project files only (`test_inputs/chatterbox-hello_quick_brown.wav`, `test_voices/linda_johnson_01.mp3`)
 - **Advanced examples**: Document required setup clearly
 - **Fallback strategy**: Provide guidance for missing files
 

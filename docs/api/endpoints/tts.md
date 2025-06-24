@@ -91,7 +91,7 @@ Convert text to speech with extensive customization options including voice clon
 ```json
 {
   "text": "This text will be spoken in the reference voice style.",
-  "reference_audio_filename": "speaker1/formal.wav",
+  "reference_audio_filename": "test_voices/linda_johnson_01.mp3",
   "exaggeration": 0.7,
   "temperature": 0.8,
   "seed": 42,
@@ -104,7 +104,7 @@ Convert text to speech with extensive customization options including voice clon
 ```json
 {
   "text": "This demonstrates high-quality speed adjustment with enhanced libraries.",
-  "reference_audio_filename": "speaker1/formal.wav",
+  "reference_audio_filename": "test_voices/linda_johnson_01.mp3",
   "speed_factor": 1.5,
   "speed_factor_library": "audiostretchy",
   "export_formats": ["wav"]
@@ -195,7 +195,7 @@ curl -X POST http://localhost:7860/api/v1/tts?response_mode=url \
   -H "Content-Type: application/json" \
   -d '{
     "text": "This will sound like the reference speaker.",
-    "reference_audio_filename": "speaker1.wav",
+    "reference_audio_filename": "test_voices/linda_johnson_02.mp3",
     "temperature": 0.8,
     "exaggeration": 0.6,
     "export_formats": ["wav", "mp3"]

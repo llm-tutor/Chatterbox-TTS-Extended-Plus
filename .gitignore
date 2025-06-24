@@ -18,17 +18,42 @@ tests/media/
 *.wav
 *.mp3
 *.flac
+
+# Exclude all audio files in vc_inputs/
 vc_inputs/*.mp3
 vc_inputs/*.wav
 vc_inputs/*.flac
-reference_audio/*/*.mp3
-reference_audio/*/*.wav
-reference_audio/*/*.flac
-reference_audio/*/*.json
+
+# Exclude audio files in all subfolders
+vc_inputs/*/*.mp3
+vc_inputs/*/*.wav
+vc_inputs/*/*.flac
+
+# But include the test_inputs folder and its contents
+!vc_inputs/test_inputs/
+!vc_inputs/test_inputs/*.mp3
+!vc_inputs/test_inputs/*.wav
+!vc_inputs/test_inputs/*.flac
+
+# Exclude all audio files in reference_audio/, but not the test_voices subfolder
 reference_audio/*.mp3
 reference_audio/*.wav
 reference_audio/*.flac
 reference_audio/*.json
+
+# Exclude audio files in all subfolders except test_voices
+reference_audio/*/
+!reference_audio/test_voices/
+reference_audio/*/*.mp3
+reference_audio/*/*.wav
+reference_audio/*/*.flac
+reference_audio/*/*.json
+
+# Explicitly include test_voices files
+!reference_audio/test_voices/*.mp3
+!reference_audio/test_voices/*.wav
+!reference_audio/test_voices/*.flac
+!reference_audio/test_voices/*.json
 
 # Config
 settings.json

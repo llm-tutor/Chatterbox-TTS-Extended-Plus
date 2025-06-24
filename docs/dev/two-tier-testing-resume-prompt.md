@@ -94,10 +94,10 @@ Follow the checklist items in the order specified in the implementation plan doc
 - Other validation scripts (check `scripts/README.md`)
 
 ### **Audio Files for Testing**
-- `reference_audio/speaker_en/DAVID-2.mp3` - Existing project file
-- `reference_audio/speaker_en/CONNOR-2-non-native.mp3` - Available voice
-- `vc_inputs/hello_quick_brown.wav` - For VC testing
-- `vc_inputs/alex.mp3` - Additional VC input file
+- `reference_audio/test_voices/linda_johnson_01.mp3` - Reference voice
+- `reference_audio/test_voices/linda_johnson_02.mp3` - Available voice
+- `vc_inputs/test_inputs/chatterbox-hello_quick_brown.wav` - For VC testing
+- `vc_inputs/test_inputs/chatterbox-in-a-village-of-la-mancha.mp3` - Additional VC input file
 
 ## **Development Guidelines**
 
@@ -134,8 +134,8 @@ core_tests = [
         "export_formats": ["wav"]
     }),
     ("Basic VC", "POST", "/api/v1/vc", {
-        "input_audio_source": "hello_quick_brown.wav",
-        "target_voice_source": "speaker_en/DAVID-2.mp3",
+        "input_audio_source": "test_inputs/chatterbox-hello_quick_brown.wav",
+        "target_voice_source": "test_voices/linda_johnson_01.mp3",
         "export_formats": ["wav"]
     })
 ]

@@ -150,7 +150,7 @@ Generate speech from text using advanced TTS with optional voice cloning and str
 ```json
 {
   "text": "Hello, this is a test of the TTS API.",
-  "reference_audio_filename": "speaker1/formal.wav",
+  "reference_audio_filename": "test_voices/linda_johnson_01.mp3",
   "exaggeration": 0.5,
   "temperature": 0.75,
   "seed": 42,
@@ -583,7 +583,7 @@ curl -X POST http://localhost:7860/api/v1/tts \
   -H "Content-Type: application/json" \
   -d '{
     "text": "This text will be spoken in the reference voice style.",
-    "reference_audio_filename": "speaker1/formal.wav",
+    "reference_audio_filename": "test_voices/linda_johnson_01.mp3",
     "exaggeration": 0.7,
     "temperature": 0.8,
     "export_formats": ["wav", "mp3"]
@@ -598,7 +598,7 @@ curl -X POST http://localhost:7860/api/v1/tts \
   -H "Content-Type: application/json" \
   -d '{
     "text": "This demonstrates high-quality speed adjustment with enhanced libraries.",
-    "reference_audio_filename": "speaker1/formal.wav",
+    "reference_audio_filename": "test_voices/linda_johnson_01.mp3",
     "speed_factor": 1.5,
     "speed_factor_library": "audiostretchy",
     "export_formats": ["wav"]
@@ -641,7 +641,7 @@ curl -X POST http://localhost:7860/api/v1/vc \
   -H "Content-Type: application/json" \
   -d '{
     "input_audio_source": "https://example.com/speech.wav",
-    "target_voice_source": "speaker2/style.wav",
+    "target_voice_source": "test_voices/linda_johnson_01.mp3",
     "export_formats": ["wav", "mp3"]
   }'
 ```
@@ -700,7 +700,7 @@ def convert_voice(input_file, target_voice):
         print(response.json())
 
 # Usage
-generate_tts("Hello world!", "speaker1/formal.wav")
+generate_tts("Hello world!", "test_voices/linda_johnson_01.mp3")
 convert_voice("recording.wav", "target_voice.wav")
 ```
 
@@ -774,7 +774,7 @@ async function convertVoice(inputFile, targetVoice) {
 }
 
 // Usage
-generateTTS("Hello world!", "speaker1/formal.wav");
+generateTTS("Hello world!", "test_voices/linda_johnson_01.mp3");
 convertVoice("recording.wav", "target_voice.wav");
 ```
 

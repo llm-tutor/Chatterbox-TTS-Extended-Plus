@@ -302,7 +302,7 @@ def main():
         export_formats=["wav"],
         response_mode="stream"
     )
-    
+
     # Test 2: JSON mode with format selection - No file is uploaded
     print("\n" + "="*60)
     print("TEST 2: JSON Mode with MP3 Return Format")
@@ -318,12 +318,12 @@ def main():
     print("\n" + "="*60)
     print("TEST 3: JSON Mode URL Response")
     client.test_vc_json_mode(
-        input_audio_source="alex.mp3",  # Update this filename - This file needs to exist in 'vc_inputs/'
+        input_audio_source="test_inputs/chatterbox-in-a-village-of-la-mancha.mp3",
         target_voice_source="speaker_en/jamie_vc_to_david-2.wav",
         export_formats=["wav", "mp3"],
         response_mode="url"
     )
-    
+
     # Test 4: File upload streaming
     print("\n" + "="*60)
     print("TEST 4: File Upload Streaming")
@@ -333,26 +333,26 @@ def main():
         export_formats="wav,mp3",
         response_mode="stream"
     )
-    
+
     # Test 5: File upload with FLAC format
     print("\n" + "="*60)
     print("TEST 5: File Upload with FLAC Format")
     client.test_vc_file_upload(
         input_audio_file="jamie-02.mp3",  # Update this filename - This file needs to exist in 'tests/media'
-        target_voice_source="speaker_en/CONNOR-2-non-native.mp3",
+        target_voice_source="test_voices/linda_johnson_02.mp3",
         export_formats="wav,mp3,flac",
         return_format="flac",
         response_mode="stream",
         chunk_sec=30,
         overlap_sec=0.2
     )
-    
+
     # Test 6: File upload JSON response
     print("\n" + "="*60)
     print("TEST 6: File Upload JSON Response")
     client.test_vc_file_upload(
         input_audio_file="josh.mp3",  # Update this filename - This file needs to exist in 'tests/media'
-        target_voice_source="speaker_en/CONNOR-2-non-native.mp3",
+        target_voice_source="test_voices/linda_johnson_02.mp3",
         export_formats="wav,mp3",
         response_mode="url"
     )

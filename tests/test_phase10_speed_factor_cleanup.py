@@ -11,6 +11,7 @@ import json
 # Test configuration
 API_BASE = "http://127.0.0.1:7860"
 TEST_TEXT = "This is a test of the cleaned up speed factor implementation without pyrubberband."
+# TEST_TEXT = "In a village of La Mancha, the name of which I have no desire to call to mind, there lived not long since one of those gentlemen that keep a lance in the lance-rack, an old buckler, a lean hack, and a greyhound for coursing."
 
 def test_speed_factor_cleanup():
     """Test the speed factor implementation after pyrubberband removal"""

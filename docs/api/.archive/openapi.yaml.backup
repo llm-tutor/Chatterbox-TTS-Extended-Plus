@@ -486,7 +486,7 @@ paths:
                 summary: TTS with Voice Cloning
                 value:
                   text: "This will be spoken in the reference voice style."
-                  reference_audio_filename: "speaker1/formal.wav"
+                  reference_audio_filename: "test_voices/linda_johnson_01.mp3"
                   exaggeration: 0.7
                   temperature: 0.8
                   export_formats: ["wav", "mp3"]
@@ -494,7 +494,7 @@ paths:
                 summary: TTS with Enhanced Speed Control
                 value:
                   text: "This demonstrates high-quality speed adjustment."
-                  reference_audio_filename: "speaker1/formal.wav"
+                  reference_audio_filename: "test_voices/linda_johnson_01.mp3"
                   speed_factor: 1.5
                   speed_factor_library: "audiostretchy"
                   export_formats: ["wav"]
@@ -551,7 +551,7 @@ paths:
                 summary: Local Files
                 value:
                   input_audio_source: "my_recording.wav"
-                  target_voice_source: "speaker1/formal.wav"
+                  target_voice_source: "test_voices/linda_johnson_01.mp3"
                   export_formats: ["wav"]
               with_urls:
                 summary: With URL Input
@@ -733,7 +733,7 @@ components:
         reference_audio_filename:
           type: string
           description: Reference audio file for voice cloning
-          example: "speaker1/formal.wav"
+          example: "test_voices/linda_johnson_01.mp3"
         exaggeration:
           type: number
           format: float
@@ -794,7 +794,7 @@ components:
         target_voice_source:
           type: string
           description: Target voice file or URL
-          example: "speaker1/formal.wav"
+          example: "test_voices/linda_johnson_01.mp3"
         chunk_sec:
           type: integer
           minimum: 10
