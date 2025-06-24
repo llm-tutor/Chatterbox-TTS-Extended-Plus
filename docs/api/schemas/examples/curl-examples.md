@@ -1,12 +1,21 @@
 # cURL Examples
 ## Chatterbox TTS Extended Plus API
 
-> **Quick Reference**: Ready-to-use cURL commands for all API endpoints
+> **Two-Tier Testing Strategy**: Core examples for quick validation + Advanced examples for comprehensive testing
 > **Base URL**: `http://localhost:7860`
 
 ---
 
-## Health Check
+# 🚀 **Core Examples (Implementation Validation)**
+
+> **Purpose**: Quick validation during implementation phase closing  
+> **Time**: 2-3 minutes maximum  
+> **Requirements**: No specific voice file setup required  
+> **Usage**: Routine development validation, CI/CD integration
+
+These examples work universally on any setup and test essential functionality.
+
+## Health & Status
 
 ### Basic Health Check
 ```bash
@@ -22,19 +31,82 @@ curl http://localhost:7860/api/v1/health
 }
 ```
 
----
+## Listing Operations
 
-## Text-to-Speech (TTS)
+### List Available Voices
+```bash
+curl http://localhost:7860/api/v1/voices
+```
 
-### Basic TTS Generation
+### List Generated Files
+```bash
+curl http://localhost:7860/api/v1/outputs
+```
+
+## Basic Generation
+
+### Basic TTS Generation (No Reference Voice)
 ```bash
 curl -X POST http://localhost:7860/api/v1/tts \
 -H "Content-Type: application/json" \
 -d '{
-  "text": "Hello, this is a basic TTS example.",
+  "text": "Hello, this is a basic TTS example for core validation.",
   "export_formats": ["wav"]
 }'
 ```
+
+### Basic Voice Conversion (Using Project Files)
+```bash
+curl -X POST http://localhost:7860/api/v1/vc \
+-H "Content-Type: application/json" \
+-d '{
+  "input_audio_source": "test_inputs/chatterbox-hello_quick_brown.wav",
+  "target_voice_source": "test_voices/linda_johnson_01.mp3",
+  "export_formats": ["wav"]
+}'
+```
+
+## Error Handling Validation
+
+### Invalid Endpoint
+```bash
+curl http://localhost:7860/api/v1/nonexistent
+```
+
+**Expected Response:** `404 Not Found`
+
+### Missing Required Parameter
+```bash
+curl -X POST http://localhost:7860/api/v1/tts \
+-H "Content-Type: application/json" \
+-d '{"export_formats": ["wav"]}'  # Missing required "text" parameter
+```
+
+**Expected Response:** `422 Validation Error`
+
+---
+
+# 🔧 **Advanced Examples (Developer Reference)**
+
+> **Purpose**: Complete example validation for developers and releases  
+> **Time**: 8-15 minutes (comprehensive validation)  
+> **Requirements**: Specific voice files and setup required (see below)  
+> **Usage**: Documentation releases, major API changes, developer onboarding
+
+## 📋 **Required Voice Files for Advanced Examples**
+
+Before running advanced examples, ensure these files exist:
+- `reference_audio/test_voices/linda_johnson_01.mp3`
+- `reference_audio/test_voices/linda_johnson_02.mp3`  
+- `vc_inputs/test_inputs/chatterbox-hello_quick_brown.wav`
+- `vc_inputs/test_inputs/chatterbox-in-a-village-of-la-mancha.mp3`
+
+**Verify setup:**
+```bash
+curl http://localhost:7860/api/v1/voices | grep -E "(linda_johnson|test_voices)"
+```
+
+## Advanced Text-to-Speech (TTS)
 
 ### TTS with Voice Cloning
 ```bash
@@ -100,21 +172,7 @@ curl -X POST http://localhost:7860/api/v1/tts \
 }'
 ```
 
----
-
-## Voice Conversion (VC)
-
-### Basic Voice Conversion (Local Files)
-```bash
-curl -X POST http://localhost:7860/api/v1/vc \
--H "Content-Type: application/json" \
--d '{
-  "input_audio_source": "test_inputs/chatterbox-hello_quick_brown.wav",
-  "target_voice_source": "test_voices/linda_johnson_01.mp3",
-  "chunk_sec": 30,
-  "export_formats": ["wav", "mp3"]
-}'
-```
+## Advanced Voice Conversion (VC)
 
 ### Voice Conversion with URLs (Demo - URL won't work)
 ```bash
@@ -152,9 +210,7 @@ curl -X POST http://localhost:7860/api/v1/vc \
 }'
 ```
 
----
-
-## Streaming Responses
+## Advanced Response Handling
 
 ### TTS Direct Download (Default)
 ```bash
@@ -178,8 +234,6 @@ curl -X POST http://localhost:7860/api/v1/tts?response_mode=url \
 -d '{"text": "Hello world", "export_formats": ["wav"]}'
 ```
 
----
-
 ## Voice Management
 
 ### Upload New Voice
@@ -192,11 +246,6 @@ curl -X POST http://localhost:7860/api/v1/voice \
 -F "folder_path=custom_voices"
 ```
 
-### List Available Voices
-```bash
-curl http://localhost:7860/api/v1/voices
-```
-
 ### Search Voices
 ```bash
 curl "http://localhost:7860/api/v1/voices?page=1&page_size=50&search=professional"
@@ -207,14 +256,7 @@ curl "http://localhost:7860/api/v1/voices?page=1&page_size=50&search=professiona
 curl http://localhost:7860/api/v1/voices/test_voices/linda_johnson_01.mp3
 ```
 
----
-
-## File Operations
-
-### List Generated Files
-```bash
-curl http://localhost:7860/api/v1/outputs
-```
+## Advanced File Operations
 
 ### Download Generated File (Example - requires actual generated file)
 ```bash
@@ -228,9 +270,7 @@ curl http://localhost:7860/outputs/tts_output_example.wav --output downloaded_fi
 curl http://localhost:7860/api/v1/outputs/tts_output_example.wav/metadata
 ```
 
----
-
-## Error Handling Examples
+## Advanced Error Testing
 
 ### Invalid Parameters
 ```bash
@@ -271,7 +311,9 @@ curl -X POST http://localhost:7860/api/v1/tts \
 
 ---
 
-## Testing & Debugging
+# 🛠️ **Testing & Debugging Tools**
+
+## Development Helpers
 
 ### Verbose Output
 ```bash
@@ -299,9 +341,7 @@ time curl -X POST http://localhost:7860/api/v1/tts \
 --output timed_response.wav
 ```
 
----
-
-## Common Tips
+## Automation Helpers
 
 ### Setting Base URL Variable
 ```bash
@@ -330,4 +370,29 @@ for endpoint in health voices outputs; do
   curl -s http://localhost:7860/api/v1/$endpoint | head -c 100
   echo
 done
+```
+
+---
+
+# 📚 **Usage Guidelines**
+
+## When to Use Core Examples
+- **Implementation phase closing**: Quick validation before moving to next phase
+- **CI/CD pipeline**: Automated validation in deployment pipeline  
+- **Development setup**: Verify basic functionality after setup
+- **Troubleshooting**: Quick smoke test to identify obvious issues
+
+## When to Use Advanced Examples
+- **Documentation releases**: Ensure all examples work correctly
+- **Major API changes**: Comprehensive validation of new features
+- **Developer onboarding**: Complete API functionality demonstration
+- **Integration testing**: Full end-to-end workflow validation
+
+## Setup Validation Commands
+```bash
+# Verify core setup (should always work)
+curl http://localhost:7860/api/v1/health
+
+# Verify advanced setup (requires voice files)
+curl http://localhost:7860/api/v1/voices | grep -E "(linda_johnson|test_voices)"
 ```

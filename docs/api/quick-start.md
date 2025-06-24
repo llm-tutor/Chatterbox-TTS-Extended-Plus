@@ -37,10 +37,40 @@ Expected response:
 }
 ```
 
+### 3. Setup Validation (Two-Tier Testing)
+
+The API supports two levels of functionality testing:
+
+#### **Core Validation (Always Available)**
+These examples work immediately without any voice file setup:
+
+```bash
+# Test basic functionality (should always work)
+curl http://localhost:7860/api/v1/voices
+curl -X POST http://localhost:7860/api/v1/tts -H "Content-Type: application/json" -d '{"text": "Hello world", "export_formats": ["wav"]}'
+```
+
+#### **Advanced Validation (Requires Setup)**
+For advanced features, verify that test voice files are available:
+
+```bash
+# Check for required test voice files
+curl http://localhost:7860/api/v1/voices | grep -E "(linda_johnson|test_voices)"
+```
+
+**Expected output should include:**
+- `test_voices/linda_johnson_01.mp3`
+- `test_voices/linda_johnson_02.mp3`
+
+If these files are missing, you'll need to add them for advanced examples to work. See [Voice File Setup](#voice-file-setup) section below.
+
 ## Your First API Calls
 
-### Text-to-Speech (TTS)
+### Core Examples (Universal - No Setup Required)
 
+These examples work on any installation without requiring specific voice files:
+
+#### Basic Text-to-Speech
 Generate speech from text using the default voice:
 
 ```bash
@@ -52,8 +82,24 @@ curl -X POST http://localhost:7860/api/v1/tts \
   }'
 ```
 
-#### With Voice Cloning
+#### Basic Voice Conversion (Using Project Test Files)
+Transform an existing audio file (if available):
 
+```bash
+curl -X POST http://localhost:7860/api/v1/vc \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input_audio_source": "test_inputs/chatterbox-hello_quick_brown.wav",
+    "target_voice_source": "test_voices/linda_johnson_01.mp3",
+    "export_formats": ["wav"]
+  }'
+```
+
+### Advanced Examples (Requires Voice File Setup)
+
+These examples require the test voice files described in [Voice File Setup](#voice-file-setup):
+
+#### TTS with Voice Cloning
 Use a reference voice for more personalized speech:
 
 ```bash
@@ -66,9 +112,8 @@ curl -X POST http://localhost:7860/api/v1/tts \
   }'
 ```
 
-### Voice Conversion (VC)
-
-Transform an existing audio file to sound like a different speaker:
+#### Advanced Voice Conversion
+Transform using different voice files:
 
 ```bash
 curl -X POST http://localhost:7860/api/v1/vc \
@@ -132,10 +177,49 @@ project_root/
 └── temp/               # Temporary downloads and processing
 ```
 
-### Setting Up Audio Files
+## Voice File Setup
+
+### Basic Setup (Core Examples)
+Core examples work without specific voice files and use the default voice system.
+
+### Advanced Setup (Full Examples)
+For advanced features and comprehensive testing, you need specific test voice files:
+
+#### **Required Files for Advanced Examples:**
+
+**Reference voices** (place in `reference_audio/test_voices/`):
+- `linda_johnson_01.mp3` - Primary test voice for TTS and VC
+- `linda_johnson_02.mp3` - Secondary test voice for advanced examples
+
+**VC input files** (place in `vc_inputs/test_inputs/`):
+- `chatterbox-hello_quick_brown.wav` - Short test audio for VC
+- `chatterbox-in-a-village-of-la-mancha.mp3` - Longer test audio
+
+#### **Setup Verification Commands:**
+
+```bash
+# Verify voice files are properly set up
+curl http://localhost:7860/api/v1/voices | grep -E "(linda_johnson|test_voices)"
+
+# Check that VC input files are available (they won't show in API responses)
+# You can verify manually that files exist in vc_inputs/test_inputs/
+```
+
+#### **If Files Are Missing:**
+- **Core examples** will still work (they don't require specific voice files)
+- **Advanced examples** may fail with "file not found" errors
+- You can substitute your own audio files by updating the filenames in examples
+
+### Setting Up Your Own Audio Files
 
 1. **For TTS voice cloning:** Place reference voice files in `reference_audio/`
 2. **For voice conversion:** Place source audio in `vc_inputs/` and target voices in `reference_audio/`
+
+**Recommended audio specifications:**
+- **Format**: WAV, MP3, or FLAC
+- **Duration**: 10-30 seconds for reference voices
+- **Quality**: Clean speech, minimal background noise
+- **Sample rate**: 22kHz or 44.1kHz
 
 ## Basic Python Integration
 
@@ -207,7 +291,9 @@ generate_speech("Custom voice test", "test_voices/linda_johnson_01.mp3")
 
 ### Integration Examples
 - **[Python Examples](schemas/examples/python-examples.md)** - Comprehensive Python integration
-- **[cURL Examples](schemas/examples/curl-examples.md)** - Command-line usage patterns
+- **[cURL Examples](schemas/examples/curl-examples.md)** - Two-tier command-line usage patterns
+  - **Core Examples**: Universal validation (2-3 minutes)
+  - **Advanced Examples**: Comprehensive testing (8-15 minutes)
 
 ## Interactive Documentation
 

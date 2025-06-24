@@ -53,7 +53,7 @@ reference_audio/*/*.json
 !reference_audio/test_voices/*.mp3
 !reference_audio/test_voices/*.wav
 !reference_audio/test_voices/*.flac
-!reference_audio/test_voices/*.json
+reference_audio/test_voices/*.json
 
 # Config
 settings.json
