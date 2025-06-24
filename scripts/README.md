@@ -6,50 +6,78 @@ This directory contains automated validation and testing scripts for the API doc
 
 | Script | Purpose | Usage | Time |
 |--------|---------|-------|------|
+| **test_core_examples.py** | Core validation suite (implementation protocol) | `python scripts/test_core_examples.py` | ~2-3 minutes |
+| **test_working_examples.py** | Alternative core working examples validation | `python scripts/test_working_examples.py` | ~2-3 minutes |
+| **test_curl_examples.py** | Comprehensive cURL testing (all examples) | `python scripts/test_curl_examples.py --timeout 90` | ~8-15 minutes |
 | **check_links.py** | Validates internal documentation links | `python scripts/check_links.py` | ~30 seconds |
 | **sync_openapi.py** | Checks OpenAPI spec sync with live API | `python scripts/sync_openapi.py` | ~10 seconds |
 | **test_examples.py** | Tests Python code examples in docs | `python scripts/test_examples.py` | ~60 seconds |
-| **test_curl_examples.py** | Tests all cURL examples (comprehensive) | `python scripts/test_curl_examples.py --timeout 90` | ~8-15 minutes |
-| **test_working_examples.py** | Tests core working examples only | `python scripts/test_working_examples.py` | ~2-3 minutes |
 | **diagnose_curl_examples.py** | Analyzes cURL examples without requests | `python scripts/diagnose_curl_examples.py` | ~5 seconds |
 
 ## Usage by Scenario
 
-### During Development
+> **Two-Tier Testing Strategy**: Use appropriate validation tier based on development stage and requirements
+
+### Tier 1: Core Validation (Implementation Protocol)
+**Target Time**: 2-3 minutes | **Usage**: Routine development validation, implementation phase closing
+
 ```bash
-# Quick health check (30 seconds)
+# Primary: Core validation suite (implementation protocol)
+python scripts/test_core_examples.py
+
+# Alternative: Working examples validation  
 python scripts/test_working_examples.py
 
-# Link validation after doc changes
-python scripts/check_links.py docs/api
-```
-
-### Implementation Phase Closing
-```bash
-# Core functionality validation (2-3 minutes)
-python scripts/test_working_examples.py
-
-# API sync check
+# API sync verification
 python scripts/sync_openapi.py
-
-# Python examples validation
-python scripts/test_examples.py
 ```
 
-### Major Releases / Documentation Updates
+### Tier 2: Comprehensive Validation (Release Quality)  
+**Target Time**: 8-15 minutes | **Usage**: Major releases, documentation updates, developer onboarding
+
 ```bash
-# Comprehensive validation (8-15 minutes)
+# Full cURL examples validation
 python scripts/test_curl_examples.py --timeout 90
 
-# Full validation suite
+# Complete validation suite
 python scripts/check_links.py
 python scripts/sync_openapi.py  
 python scripts/test_examples.py
 ```
 
+### During Development
+```bash
+# Quick health check (30 seconds)
+python scripts/test_core_examples.py --quick
+
+# Link validation after doc changes
+python scripts/check_links.py docs/api
+```
+
+### Implementation Phase Closing Protocol
+```bash
+# 1. Core functionality validation (2-3 minutes)
+python scripts/test_core_examples.py
+
+# 2. API synchronization check
+python scripts/sync_openapi.py
+
+# 3. Documentation integrity check
+python scripts/check_links.py docs/api
+```
+
+### Major Releases / Documentation Updates
+```bash
+# Comprehensive validation (8-15 minutes total)
+python scripts/test_curl_examples.py --timeout 90
+python scripts/test_examples.py  
+python scripts/check_links.py
+python scripts/sync_openapi.py
+```
+
 ### Troubleshooting
 ```bash
-# Analyze cURL examples without making requests
+# Analyze examples without making requests (quick diagnosis)
 python scripts/diagnose_curl_examples.py
 
 # Check specific documentation paths
@@ -70,7 +98,47 @@ python scripts/check_links.py docs/api/endpoints/
 
 ## Script Details
 
-### check_links.py
+### test_core_examples.py
+**Purpose**: Implementation protocol validation suite (Two-Tier Strategy Tier 1)  
+**Features**: 
+- Tests essential functionality in 2-3 minutes
+- Universal compatibility (no specific voice file requirements)
+- Uses existing project files only
+- Progress indicators and clear pass/fail reporting
+- Suitable for routine implementation phase validation
+
+**Usage**:
+```bash
+python scripts/test_core_examples.py
+python scripts/test_core_examples.py --quick  # Health check only
+```
+
+### test_working_examples.py
+**Purpose**: Alternative core working examples validation  
+**Features**:
+- Quick validation of core working examples  
+- Designed for routine validation (2-3 minutes)
+- Avoids encoding issues and complex scenarios
+- Suitable for implementation phase closing
+
+**Usage**:
+```bash
+python scripts/test_working_examples.py
+```
+
+### test_curl_examples.py
+**Purpose**: Comprehensive testing of all cURL examples (Two-Tier Strategy Tier 2)  
+**Features**:
+- Parses cURL commands from markdown documentation
+- Converts to Python requests for testing
+- Tests all documented examples (5 TTS + 3 VC generations)
+- Requires 8-15 minutes for full run
+
+**Usage**:
+```bash
+python scripts/test_curl_examples.py --timeout 90
+python scripts/test_curl_examples.py --api-base http://localhost:8000
+```
 **Purpose**: Validates all internal markdown links in documentation  
 **Features**: 
 - Checks relative links between documentation files
@@ -155,10 +223,15 @@ python scripts/diagnose_curl_examples.py
 
 ## Future Enhancements
 
-### Planned (Two-Tier Testing Strategy)
-- **test_core_examples.py**: Implementation protocol validation (2-3 minutes)
-- Enhanced categorization of examples (core vs. advanced)
+### Implemented (Two-Tier Testing Strategy)
+- **test_core_examples.py**: Implementation protocol validation (2-3 minutes) ✅
+- Enhanced categorization of examples (core vs. advanced) ✅  
+- Two-tier validation strategy with clear usage guidelines ✅
+
+### Planned
 - Setup validation for required audio files
+- Enhanced progress reporting and timing estimates
+- Configuration options for different validation levels
 
 ### Integration Opportunities
 - Pre-commit hooks for link validation

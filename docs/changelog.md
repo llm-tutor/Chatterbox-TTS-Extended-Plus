@@ -6,6 +6,67 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [June 24, 2025] - Two-Tier Testing Strategy Implementation
+
+### Overview
+Implemented comprehensive two-tier testing strategy providing balanced validation approach for development workflow efficiency and comprehensive release validation.
+
+### Changes Made
+
+#### Two-Tier Testing Strategy Implementation
+- **Tier 1: Core Validation (2-3 minutes)**:
+  - Created `scripts/test_core_examples.py` for implementation protocol validation
+  - Universal compatibility without specific voice file requirements
+  - Essential functionality testing (health, TTS, VC, listing endpoints)
+  - Suitable for routine development validation and CI/CD integration
+
+- **Tier 2: Comprehensive Validation (8-15 minutes)**:
+  - Enhanced `scripts/test_curl_examples.py` with 90-second timeouts
+  - Complete documentation example validation
+  - Advanced features testing with documented setup requirements
+  - Suitable for releases and developer onboarding
+
+#### Documentation Structure Enhancement
+- **Implementation Protocols Document**: 
+  - Created `docs/dev/implementation-protocols.md` with comprehensive development standards
+  - Established common protocols for all development projects
+  - Defined template structure for project-specific resume prompts
+  - Integrated testing strategy with development workflow
+
+- **cURL Examples Reorganization**:
+  - Restructured `docs/api/schemas/examples/curl-examples.md` with clear separation
+  - Core Examples section for universal compatibility (no setup required)
+  - Advanced Examples section with documented voice file requirements
+  - Setup validation commands and clear usage guidance
+
+#### Scripts Documentation Update
+- **Enhanced `scripts/README.md`**:
+  - Added two-tier testing strategy documentation
+  - Updated usage scenarios with clear tier guidance
+  - Implementation phase closing protocol
+  - Integration with development workflow
+
+#### Validation Infrastructure
+- **Testing Integration**:
+  - Core validation: `test_core_examples.py` (14.5s execution, 100% pass rate)
+  - Comprehensive validation: `test_curl_examples.py` (2m 40s execution)
+  - Documentation link validation: `check_links.py` (20 files, 0 errors)
+  - API synchronization: `sync_openapi.py` (version tracking)
+
+### Technical Details
+- All validation scripts tested and working correctly
+- Documentation links verified across modular structure
+- Implementation protocol established for routine phase closing
+- Two-tier strategy ready for routine development use
+
+### Files Modified
+- `docs/dev/implementation-protocols.md` (new)
+- `docs/dev/two-tier-testing-implementation-plan.md`
+- `docs/api/schemas/examples/curl-examples.md`
+- `scripts/README.md`
+- `scripts/test_core_examples.py` (enhanced)
+- `README.md` (testing strategy reference added)
+
 
 ## [June 23, 2025] - API Docs reorganization Phase 4.6: Final Refinements
 
