@@ -362,6 +362,79 @@ curl http://localhost:7860/api/v1/voices | python -m json.tool
 curl http://localhost:7860/api/v1/voices | jq '.'
 ```
 
+### Audio Concatenation
+> **Note**: Concatenation requires existing files in the `outputs/` directory. 
+> The examples below show the complete workflow including file discovery.
+
+```bash
+# First, list available output files to find files to concatenate
+curl http://localhost:7860/api/v1/outputs?generation_type=tts&page_size=5
+
+# Basic concatenation using files from outputs (replace with actual filenames from above)
+# Example using hypothetical filenames from the outputs list:
+curl -X POST http://localhost:7860/api/v1/concat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": ["tts_2025-06-24_141456_306396_temp0.75.wav", "tts_2025-06-24_134725_685369_temp0.75.wav"],
+    "export_formats": ["wav", "mp3"]
+  }' \
+  --output concatenated_audio.wav
+
+# Concatenation with custom settings
+curl -X POST http://localhost:7860/api/v1/concat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": ["first_segment.wav", "second_segment.wav", "third_segment.wav"],
+    "export_formats": ["wav"],
+    "normalize_levels": true,
+    "pause_duration_ms": 800,
+    "pause_variation_ms": 200,
+    "crossfade_ms": 100
+  }' \
+  --output full_presentation.wav
+
+# Get URL response instead of direct download (safer for testing)
+curl -X POST "http://localhost:7860/api/v1/concat?response_mode=url" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": ["segment_a.wav", "segment_b.wav"],
+    "export_formats": ["wav", "mp3"],
+    "normalize_levels": true
+  }'
+
+# Complete workflow: Generate TTS files, then concatenate them
+# Step 1: Generate first segment
+curl -X POST "http://localhost:7860/api/v1/tts?response_mode=url" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Welcome to our presentation.",
+    "export_formats": ["wav"]
+  }'
+
+# Step 2: Generate second segment  
+curl -X POST "http://localhost:7860/api/v1/tts?response_mode=url" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "This concludes our demonstration.",
+    "export_formats": ["wav"]
+  }'
+
+# Step 3: List outputs to get the generated filenames
+curl http://localhost:7860/api/v1/outputs?generation_type=tts&page_size=2
+
+# Step 4: Concatenate using the actual generated filenames
+# (Replace the filenames below with those returned from Step 3)
+curl -X POST "http://localhost:7860/api/v1/concat?response_mode=url" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": ["tts_YYYY-MM-DD_HHMMSS_microseconds_temp0.75.wav", "tts_YYYY-MM-DD_HHMMSS_microseconds_temp0.75.wav"],
+    "export_formats": ["wav"],
+    "normalize_levels": true,
+    "pause_duration_ms": 600,
+    "pause_variation_ms": 150
+  }'
+```
+
 ### Batch Testing
 ```bash
 # Test multiple endpoints quickly

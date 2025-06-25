@@ -37,10 +37,12 @@ host_system: "Windows 11"
 shell: "PowerShell"  # For git and system commands
 ```
 
-### Environment Guidelines
+### Environment Guidelines & Testing
 - **Virtual Environment**: Always activate `.venv` before any Python operations
 - **Encoding Safety**: Use UTF-8 for all file operations to avoid encoding issues
 - **Unicode Restrictions**: Avoid Unicode emojis in code output due to system encoding
+- **Testing Strategy**: Two-tier validation approach (core 2-3 min, comprehensive 8-15 min)
+- **Git Operations**: PowerShell syntax with full paths
 - **Server Management**: Request user to start server manually, test via API calls
 - **Path Requirements**: Use absolute paths for git commands and file operations
 
@@ -238,7 +240,8 @@ docs/api/
 │   ├── configuration.md       # Config file reference
 │   ├── file-structure.md      # Directory structure
 │   └── compatibility.md       # System requirements
-└── openapi.yaml               # OpenAPI specification
+├── openapi.yaml               # OpenAPI specification
+└── how-to-update-api-docs.md  # Maintenance guide
 ```
 
 ### Documentation Update Protocol
@@ -510,12 +513,12 @@ def diagnose_issue(error_type):
 
 ## Integration with Existing Systems
 
-### Building on Foundation Systems
+### Building on Established Infrastructure:
 - **Phase 7 Error Handling**: Leverage established error tracking patterns
 - **Phase 7 Resource Management**: Use monitoring and cleanup systems
 - **Phase 7 Configuration**: Build on existing settings management
 - **Modular Documentation**: Extend established organizational structure
-- **Validation Infrastructure**: Enhance existing testing capabilities
+- **Two-Tier Testing**: Use implemented validation infrastructure
 
 ### Compatibility Requirements
 - **Backward Compatibility**: Maintain existing API functionality

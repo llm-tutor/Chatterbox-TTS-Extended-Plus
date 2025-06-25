@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-import time
+import time as time_module
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -19,7 +19,8 @@ from api_models import (
     ErrorResponse, HealthResponse, ConfigResponse,
     VoicesResponse, VoiceInfo, VoiceMetadata, ErrorSummaryResponse,
     VoiceUploadRequest, VoiceUploadResponse, GeneratedFileMetadata, GeneratedFilesResponse,
-    VoiceMetadataUpdateRequest, VoiceDeletionResponse, VoiceFolderInfo, VoiceFoldersResponse
+    VoiceMetadataUpdateRequest, VoiceDeletionResponse, VoiceFolderInfo, VoiceFoldersResponse,
+    ConcatRequest, ConcatResponse
 )
 from core_engine import engine_sync, get_or_load_tts_model, get_or_load_vc_model
 from config import config_manager
@@ -42,7 +43,7 @@ from management import cleanup_scheduler, resource_manager
 logger = get_logger(__name__)
 
 # Track startup time for health endpoint
-app_start_time = time.time()
+app_start_time = time_module.time()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -311,8 +312,7 @@ async def generate_vc(
             temp_dir = Path(config_manager.get("paths.temp_dir", "temp"))
             temp_dir.mkdir(exist_ok=True)
             
-            import time
-            timestamp = int(time.time())
+            timestamp = int(time_module.time())
             temp_filename = f"upload_{timestamp}_{input_audio.filename}"
             temp_input_path = temp_dir / temp_filename
             
@@ -405,7 +405,7 @@ async def generate_vc(
 @app.get("/api/v1/health", response_model=HealthResponse)
 async def health_check():
     """Enhanced health check endpoint with detailed metrics"""
-    uptime = time.time() - app_start_time
+    uptime = time_module.time() - app_start_time
     
     # Check if models are loaded
     tts_loaded = False
@@ -800,6 +800,156 @@ async def list_generated_files(
     except Exception as e:
         logger.error(f"Failed to list generated files: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to list generated files: {str(e)}")
+
+
+@app.post("/api/v1/concat", response_model=ConcatResponse)
+async def concatenate_audio(
+    request: ConcatRequest,
+    response_mode: str = Query("stream", description="Response mode: 'stream' or 'url'")
+):
+    """
+    Concatenate multiple audio files from the outputs directory
+    
+    Combines multiple generated audio files into a single file with optional
+    level normalization and crossfading between segments.
+    """
+    start_time = time_module.time()
+    try:
+        # Import concatenation function
+        from utils import concatenate_audio_files, generate_enhanced_filename, save_generation_metadata
+        
+        outputs_dir = Path(config_manager.get("paths.output_dir", "outputs"))
+        if not outputs_dir.exists():
+            raise HTTPException(status_code=404, detail="Outputs directory not found")
+        
+        # Validate and resolve file paths
+        file_paths = []
+        source_files_info = []
+        
+        for filename in request.files:
+            file_path = outputs_dir / filename
+            if not file_path.exists():
+                raise HTTPException(status_code=404, detail=f"File not found: {filename}")
+            
+            # Check if it's an audio file
+            audio_extensions = {'.wav', '.mp3', '.flac', '.ogg', '.m4a'}
+            if file_path.suffix.lower() not in audio_extensions:
+                raise HTTPException(status_code=400, detail=f"Not an audio file: {filename}")
+            
+            file_paths.append(file_path)
+            source_files_info.append({
+                "filename": filename,
+                "size_bytes": file_path.stat().st_size
+            })
+        
+        # Prepare concatenation parameters
+        concat_params = {
+            "file_count": len(request.files),
+            "crossfade_ms": request.crossfade_ms,
+            "normalize_levels": request.normalize_levels,
+            "pause_duration_ms": request.pause_duration_ms,
+            "pause_variation_ms": request.pause_variation_ms
+        }
+        
+        # Generate output filenames for each format
+        output_files = []
+        generated_metadata = {}
+        
+        for export_format in request.export_formats:
+            # Generate enhanced filename
+            if request.output_filename:
+                # Use custom filename
+                base_filename = request.output_filename
+            else:
+                # Generate timestamp-based filename
+                base_filename = generate_enhanced_filename("concat", concat_params, export_format)
+            
+            # Ensure proper extension
+            if not base_filename.endswith(f".{export_format}"):
+                if '.' in base_filename:
+                    base_filename = base_filename.rsplit('.', 1)[0]
+                base_filename = f"{base_filename}.{export_format}"
+            
+            output_path = outputs_dir / base_filename
+            
+            # Perform concatenation
+            concat_metadata = concatenate_audio_files(
+                file_paths=file_paths,
+                output_path=output_path,
+                normalize_levels=request.normalize_levels,
+                crossfade_ms=request.crossfade_ms,
+                pause_duration_ms=request.pause_duration_ms,
+                pause_variation_ms=request.pause_variation_ms
+            )
+            
+            output_files.append(base_filename)
+            
+            if export_format == request.export_formats[0]:  # Store metadata once
+                generated_metadata = concat_metadata
+            
+            # Save metadata JSON file
+            metadata_to_save = {
+                "type": "concat",
+                "parameters": {
+                    "source_files": request.files,
+                    "normalize_levels": request.normalize_levels,
+                    "crossfade_ms": request.crossfade_ms,
+                    "pause_duration_ms": request.pause_duration_ms,
+                    "pause_variation_ms": request.pause_variation_ms,
+                    "file_count": len(request.files)
+                },
+                "generation_info": concat_metadata,
+                "source_files_info": source_files_info
+            }
+            
+            save_generation_metadata(output_path, metadata_to_save)
+        
+        # Record operation time
+        operation_time_ms = (time_module.time() - start_time) * 1000
+        # record_operation_time(operation_time_ms, "concat")  # Temporarily disabled for debugging
+        
+        # Prepare response
+        response_data = ConcatResponse(
+            output_files=output_files,
+            total_duration_seconds=generated_metadata.get("total_duration_seconds"),
+            file_count=len(request.files),
+            processing_time_seconds=generated_metadata.get("processing_time_seconds"),
+            metadata=generated_metadata
+        )
+        
+        # Handle response mode
+        if response_mode == "stream" and len(output_files) == 1:
+            # Stream the first (primary) file
+            primary_file = outputs_dir / output_files[0]
+            if primary_file.exists():
+                def file_streamer():
+                    with open(primary_file, "rb") as f:
+                        while chunk := f.read(8192):
+                            yield chunk
+                
+                # Determine content type
+                content_type = "audio/wav"
+                if primary_file.suffix.lower() == ".mp3":
+                    content_type = "audio/mpeg"
+                elif primary_file.suffix.lower() == ".flac":
+                    content_type = "audio/flac"
+                
+                return StreamingResponse(
+                    file_streamer(),
+                    media_type=content_type,
+                    headers={
+                        "Content-Disposition": f"attachment; filename={primary_file.name}"
+                    }
+                )
+        
+        # Default: return URL-based response
+        return response_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Concatenation failed: {e}")
+        raise GenerationError(f"Audio concatenation failed: {e}")
 
 
 @app.get("/api/v1/resources")

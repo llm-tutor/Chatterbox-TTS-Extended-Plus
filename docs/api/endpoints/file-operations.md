@@ -298,6 +298,130 @@ def get_recent_files(hours=24):
 recent_files = get_recent_files(6)
 ```
 
+### Concatenate Audio Files
+
+```python
+import requests
+
+def concatenate_audio(files, pause_ms=600, variation_ms=200, crossfade_ms=0, 
+                     formats=None, normalize=True):
+    """
+    Concatenate multiple audio files with natural pauses
+    
+    Args:
+        files: List of filenames from outputs directory
+        pause_ms: Base pause duration between clips (0-3000ms)
+        variation_ms: Random variation in pause duration (0-500ms)
+        crossfade_ms: Crossfade duration in milliseconds (0-5000ms)
+        formats: List of output formats ['wav', 'mp3', 'flac']
+        normalize: Whether to normalize audio levels
+    
+    Returns:
+        Response object with concatenation results
+    """
+    if formats is None:
+        formats = ['wav']
+        
+    payload = {
+        "files": files,
+        "export_formats": formats,
+        "normalize_levels": normalize,
+        "crossfade_ms": crossfade_ms,
+        "pause_duration_ms": pause_ms,
+        "pause_variation_ms": variation_ms,
+        "response_mode": "url"  # Get metadata instead of streaming
+    }
+    
+    response = requests.post(
+        "http://localhost:7860/api/v1/concat",
+        json=payload,
+        timeout=60
+    )
+    
+    if response.status_code == 200:
+        return response.json()
+    else:
+        response.raise_for_status()
+
+# Example: Basic concatenation with natural pauses
+files_to_concat = [
+    "tts_2025-06-22_143022_456_temp0.75_seed42.wav",
+    "tts_2025-06-22_143045_789_temp0.8_seed123.wav"
+]
+
+result = concatenate_audio(files_to_concat)
+print(f"Created: {result['output_files'][0]}")
+print(f"Duration: {result['total_duration_seconds']}s")
+print(f"Pause added: {result['metadata']['total_pause_duration_ms']}ms")
+
+# Example: Custom timing for dramatic effect
+dramatic_result = concatenate_audio(
+    files_to_concat,
+    pause_ms=1500,      # 1.5 second pauses
+    variation_ms=300,   # ±300ms variation
+    formats=['wav', 'mp3']
+)
+
+# Example: Fast speech with minimal pauses
+news_style = concatenate_audio(
+    files_to_concat,
+    pause_ms=300,       # Short pauses
+    variation_ms=50,    # Minimal variation
+    crossfade_ms=200    # Slight overlap
+)
+
+# Example: No pauses (legacy behavior)
+no_pause_result = concatenate_audio(
+    files_to_concat,
+    pause_ms=0,         # Disable pauses
+    crossfade_ms=500    # Use crossfade only
+)
+```
+
+### Download Concatenated Files
+
+```python
+def download_concatenated_audio(files, output_path, **concat_options):
+    """
+    Concatenate audio and download directly to file
+    
+    Args:
+        files: List of filenames to concatenate
+        output_path: Local path to save the concatenated audio
+        **concat_options: Additional concatenation parameters
+    """
+    # Set to streaming mode for direct download
+    payload = {
+        "files": files,
+        "response_mode": "stream",
+        **concat_options
+    }
+    
+    response = requests.post(
+        "http://localhost:7860/api/v1/concat",
+        json=payload,
+        stream=True,
+        timeout=60
+    )
+    
+    if response.status_code == 200:
+        with open(output_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+        print(f"Downloaded concatenated audio to: {output_path}")
+    else:
+        response.raise_for_status()
+
+# Example: Direct download
+download_concatenated_audio(
+    files=["segment1.wav", "segment2.wav", "segment3.wav"],
+    output_path="combined_speech.wav",
+    pause_duration_ms=800,
+    export_formats=["wav"]
+)
+```
+
 ## JavaScript Examples
 
 ### Fetch and Display Files
@@ -374,6 +498,184 @@ downloadFile('tts_output_123.wav');
 downloadFile('voice_conversion_456.wav', 'my_converted_voice.wav');
 ```
 
+## Concatenate Audio Files
+
+**POST** `/api/v1/concat`
+
+Combine multiple generated audio files into a single file with natural pauses and optional crossfading.
+
+### Request Parameters
+
+| Parameter | Type | Default | Required | Description |
+|-----------|------|---------|----------|-------------|
+| `files` | array[string] | - | Yes | List of filenames from outputs directory (minimum 2) |
+| `export_formats` | array[string] | `["wav"]` | No | Output formats: `"wav"`, `"mp3"`, `"flac"` |
+| `normalize_levels` | boolean | `true` | No | Normalize audio levels to prevent clipping |
+| `crossfade_ms` | integer | `0` | No | Crossfade duration in milliseconds (0-5000) |
+| `pause_duration_ms` | integer | `600` | No | Base pause duration between clips (0-3000ms) |
+| `pause_variation_ms` | integer | `200` | No | Random variation in pause duration (0-500ms) |
+| `output_filename` | string | - | No | Custom output filename (without extension) |
+| `response_mode` | string | `"stream"` | No | Response mode: `"stream"` or `"url"` |
+
+### Natural Pause System
+
+The concatenation endpoint includes a research-based natural pause system that addresses the common issue of audio clips sounding "tacked on" or rushed when joined together:
+
+- **Default Pauses**: 600ms ± 200ms variation (based on speech research for optimal naturalness)
+- **Customizable Duration**: Adjust `pause_duration_ms` for different styles:
+  - 400ms: Faster speech/news reading
+  - 600ms: Natural conversation (default)  
+  - 1000ms+: Dramatic pauses/presentations
+- **Random Variation**: Prevents mechanical, regular spacing between clips
+- **Disable Option**: Set `pause_duration_ms: 0` for legacy behavior (no pauses)
+
+### Crossfade Compatibility
+
+Pauses and crossfading can be used together:
+- **With pauses**: Crossfade first, then add pause for natural spacing
+- **Without pauses**: Standard crossfade behavior (audio overlap)
+
+### Example Requests
+
+#### Basic Concatenation with Natural Pauses
+
+```bash
+curl -X POST "http://localhost:7860/api/v1/concat" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": [
+      "tts_2025-06-22_143022_456_temp0.75_seed42.wav",
+      "tts_2025-06-22_143045_789_temp0.8_seed123.wav"
+    ]
+  }'
+```
+
+#### Custom Pause Timing
+
+```bash
+curl -X POST "http://localhost:7860/api/v1/concat" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": [
+      "tts_output_1.wav",
+      "tts_output_2.wav", 
+      "tts_output_3.wav"
+    ],
+    "pause_duration_ms": 1000,
+    "pause_variation_ms": 300,
+    "export_formats": ["wav", "mp3"]
+  }'
+```
+
+#### Crossfade with Pauses
+
+```bash
+curl -X POST "http://localhost:7860/api/v1/concat" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": ["segment1.wav", "segment2.wav"],
+    "crossfade_ms": 500,
+    "pause_duration_ms": 800,
+    "normalize_levels": true
+  }'
+```
+
+#### No Pauses (Legacy Behavior)
+
+```bash
+curl -X POST "http://localhost:7860/api/v1/concat" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": ["audio1.wav", "audio2.wav"],
+    "pause_duration_ms": 0,
+    "response_mode": "url"
+  }'
+```
+
+### Response
+
+#### Streaming Response (Default)
+
+When `response_mode="stream"` (default), returns the audio file directly for download:
+
+```
+Content-Type: audio/wav (or audio/mpeg, audio/flac)
+Content-Disposition: attachment; filename="concat_2025-06-22_143100_123_2files_pause600±200_leveled.wav"
+
+[Binary audio data]
+```
+
+#### URL Response
+
+When `response_mode="url"`, returns metadata with file URLs:
+
+```json
+{
+  "success": true,
+  "message": "Audio concatenation completed successfully",
+  "output_files": [
+    "concat_2025-06-22_143100_123_2files_pause600±200_leveled.wav",
+    "concat_2025-06-22_143100_123_2files_pause600±200_leveled.mp3"
+  ],
+  "total_duration_seconds": 8.45,
+  "file_count": 2,
+  "processing_time_seconds": 0.23,
+  "metadata": {
+    "total_duration_seconds": 8.45,
+    "file_count": 2,
+    "processing_time_seconds": 0.23,
+    "processed_files": [
+      {
+        "filename": "tts_output_1.wav",
+        "duration_seconds": 3.2,
+        "size_bytes": 307200
+      },
+      {
+        "filename": "tts_output_2.wav", 
+        "duration_seconds": 4.1,
+        "size_bytes": 393600
+      }
+    ],
+    "output_size_bytes": 811200,
+    "crossfade_ms": 500,
+    "normalized": true,
+    "pause_duration_ms": 600,
+    "pause_variation_ms": 200,
+    "total_pause_duration_ms": 643
+  }
+}
+```
+
+### Error Responses
+
+#### Missing Files (404)
+```json
+{
+  "detail": "File not found: non_existent_file.wav"
+}
+```
+
+#### Invalid Parameters (422)
+```json
+{
+  "detail": [
+    {
+      "type": "value_error",
+      "loc": ["body", "files"],
+      "msg": "At least 2 files required for concatenation"
+    }
+  ]
+}
+```
+
+#### Unsupported Format (400)
+```json
+{
+  "detail": "Not an audio file: document.txt"
+}
+```
+
+
 ## File Management
 
 ### Generated File Naming Convention
@@ -394,8 +696,13 @@ vc_2025-06-22_143045_789_chunk60_overlap0.1_voicespeaker2.wav
 
 #### Concatenation Files
 ```
-concat_YYYY-MM-DD_HHMMSS_microseconds_{count}files_leveled.{format}
-concat_2025-06-22_143100_123_3files_leveled.wav
+concat_YYYY-MM-DD_HHMMSS_microseconds_{count}files_[pause{duration}v{variation}]_[fade{ms}]_leveled.{format}
+
+# Examples:
+concat_2025-06-22_143100_123_2files_pause600v200_leveled.wav          # Natural pauses
+concat_2025-06-22_143100_123_3files_pause1000_fade500_leveled.wav     # Custom pauses + crossfade  
+concat_2025-06-22_143100_123_2files_fade300_leveled.wav               # Crossfade only
+concat_2025-06-22_143100_123_2files_leveled.wav                       # No pauses, no crossfade
 ```
 
 ### File Organization

@@ -21,15 +21,15 @@ Please read and analyze the following documents to understand the current projec
 
 ## Implementation Standards Reference
 > **📖 Complete protocols**: See [`docs/dev/implementation-protocols.md`](implementation-protocols.md)
+### Development Environment (see complete protocols)
 
-### Environment & Testing (Inherited from Standards):
-- **Virtual Environment**: `.venv` (always activate for all operations)
-- **Encoding**: UTF-8 for Windows 11 Japanese encoding compatibility
-- **Testing Strategy**: Two-tier validation approach (core 2-3 min, comprehensive 8-15 min)
-- **Git Operations**: PowerShell syntax with full paths
-- **Server Management**: Request user to start server manually, test via API calls
+### Environment Guidelines & Testing (see complete protocols)
 
-### Testing Protocol (Inherited from Standards):
+### File Operation Standards (see complete protocols)
+
+## Testing Protocol Framework (see complete protocols)
+
+### Specific files for Testing Protocol:
 - **Core Validation**: `python scripts/test_core_examples.py` (2-3 minutes, implementation protocol)
 - **Comprehensive Validation**: `python scripts/test_curl_examples.py --timeout 90` (8-15 minutes, releases)
 - **Documentation Validation**: `python scripts/check_links.py --docs-root docs/api`
@@ -49,34 +49,8 @@ Please read and analyze the following documents to understand the current projec
 ### Updated Documentation Structure:
 The API documentation has been reorganized into a modular structure:
 
-```
-docs/api/
-├── README.md                    # Navigation hub and overview
-├── quick-start.md              # Getting started guide
-├── endpoints/                  # Individual endpoint documentation
-│   ├── health.md
-│   ├── tts.md
-│   ├── voice-conversion.md
-│   ├── voice-management.md
-│   └── file-operations.md
-├── guides/                     # Feature-specific guides
-│   ├── streaming-responses.md
-│   ├── file-uploads.md
-│   ├── error-handling.md
-│   └── advanced-features.md
-├── schemas/                    # Data models and examples
-│   ├── request-models.md
-│   ├── response-models.md
-│   └── examples/
-│       ├── curl-examples.md    # Two-tier structure implemented
-│       └── python-examples.md
-├── reference/                  # Technical reference
-│   ├── configuration.md
-│   ├── file-structure.md
-│   └── compatibility.md
-├── openapi.yaml               # OpenAPI specification (simplified but complete)
-└── how-to-update-api-docs.md  # Maintenance guide
-```
+Look at **Modular Documentation Structure** in complete protocols.
+
 
 ### API Refinement Development Workflow:
 1. **Read Implementation Plan**: Check `docs/dev/api_refinement_implementation_plan.md` for current phase and tasks

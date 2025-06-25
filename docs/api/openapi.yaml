@@ -387,6 +387,100 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/v1/concat:
+    post:
+      summary: Concatenate Audio Files
+      description: Combine multiple generated audio files with natural pauses and optional crossfading
+      operationId: concatenateAudio
+      tags:
+        - Files
+      parameters:
+        - name: response_mode
+          in: query
+          description: Response mode - stream for direct download or url for metadata
+          schema:
+            type: string
+            enum: [stream, url]
+            default: stream
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConcatRequest'
+            examples:
+              natural_pauses:
+                summary: Natural pauses (default)
+                value:
+                  files: ["tts_output_1.wav", "tts_output_2.wav"]
+                  pause_duration_ms: 600
+                  pause_variation_ms: 200
+              custom_timing:
+                summary: Custom pause timing
+                value:
+                  files: ["segment1.wav", "segment2.wav", "segment3.wav"]
+                  pause_duration_ms: 1000
+                  pause_variation_ms: 300
+                  export_formats: ["wav", "mp3"]
+              crossfade_with_pauses:
+                summary: Crossfade with pauses
+                value:
+                  files: ["audio1.wav", "audio2.wav"]
+                  crossfade_ms: 500
+                  pause_duration_ms: 800
+                  normalize_levels: true
+              no_pauses:
+                summary: No pauses (legacy)
+                value:
+                  files: ["clip1.wav", "clip2.wav"]
+                  pause_duration_ms: 0
+                  response_mode: url
+      responses:
+        '200':
+          description: Audio concatenation successful
+          content:
+            audio/wav:
+              schema:
+                type: string
+                format: binary
+              example: "[Binary audio data for WAV]"
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+              example: "[Binary audio data for MP3]"
+            audio/flac:
+              schema:
+                type: string
+                format: binary
+              example: "[Binary audio data for FLAC]"
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConcatResponse'
+              example:
+                success: true
+                message: "Audio concatenation completed successfully"
+                output_files: ["concat_2025-06-22_143100_123_2files_pause600±200_leveled.wav"]
+                total_duration_seconds: 8.45
+                file_count: 2
+                processing_time_seconds: 0.23
+                metadata:
+                  pause_duration_ms: 600
+                  pause_variation_ms: 200
+                  total_pause_duration_ms: 543
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Audio file not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "File not found: non_existent_file.wav"
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
 components:
   schemas:
     HealthResponse:
@@ -512,6 +606,117 @@ components:
         processing_info:
           type: object
 
+    ConcatRequest:
+      type: object
+      required:
+        - files
+      properties:
+        files:
+          type: array
+          items:
+            type: string
+          minItems: 2
+          description: List of filenames from outputs directory to concatenate
+          example: ["tts_output_1.wav", "tts_output_2.wav"]
+        export_formats:
+          type: array
+          items:
+            type: string
+            enum: [wav, mp3, flac]
+          default: ["wav"]
+          description: Output formats
+        normalize_levels:
+          type: boolean
+          default: true
+          description: Normalize audio levels to prevent clipping
+        crossfade_ms:
+          type: integer
+          minimum: 0
+          maximum: 5000
+          default: 0
+          description: Crossfade duration in milliseconds
+        pause_duration_ms:
+          type: integer
+          minimum: 0
+          maximum: 3000
+          default: 600
+          description: Base pause duration between clips in milliseconds (0 = no pause)
+        pause_variation_ms:
+          type: integer
+          minimum: 0
+          maximum: 500
+          default: 200
+          description: Random variation in pause duration (±) in milliseconds
+        output_filename:
+          type: string
+          description: Custom output filename (without extension)
+        response_mode:
+          type: string
+          enum: [stream, url]
+          default: stream
+          description: Response mode - stream for direct download or url for metadata
+
+    ConcatResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+          example: "Audio concatenation completed successfully"
+        output_files:
+          type: array
+          items:
+            type: string
+          description: Generated concatenated files
+          example: ["concat_2025-06-22_143100_123_2files_pause600±200_leveled.wav"]
+        total_duration_seconds:
+          type: number
+          description: Total duration of concatenated audio
+          example: 8.45
+        file_count:
+          type: integer
+          description: Number of input files concatenated
+          example: 2
+        processing_time_seconds:
+          type: number
+          description: Time taken to process concatenation
+          example: 0.23
+        metadata:
+          type: object
+          description: Detailed concatenation metadata
+          properties:
+            total_duration_seconds:
+              type: number
+            file_count:
+              type: integer
+            processing_time_seconds:
+              type: number
+            processed_files:
+              type: array
+              items:
+                type: object
+                properties:
+                  filename:
+                    type: string
+                  duration_seconds:
+                    type: number
+                  size_bytes:
+                    type: integer
+            output_size_bytes:
+              type: integer
+            crossfade_ms:
+              type: integer
+            normalized:
+              type: boolean
+            pause_duration_ms:
+              type: integer
+            pause_variation_ms:
+              type: integer
+            total_pause_duration_ms:
+              type: integer
+
     VoicesResponse:
       type: object
       properties:
@@ -618,11 +823,28 @@ components:
 
     ErrorResponse:
       type: object
+      required:
+        - success
+        - error
+        - error_code
       properties:
+        success:
+          type: boolean
+          default: false
+          description: Always false for error responses
+        error:
+          type: string
+          description: Brief error message
         detail:
           type: string
+          description: Detailed error information
         error_code:
           type: string
+          description: Machine-readable error code
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
 
   responses:
     BadRequest:
@@ -645,3 +867,16 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+
+    ValidationError:
+      description: Validation error - invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "Validation failed"
+            detail: "Invalid parameter values provided"
+            error_code: "VALIDATION_ERROR"
+            timestamp: "2025-06-24T20:30:00Z"

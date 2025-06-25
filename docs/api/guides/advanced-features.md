@@ -94,16 +94,16 @@ Combine multiple audio files into a single output with level normalization and f
 
 ### Basic Concatenation
 ```bash
-# Concatenate server files
+# First, check available files in outputs directory
+curl http://localhost:7860/api/v1/outputs?generation_type=tts&page_size=5
+
+# Concatenate server files (use actual filenames from outputs list)
 curl -X POST http://localhost:7860/api/v1/concat \
   -H "Content-Type: application/json" \
   -d '{
-    "segments": [
-      {"type": "server_file", "filename": "intro.wav"},
-      {"type": "server_file", "filename": "main_content.wav"},
-      {"type": "server_file", "filename": "outro.wav"}
-    ],
-    "export_formats": ["wav", "mp3"]
+    "files": ["tts_2025-06-24_141456_306396_temp0.75.wav", "tts_2025-06-24_134725_685369_temp0.75.wav"],
+    "export_formats": ["wav", "mp3"],
+    "normalize_levels": true
   }' \
   --output combined_audio.wav
 ```

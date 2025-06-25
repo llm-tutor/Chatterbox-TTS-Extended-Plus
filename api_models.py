@@ -1,7 +1,7 @@
 # api_models.py - Pydantic models for API requests and responses
 
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, validator, model_validator
+from pydantic import BaseModel, Field, validator, model_validator, field_validator
 from utils import validate_text_length, validate_audio_format, validate_text_input
 from config import config_manager
 
@@ -314,3 +314,52 @@ class GeneratedFilesResponse(BaseModel):
     has_next: bool = False
     has_previous: bool = False
     total_files: int = 0
+
+
+# Audio Concatenation Models
+class ConcatRequest(BaseModel):
+    """Request model for audio concatenation"""
+    files: List[str] = Field(..., min_length=2, description="List of filenames from outputs/ directory to concatenate")
+    export_formats: List[str] = Field(default=["wav"], description="Output formats")
+    normalize_levels: bool = Field(default=True, description="Normalize audio levels")
+    crossfade_ms: int = Field(default=0, ge=0, le=5000, description="Crossfade duration in milliseconds")
+    pause_duration_ms: int = Field(default=600, ge=0, le=3000, description="Base pause duration between clips in milliseconds (0 = no pause)")
+    pause_variation_ms: int = Field(default=200, ge=0, le=500, description="Random variation in pause duration (+/-) in milliseconds")
+    output_filename: Optional[str] = Field(None, description="Custom output filename (without extension)")
+    response_mode: str = Field(default="stream", description="Response mode: 'stream' or 'url'")
+
+    @field_validator('export_formats')
+    @classmethod
+    def validate_export_formats(cls, v):
+        valid_formats = {'wav', 'mp3', 'flac'}
+        for fmt in v:
+            if fmt not in valid_formats:
+                raise ValueError(f"Invalid format: {fmt}. Must be one of {valid_formats}")
+        return v
+
+    @field_validator('files')
+    @classmethod
+    def validate_files_list(cls, v):
+        if len(v) < 2:
+            raise ValueError("At least 2 files required for concatenation")
+        return v
+
+    @field_validator('pause_variation_ms')
+    @classmethod
+    def validate_pause_variation(cls, v, info):
+        if 'pause_duration_ms' in info.data:
+            base_duration = info.data['pause_duration_ms']
+            if base_duration > 0 and v >= base_duration:
+                raise ValueError("Pause variation must be less than base pause duration when pause is enabled")
+        return v
+
+
+class ConcatResponse(BaseModel):
+    """Response model for audio concatenation"""
+    success: bool = True
+    message: str = "Audio concatenation completed successfully"
+    output_files: List[str] = Field(default_factory=list, description="Generated concatenated files")
+    total_duration_seconds: Optional[float] = None
+    file_count: int = 0
+    processing_time_seconds: Optional[float] = None
+    metadata: Optional[Dict[str, Any]] = None
