@@ -62,6 +62,8 @@ class TTSRequest(BaseModel):
         "auto", 
         description="Library for speed adjustment: 'auto', 'audiostretchy', 'librosa', 'torchaudio'. 'auto' selects audiostretchy for speech quality, with clean fallback chain."
     )
+    trim: bool = Field(False, description="Apply silence trimming to generated audio")
+    trim_threshold_ms: int = Field(200, ge=50, le=1000, description="Silence threshold for trimming in milliseconds")
     export_formats: List[str] = Field(["wav", "mp3"], description="Export formats")
     disable_watermark: bool = Field(True, description="Disable watermark")
 

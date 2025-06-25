@@ -75,6 +75,25 @@ Convert text to speech with extensive customization options including voice clon
 - **`librosa`**: Good baseline compatibility with adequate quality
 - **`torchaudio`**: Basic fallback (affects pitch, use only when others unavailable)
 
+### Audio Trimming Parameters
+
+| Parameter | Type | Default | Range | Description |
+|-----------|------|---------|-------|-------------|
+| `trim` | boolean | false | - | Apply silence trimming to generated audio |
+| `trim_threshold_ms` | integer | 200 | 50-1000 | Silence threshold for trimming in milliseconds |
+
+#### Audio Trimming Process
+
+1. **Silence Detection**: Uses librosa to analyze audio for silence regions at beginning and end
+2. **Threshold Analysis**: Detects silence below specified threshold in dB
+3. **Conservative Approach**: Leaves a small buffer to avoid cutting into audio content
+4. **Smart Processing**: Skips files that don't have significant silence
+
+**Use Cases:**
+- Remove unwanted silence from TTS generation artifacts
+- Create consistent timing for audio concatenation
+- Professional audio production workflows
+
 ## Request Examples
 
 ### Basic TTS
@@ -110,6 +129,19 @@ Convert text to speech with extensive customization options including voice clon
   "export_formats": ["wav"]
 }
 ```
+
+### Audio Trimming for Clean Output
+
+```json
+{
+  "text": "This demonstrates automatic silence trimming for professional audio production.",
+  "reference_audio_filename": "test_voices/professional_narrator.wav",
+  "trim": true,
+  "trim_threshold_ms": 150,
+  "export_formats": ["wav"]
+}
+```
+
 ## Response Formats
 
 ### Streaming Response (default)

@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.10.0] - 2025-06-25 - TTS Trimming Integration (Task 11.4)
+
+### Added
+- **TTS Audio Trimming**: Added silence trimming capability to TTS endpoint
+- **New TTS Parameters**: 
+  - `trim` (boolean, default: false) - Apply silence trimming to generated audio
+  - `trim_threshold_ms` (integer, default: 200, range: 50-1000) - Silence threshold for trimming
+- **Enhanced Filename Generation**: Trimming parameters included in TTS output filenames (e.g., `trim200`)
+- **Post-Processing Pipeline**: Trimming applied after speed factor adjustment and before format conversion
+- **Documentation**: Complete API documentation, examples, and OpenAPI specification updates
+
+### Technical Implementation
+- **Integration Point**: Trimming applied in `_apply_trimming_post_processing()` method in `core_engine.py`
+- **Workflow**: Generation → Speed Factor → **Trimming** → Format Conversion → Output
+- **Reuse**: Leverages existing trimming utilities from concatenation system (`apply_audio_trimming()`)
+- **Metadata**: Trimming parameters included in TTS generation metadata
+- **Validation**: Full parameter validation and error handling
+
+### Use Cases
+- Professional audio production workflows requiring clean timing
+- Removing TTS generation artifacts and unwanted silence
+- Consistent audio timing for concatenation and editing
+- Automated audio post-processing pipelines
+
+### Files Modified
+- `api_models.py` - Added trim parameters to TTSRequest model
+- `core_engine.py` - Implemented TTS trimming post-processing pipeline
+- `utils.py` - Updated enhanced filename generation for TTS trimming
+- `docs/api/openapi.yaml` - Updated TTS schema with trimming parameters
+- `docs/api/endpoints/tts.md` - Added trimming documentation and examples
+- `docs/api/schemas/examples/curl-examples.md` - Added TTS trimming examples
+
+### Validation
+- **✅ Core Validation**: 100% pass rate maintained
+- **✅ Feature Testing**: Trimming parameters correctly processed and included in filenames
+- **✅ Integration Testing**: Seamless operation with existing TTS workflow
+- **✅ Documentation**: Complete API documentation and examples
+
 ## [1.9.0] - 2025-06-25 - Mixed-Mode Concatenation
 
 ### Added

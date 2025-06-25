@@ -613,6 +613,8 @@ class CoreEngineSynchronous:
                         'seed': actual_seed,
                         'exaggeration': kwargs.get('exaggeration', 0.5),
                         'speed_factor': kwargs.get('speed_factor', 1.0),
+                        'trim': kwargs.get('trim', False),
+                        'trim_threshold_ms': kwargs.get('trim_threshold_ms', 200),
                         'cfg_weight': kwargs.get('cfg_weight', 1.0),
                         'num_candidates_per_chunk': kwargs.get('num_candidates_per_chunk', 3),
                         'max_attempts_per_candidate': kwargs.get('max_attempts_per_candidate', 3),
@@ -753,6 +755,11 @@ class CoreEngineSynchronous:
                         # Only apply speed factor processing if actually needed
                         combined_path = self.apply_speed_factor_post_processing(combined_path, speed_factor, kwargs)
                     
+                    # Step 3: Apply trimming as post-processing if requested (Task 11.4)
+                    trim_enabled = kwargs.get('trim', False)
+                    if trim_enabled:
+                        combined_path = self._apply_trimming_post_processing(combined_path, kwargs)
+                    
                     final_chunks.append(combined_path)
             
             if not final_chunks:
@@ -860,6 +867,64 @@ class CoreEngineSynchronous:
             
         except Exception as e:
             logger.error(f"Speed factor post-processing failed: {e}")
+            # Return original path as fallback
+            return audio_path
+
+    def _apply_trimming_post_processing(self, audio_path: str, generation_params: Dict[str, Any]) -> str:
+        """
+        Apply audio trimming as post-processing step (Task 11.4)
+        
+        This method trims silence from beginning and end of generated TTS audio,
+        applied after speed factor processing and before secondary format generation.
+        """
+        try:
+            logger.info("Applying audio trimming as post-processing")
+            
+            # Get trimming parameters
+            trim_threshold_ms = generation_params.get('trim_threshold_ms', 200)
+            
+            # Load audio as AudioSegment for processing
+            from pydub import AudioSegment
+            audio_segment = AudioSegment.from_wav(audio_path)
+            
+            # Apply trimming using existing utility function
+            from utils import apply_audio_trimming
+            trim_result = apply_audio_trimming(
+                audio_segment=audio_segment,
+                filename=Path(audio_path).name,
+                trim_threshold_ms=trim_threshold_ms
+            )
+            
+            if trim_result["trimmed"]:
+                # Create new filename with trim parameters
+                from utils import generate_enhanced_filename
+                
+                params = generation_params or {}
+                filename_params = {
+                    'temperature': params.get('temperature', 0.75),
+                    'seed': params.get('seed', 0),
+                    'speed_factor': params.get('speed_factor', 1.0),
+                    'trim': True,
+                    'trim_threshold_ms': trim_threshold_ms
+                }
+                
+                trim_filename = generate_enhanced_filename("tts", filename_params, "wav")
+                trim_output_path = Path(config_manager.get("paths.output_dir", "outputs")) / trim_filename
+                
+                # Save trimmed audio
+                trim_result["audio_segment"].export(str(trim_output_path), format="wav")
+                
+                logger.info(f"Audio trimming applied successfully: {trim_output_path}")
+                logger.info(f"Trimmed duration: {trim_result['original_duration_ms']}ms → {trim_result['trimmed_duration_ms']}ms")
+                logger.info(f"Removed silence: {trim_result['leading_silence_removed_ms']}ms (start) + {trim_result['trailing_silence_removed_ms']}ms (end)")
+                
+                return str(trim_output_path)
+            else:
+                logger.info("No significant silence detected, trimming skipped")
+                return audio_path
+                
+        except Exception as e:
+            logger.error(f"Audio trimming post-processing failed: {e}")
             # Return original path as fallback
             return audio_path
     

@@ -542,6 +542,16 @@ components:
           default: 1.0
           minimum: 0.5
           maximum: 2.0
+        trim:
+          type: boolean
+          default: false
+          description: Apply silence trimming to generated audio
+        trim_threshold_ms:
+          type: integer
+          default: 200
+          minimum: 50
+          maximum: 1000
+          description: Silence threshold for trimming in milliseconds
         export_formats:
           type: array
           items:

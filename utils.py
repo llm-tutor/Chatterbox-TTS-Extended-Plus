@@ -118,6 +118,9 @@ def generate_enhanced_filename(generation_type: str, parameters: Dict[str, Any],
             param_parts.append(f"exag{parameters['exaggeration']}")
         if "speed_factor" in parameters and parameters["speed_factor"] != 1.0:
             param_parts.append(f"speed{parameters['speed_factor']}")
+        if "trim" in parameters and parameters["trim"]:
+            trim_threshold = parameters.get("trim_threshold_ms", 200)
+            param_parts.append(f"trim{trim_threshold}")
             
     elif generation_type == "vc":
         # Include key VC parameters

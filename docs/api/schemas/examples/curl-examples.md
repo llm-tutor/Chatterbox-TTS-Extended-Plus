@@ -145,6 +145,31 @@ curl -X POST http://localhost:7860/api/v1/tts \
 }'
 ```
 
+### TTS Audio Trimming
+
+```bash
+# TTS with automatic silence trimming
+curl -X POST http://localhost:7860/api/v1/tts \
+-H "Content-Type: application/json" \
+-d '{
+  "text": "This demonstrates automatic silence trimming for professional audio production.",
+  "reference_audio_filename": "test_voices/professional_narrator.wav",
+  "trim": true,
+  "trim_threshold_ms": 150,
+  "export_formats": ["wav"]
+}'
+
+# TTS with custom trimming threshold
+curl -X POST http://localhost:7860/api/v1/tts \
+-H "Content-Type: application/json" \
+-d '{
+  "text": "Custom trimming threshold for sensitive content.",
+  "trim": true,
+  "trim_threshold_ms": 100,
+  "export_formats": ["wav"]
+}'
+```
+
 ### TTS Advanced Parameters
 ```bash
 curl -X POST http://localhost:7860/api/v1/tts \
