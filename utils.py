@@ -1447,11 +1447,126 @@ def concatenate_audio_files(file_paths: List[Path], output_path: Path,
     }
 
 
+def determine_gap_type(current_item: Dict, next_item: Dict, pause_duration_ms: int) -> str:
+    """
+    Determine what type of gap should be inserted between current and next items
+    
+    Args:
+        current_item: Current item in the sequence 
+        next_item: Next item in the sequence
+        pause_duration_ms: Natural pause duration parameter
+        
+    Returns:
+        'manual_silence' | 'natural_pause' | 'no_gap'
+    """
+    # If next item is manual silence, it will be handled by the main loop
+    if next_item["type"] == "silence":
+        return 'manual_silence'
+    
+    # Between two consecutive audio files
+    if current_item["type"] == "file" and next_item["type"] == "file":
+        if pause_duration_ms > 0:
+            return 'natural_pause'
+        else:
+            return 'no_gap'
+    
+    return 'no_gap'
+
+
+def generate_natural_pause_duration(base_duration_ms: int, variation_ms: int) -> int:
+    """
+    Generate a natural pause duration with random variation
+    
+    Args:
+        base_duration_ms: Base pause duration
+        variation_ms: Maximum variation range (±)
+        
+    Returns:
+        Randomized pause duration in milliseconds
+    """
+    if variation_ms <= 0:
+        return base_duration_ms
+    
+    import random
+    variation = random.randint(-variation_ms, variation_ms)
+    result = base_duration_ms + variation
+    
+    # Ensure minimum pause of 50ms
+    return max(50, result)
+
+
+def apply_audio_trimming(audio_segment, filename: str, trim_threshold_ms: int) -> Dict:
+    """
+    Apply trimming to an AudioSegment object using temporary file analysis
+    
+    Args:
+        audio_segment: AudioSegment to trim
+        filename: Original filename for logging
+        trim_threshold_ms: Silence threshold for trimming
+        
+    Returns:
+        Dict with trimmed AudioSegment and metadata
+    """
+    import tempfile
+    
+    with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+        temp_path = Path(temp_file.name)
+    
+    try:
+        # Export current audio segment to temp file for analysis
+        audio_segment.export(str(temp_path), format="wav")
+        
+        # Use existing trim logic
+        trim_start_ms, trim_end_ms = detect_silence_boundaries(
+            temp_path, trim_threshold_ms, -40.0
+        )
+        
+        if trim_start_ms > 0 or trim_end_ms > 0:
+            # Apply trimming to the AudioSegment
+            original_duration_ms = len(audio_segment)
+            start_pos = trim_start_ms
+            end_pos = original_duration_ms - trim_end_ms
+            
+            if start_pos < end_pos:
+                trimmed_segment = audio_segment[start_pos:end_pos]
+                
+                return {
+                    "audio_segment": trimmed_segment,
+                    "trimmed": True,
+                    "original_duration_ms": original_duration_ms,
+                    "trimmed_duration_ms": len(trimmed_segment),
+                    "leading_silence_removed_ms": trim_start_ms,
+                    "trailing_silence_removed_ms": trim_end_ms
+                }
+            else:
+                logger.warning(f"Invalid trim bounds for {filename}, skipping trim")
+        
+        # No trimming needed or invalid bounds
+        return {
+            "audio_segment": audio_segment,
+            "trimmed": False,
+            "original_duration_ms": len(audio_segment),
+            "trimmed_duration_ms": len(audio_segment),
+            "leading_silence_removed_ms": 0,
+            "trailing_silence_removed_ms": 0
+        }
+    
+    finally:
+        # Cleanup temp file
+        if temp_path.exists():
+            temp_path.unlink()
+
+
 def concatenate_with_silence(parsed_items: List[Dict], output_path: Path, 
                            normalize_levels: bool = True, crossfade_ms: int = 0,
-                           outputs_dir: Path = None) -> Dict[str, Any]:
+                           outputs_dir: Path = None, trim: bool = False, 
+                           trim_threshold_ms: int = 200, pause_duration_ms: int = 0,
+                           pause_variation_ms: int = 0) -> Dict[str, Any]:
     """
-    Concatenate audio files and silence segments based on parsed instructions
+    Concatenate audio files and silence segments based on parsed instructions with mixed-mode support
+    
+    This function supports mixed manual silence and natural pause modes. Manual silences are applied
+    where explicitly specified, while natural pauses fill gaps between consecutive audio files.
     
     Args:
         parsed_items: Output from parse_concat_files() containing file and silence instructions
@@ -1459,6 +1574,10 @@ def concatenate_with_silence(parsed_items: List[Dict], output_path: Path,
         normalize_levels: Whether to normalize audio levels
         crossfade_ms: Crossfade duration between audio segments (not applied to silence)
         outputs_dir: Directory where audio files are located
+        trim: Whether to trim silence from input audio files before concatenation
+        trim_threshold_ms: Silence threshold for trimming (default: 200ms)
+        pause_duration_ms: Natural pause duration between audio files (when no manual silence)
+        pause_variation_ms: Randomization range for natural pauses
     
     Returns:
         Metadata about the concatenation process
@@ -1474,36 +1593,40 @@ def concatenate_with_silence(parsed_items: List[Dict], output_path: Path,
     total_duration = 0
     silence_count = 0
     file_count = 0
-    last_segment_type = None  # Track the type of the last segment added
+    natural_pause_count = 0
     
-    logger.info(f"Starting enhanced concatenation with {len(parsed_items)} segments (files and silence)")
+    logger.info(f"Starting enhanced mixed-mode concatenation with {len(parsed_items)} segments")
     
-    for i, item in enumerate(parsed_items):
+    # Process items with gap-aware logic
+    i = 0
+    while i < len(parsed_items):
+        item = parsed_items[i]
+        
         if item["type"] == "silence":
-            # Generate and add silence segment
+            # Handle explicit silence segments
             silence_segment = generate_silence_segment(item["duration_ms"])
             combined_audio += silence_segment
             
             silence_count += 1
             duration_seconds = item["duration_ms"] / 1000.0
             total_duration += duration_seconds
-            last_segment_type = "silence"
             
             processing_info.append({
-                "type": "silence",
+                "type": "manual_silence",
                 "duration_ms": item["duration_ms"],
                 "duration_seconds": duration_seconds,
                 "notation": item["source"]
             })
             
-            logger.info(f"Added {item['duration_ms']}ms silence segment from notation: {item['source']}")
+            logger.info(f"Added {item['duration_ms']}ms manual silence from notation: {item['source']}")
+            i += 1
             
-        else:
+        elif item["type"] == "file":
             # Process audio file
             file_count += 1
             filename = item["source"]
             
-            # Resolve file path
+            # Resolve and load audio file
             if outputs_dir:
                 file_path = outputs_dir / filename
             else:
@@ -1515,11 +1638,23 @@ def concatenate_with_silence(parsed_items: List[Dict], output_path: Path,
             logger.info(f"Processing audio file {file_count}: {filename}")
             
             try:
-                # Load audio file
+                # Load and process audio file
                 audio_segment = AudioSegment.from_file(str(file_path))
-                
-                # Handle unusual audio formats (e.g., 64-bit from speed_factor processing)
                 audio_segment = normalize_audio_format(audio_segment, file_path)
+                
+                # Apply trimming if requested
+                trim_info = {"trimmed": False}
+                if trim:
+                    trim_result = apply_audio_trimming(audio_segment, filename, trim_threshold_ms)
+                    audio_segment = trim_result["audio_segment"]
+                    # Extract metadata without the AudioSegment object
+                    trim_info = {
+                        "trimmed": trim_result["trimmed"],
+                        "original_duration_ms": trim_result["original_duration_ms"],
+                        "trimmed_duration_ms": trim_result["trimmed_duration_ms"],
+                        "leading_silence_removed_ms": trim_result["leading_silence_removed_ms"],
+                        "trailing_silence_removed_ms": trim_result["trailing_silence_removed_ms"]
+                    }
                 
                 # Normalize levels if requested
                 if normalize_levels:
@@ -1527,33 +1662,74 @@ def concatenate_with_silence(parsed_items: List[Dict], output_path: Path,
                     change_in_dBFS = target_dBFS - audio_segment.dBFS
                     audio_segment = audio_segment.apply_gain(change_in_dBFS)
                 
-                # Apply crossfade only between consecutive audio segments (not with silence)
-                if (crossfade_ms > 0 and 
-                    len(combined_audio) > 0 and 
-                    last_segment_type == "file"):
-                    # Only crossfade if the previous segment was also an audio file
-                    combined_audio = combined_audio.append(audio_segment, crossfade=crossfade_ms)
-                    logger.info(f"Applied {crossfade_ms}ms crossfade between audio files")
+                # Add audio to combined stream with appropriate joining logic
+                if len(combined_audio) == 0:
+                    # First audio segment
+                    combined_audio = audio_segment
+                    logger.info(f"Added first audio segment: {filename}")
                 else:
-                    # No crossfade: either first segment, follows silence, or crossfade disabled
-                    combined_audio += audio_segment
-                    if crossfade_ms > 0 and last_segment_type == "silence":
-                        logger.info(f"Skipped crossfade after silence segment for clean audio start")
+                    # Determine if crossfade should be applied
+                    # Crossfade only applies between consecutive audio files
+                    last_info = processing_info[-1] if processing_info else None
+                    can_crossfade = (
+                        crossfade_ms > 0 and 
+                        last_info and 
+                        last_info["type"] == "file"
+                    )
+                    
+                    if can_crossfade:
+                        combined_audio = combined_audio.append(audio_segment, crossfade=crossfade_ms)
+                        logger.info(f"Applied {crossfade_ms}ms crossfade to {filename}")
+                    else:
+                        combined_audio += audio_segment
+                        logger.info(f"Direct joined audio segment: {filename}")
                 
                 duration_seconds = len(audio_segment) / 1000.0
                 total_duration += duration_seconds
-                last_segment_type = "file"
                 
                 processing_info.append({
                     "type": "file",
                     "filename": filename,
                     "duration_seconds": duration_seconds,
-                    "size_bytes": file_path.stat().st_size
+                    "size_bytes": file_path.stat().st_size,
+                    "trim_info": trim_info if trim else None
                 })
+                
+                # Look ahead to determine gap handling for next iteration
+                next_index = i + 1
+                if next_index < len(parsed_items):
+                    next_item = parsed_items[next_index]
+                    gap_type = determine_gap_type(item, next_item, pause_duration_ms)
+                    
+                    if gap_type == "natural_pause":
+                        # Insert natural pause between this file and the next
+                        pause_duration = generate_natural_pause_duration(pause_duration_ms, pause_variation_ms)
+                        pause_segment = generate_silence_segment(pause_duration)
+                        combined_audio += pause_segment
+                        
+                        natural_pause_count += 1
+                        pause_seconds = pause_duration / 1000.0
+                        total_duration += pause_seconds
+                        
+                        processing_info.append({
+                            "type": "natural_pause",
+                            "duration_ms": pause_duration,
+                            "duration_seconds": pause_seconds,
+                            "base_duration_ms": pause_duration_ms,
+                            "variation_applied_ms": pause_duration - pause_duration_ms
+                        })
+                        
+                        logger.info(f"Added {pause_duration}ms natural pause after {filename}")
+                
+                i += 1
                 
             except Exception as e:
                 logger.error(f"Error processing file {file_path}: {e}")
                 raise RuntimeError(f"Failed to process audio file {filename}: {e}")
+        
+        else:
+            logger.warning(f"Unknown item type: {item.get('type')}")
+            i += 1
     
     if len(combined_audio) == 0:
         raise RuntimeError("No audio content to concatenate")
@@ -1580,20 +1756,43 @@ def concatenate_with_silence(parsed_items: List[Dict], output_path: Path,
     final_duration = len(combined_audio) / 1000.0
     final_size = output_path.stat().st_size if output_path.exists() else 0
     
-    logger.info(f"Enhanced concatenation completed in {processing_time:.2f}s")
+    logger.info(f"Enhanced mixed-mode concatenation completed in {processing_time:.2f}s")
     logger.info(f"Final audio: {final_duration:.2f}s, {final_size} bytes")
-    logger.info(f"Processed: {file_count} audio files, {silence_count} silence segments")
+    logger.info(f"Processed: {file_count} audio files, {silence_count} manual silences, {natural_pause_count} natural pauses")
     
+    # Calculate trimming summary if trimming was applied
+    trim_summary = None
+    if trim:
+        trim_items = [item for item in processing_info if item["type"] == "file" and item.get("trim_info")]
+        if trim_items:
+            total_files = len(trim_items)
+            files_trimmed = sum(1 for item in trim_items if item["trim_info"]["trimmed"])
+            total_silence_removed = sum(
+                item["trim_info"]["leading_silence_removed_ms"] + item["trim_info"]["trailing_silence_removed_ms"]
+                for item in trim_items if item["trim_info"]["trimmed"]
+            ) / 1000.0
+            
+            trim_summary = {
+                "trim_applied": True,
+                "trim_threshold_ms": trim_threshold_ms,
+                "total_files": total_files,
+                "files_trimmed": files_trimmed,
+                "files_not_trimmed": total_files - files_trimmed,
+                "total_silence_removed_seconds": total_silence_removed
+            }
+
     return {
         "total_duration_seconds": final_duration,
         "file_count": file_count,
         "silence_segments": silence_count,
+        "natural_pauses": natural_pause_count,
         "total_segments": len(parsed_items),
         "processing_time_seconds": processing_time,
         "processing_details": processing_info,
         "output_size_bytes": final_size,
         "crossfade_ms": crossfade_ms,
-        "normalized": normalize_levels
+        "normalized": normalize_levels,
+        "trim_summary": trim_summary
     }
 
 

@@ -221,15 +221,24 @@
 - [x] **INTEGRATION COMPLETE**: Enhanced filename generation includes trim parameters
 - [x] **PERFORMANCE VERIFIED**: Core validation maintains 100% success rate with new trimming features
 
-#### **Task 11.3.1: Concatenation Parameter Interaction Refinement** (NEW)
-- [ ] **PRIORITY: Fix Case 1a** - Implement manual silence + trimming integration
-- [ ] Create `concatenate_with_silence_and_trimming()` or modify existing function
-- [ ] Update API endpoint to handle Case 1a: `trim=True` + manual silences  
-- [ ] Add parameter interaction validation and user warnings
-- [ ] Create comprehensive test suite for all 6 parameter interaction scenarios
-- [ ] Update API documentation with complete parameter interaction matrix
-- [ ] **DESIGN REFERENCE**: `docs/dev/concat_parameter_interaction_design.md`
-- [ ] **VALIDATION TARGET**: All 6 cases (1a, 2a, 3a, 3b, 4a, 4b) work as documented
+#### **Task 11.3.1: Concatenation Parameter Interaction Refinement** (COMPLETE ✅)
+- [x] **PRIORITY: Fix Case 1a** - Implement manual silence + trimming integration
+- [x] Create `concatenate_with_silence_and_trimming()` or modify existing function
+- [x] Update API endpoint to handle Case 1a: `trim=True` + manual silences  
+- [x] Add parameter interaction validation and user warnings
+- [x] Create comprehensive test suite for all 6 parameter interaction scenarios
+- [x] Update API documentation with complete parameter interaction matrix
+- [x] **DESIGN REFERENCE**: `docs/dev/concat_parameter_interaction_design.md`
+- [x] **VALIDATION TARGET**: All 6 cases (1a, 2a, 3a, 3b, 4a, 4b) work as documented
+- [x] **IMPLEMENTATION COMPLETE**: Modified `concatenate_with_silence()` to support trimming parameters
+- [x] **TESTING COMPLETE**: All parameter interaction cases validated and working correctly
+- [x] **MAJOR ENHANCEMENT**: Implemented mixed-mode concatenation with per-gap decision logic
+- [x] **MIXED-MODE LOGIC**: Manual silences and natural pauses can now coexist in single request
+- [x] **USER EXPERIENCE**: Users can specify precise timing where needed while letting system handle natural pauses elsewhere
+- [x] **EXAMPLE WORKING**: `["file1.wav", "(1s)", "file2.wav", "file3.wav", "(500ms)", "file4.wav", "file5.wav"]` with `pause_duration_ms=600` now correctly applies manual silences where specified and natural pauses between other consecutive files
+- [x] **DEFAULT BEHAVIOR CORRECTED**: Changed `pause_duration_ms` default from 600 to 0 for more intuitive behavior (no automatic pauses unless explicitly requested)
+- [x] **DOCUMENTATION UPDATED**: Updated `docs/api/endpoints/concatenation.md` with complete mixed-mode explanation, parameter interaction logic, and working examples
+- [x] **TESTING COMPLETE**: All examples in documentation validated and working correctly
 
 #### **Task 11.4: TTS Trimming Integration** (NEW)
 - [ ] Add `trim` parameter to TTS endpoint (boolean, default: false)
@@ -240,6 +249,7 @@
 - [ ] Test trimming effectiveness across different voices and content types
 - [ ] Update TTS documentation with trimming examples and use cases
 - [ ] Validate integration with existing TTS workflow and parameters
+- [ ] **REFERENCE**: Use Task 11.3 trimming implementation (`apply_audio_trimming()` function) as foundation
 
 #### **Task 11.5: Advanced Concatenation Features** (RENAMED from 11.2)
 - [ ] Support mixed server files + uploads in single request

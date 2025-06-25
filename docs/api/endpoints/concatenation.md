@@ -16,7 +16,7 @@ POST /api/v1/concat
 | `export_formats` | array[string] | `["wav"]` | wav, mp3, flac | Output audio formats |
 | `normalize_levels` | boolean | `true` | - | Normalize audio levels across files |
 | `crossfade_ms` | integer | `0` | 0-5000 | Crossfade duration in milliseconds |
-| `pause_duration_ms` | integer | `600` | 0-3000 | Base pause duration between clips (ignored with manual silence) |
+| `pause_duration_ms` | integer | `0` | 0-3000 | Base pause duration between clips (0 = no pause, ignored when using manual silence) |
 | `pause_variation_ms` | integer | `200` | 0-500 | Random variation in pause duration (+/-) |
 | `trim` | boolean | `false` | - | Remove extraneous silence from input files before concatenation |
 | `trim_threshold_ms` | integer | `200` | 50-1000 | Minimum silence duration to consider for trimming |
@@ -77,6 +77,83 @@ The trimming system automatically detects and removes extraneous silence from th
 - **Audio Book Production**: Standardize chapter beginnings/endings
 - **Professional Audio**: Ensure consistent timing across multiple takes
 
+## Mixed-Mode Concatenation
+
+The concatenation system supports **mixed-mode** operation where manual silences and natural pauses can coexist in a single request. This provides maximum flexibility for professional audio production.
+
+### How Mixed-Mode Works
+
+The system analyzes each gap between consecutive audio files and determines the appropriate behavior:
+
+1. **Manual Silence**: When explicit silence notation `"(duration)"` is present
+2. **Natural Pause**: When no manual silence is specified and `pause_duration_ms > 0`
+3. **Direct Join**: When no manual silence is specified and `pause_duration_ms = 0`
+
+### Parameter Interaction Logic
+
+| Gap Type | Manual Silence Present | Pause Parameters | Result |
+|----------|----------------------|------------------|--------|
+| **Explicit** | `"(1s)"` between files | Ignored | Manual 1000ms silence |
+| **Natural** | No notation | `pause_duration_ms=600` | Natural ~600±variation pause |
+| **Direct** | No notation | `pause_duration_ms=0` | Direct join (0ms gap) |
+
+### Mixed-Mode Example
+
+Consider this files array with mixed timing requirements:
+```json
+{
+  "files": [
+    "intro.wav",           // File 1
+    "(1s)",                // Manual 1000ms silence
+    "main.wav",            // File 2
+    "conclusion.wav",      // File 3 (no manual silence after)
+    "(500ms)",             // Manual 500ms silence
+    "outro.wav",           // File 4
+    "credits.wav"          // File 5 (no manual silence after)
+  ],
+  "pause_duration_ms": 600,
+  "pause_variation_ms": 200
+}
+```
+
+**Resulting gaps:**
+- intro.wav → **1000ms manual silence** → main.wav
+- main.wav → **~600±200ms natural pause** → conclusion.wav
+- conclusion.wav → **500ms manual silence** → outro.wav  
+- outro.wav → **~600±200ms natural pause** → credits.wav
+
+This gives users precise control where needed while maintaining natural flow elsewhere.
+
+### Use Cases for Mixed-Mode
+
+**Video Production**: Precise timing for video sync points, natural flow elsewhere
+```json
+{
+  "files": ["scene1.wav", "(2s)", "scene2.wav", "scene3.wav", "(1s)", "scene4.wav"],
+  "pause_duration_ms": 400,
+  "trim": true
+}
+```
+
+**Podcast Production**: Structured segments with conversational flow
+```json
+{
+  "files": ["intro.wav", "(500ms)", "segment1.wav", "segment2.wav", "segment3.wav", "(1s)", "outro.wav"],
+  "pause_duration_ms": 800,
+  "pause_variation_ms": 150,
+  "crossfade_ms": 200
+}
+```
+
+**Audiobook Production**: Chapter breaks with natural reading flow
+```json
+{
+  "files": ["(1s)", "chapter1.wav", "(3s)", "chapter2.wav", "chapter3.wav", "(3s)", "chapter4.wav"],
+  "pause_duration_ms": 600,
+  "trim": true
+}
+```
+
 ## Response Modes
 
 ### Stream Mode (Default)
@@ -92,24 +169,65 @@ Returns JSON with file information:
 
 ```json
 {
-  "output_files": ["concat_2025-06-25_123456_789012_2files_leveled_trim200.wav"],
+  "output_files": ["concat_2025-06-25_123456_789012_3files_sil2_leveled_trim200.wav"],
   "generation_info": {
     "total_duration_seconds": 45.2,
-    "file_count": 2,
+    "file_count": 3,
+    "silence_segments": 2,
+    "natural_pauses": 1,
     "processing_time_seconds": 1.8,
     "trim_applied": true,
-    "files_trimmed": 1,
+    "files_trimmed": 2,
     "files_not_trimmed": 1,
     "total_silence_removed_seconds": 0.85,
-    "trim_metadata": [
+    "processing_details": [
       {
-        "original_file": "intro.wav",
+        "type": "file",
+        "filename": "intro.wav",
+        "duration_seconds": 8.15,
         "trim_info": {
           "trimmed": true,
           "original_duration_ms": 8500,
           "trimmed_duration_ms": 8150,
           "leading_silence_removed_ms": 250,
           "trailing_silence_removed_ms": 100
+        }
+      },
+      {
+        "type": "manual_silence",
+        "duration_ms": 1000,
+        "duration_seconds": 1.0,
+        "notation": "(1s)"
+      },
+      {
+        "type": "file", 
+        "filename": "main.wav",
+        "duration_seconds": 25.5,
+        "trim_info": {
+          "trimmed": false,
+          "original_duration_ms": 25500,
+          "trimmed_duration_ms": 25500,
+          "leading_silence_removed_ms": 0,
+          "trailing_silence_removed_ms": 0
+        }
+      },
+      {
+        "type": "natural_pause",
+        "duration_ms": 724,
+        "duration_seconds": 0.724,
+        "base_duration_ms": 600,
+        "variation_applied_ms": 124
+      },
+      {
+        "type": "file",
+        "filename": "outro.wav", 
+        "duration_seconds": 9.8,
+        "trim_info": {
+          "trimmed": true,
+          "original_duration_ms": 10150,
+          "trimmed_duration_ms": 9800,
+          "leading_silence_removed_ms": 150,
+          "trailing_silence_removed_ms": 200
         }
       }
     ]
@@ -122,8 +240,9 @@ Returns JSON with file information:
 Output files include processing parameters in the filename:
 
 - **Basic**: `concat_2025-06-25_123456_789012_2files_leveled.wav`
-- **With Pauses**: `concat_2025-06-25_123456_789012_2files_pause600v200_leveled.wav`
-- **With Silence**: `concat_2025-06-25_123456_789012_2files_sil3_leveled.wav`
+- **With Natural Pauses**: `concat_2025-06-25_123456_789012_2files_pause600v200_leveled.wav`
+- **With Manual Silence**: `concat_2025-06-25_123456_789012_2files_sil3_leveled.wav`
+- **Mixed-Mode**: `concat_2025-06-25_123456_789012_3files_sil2_leveled_trim200.wav`
 - **With Trimming**: `concat_2025-06-25_123456_789012_2files_leveled_trim200.wav`
 - **With Crossfade**: `concat_2025-06-25_123456_789012_2files_fade500_leveled.wav`
 
@@ -190,6 +309,36 @@ curl -X POST http://localhost:7860/api/v1/concat \
     "response_mode": "url"
   }'
 ```
+
+### Mixed-Mode Concatenation
+```bash
+curl -X POST http://localhost:7860/api/v1/concat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": [
+      "intro.wav",
+      "(1s)",
+      "main_segment.wav",
+      "transition_segment.wav", 
+      "(500ms)",
+      "conclusion.wav",
+      "final_segment.wav"
+    ],
+    "pause_duration_ms": 600,
+    "pause_variation_ms": 200,
+    "trim": true,
+    "trim_threshold_ms": 150,
+    "normalize_levels": true,
+    "export_formats": ["wav"],
+    "response_mode": "url"
+  }'
+```
+
+*This example produces:*
+- intro.wav → 1000ms manual silence → main_segment.wav
+- main_segment.wav → ~600±200ms natural pause → transition_segment.wav  
+- transition_segment.wav → 500ms manual silence → conclusion.wav
+- conclusion.wav → ~600±200ms natural pause → final_segment.wav
 
 ## Error Responses
 

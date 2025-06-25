@@ -896,13 +896,17 @@ async def concatenate_audio(
             
             # Choose appropriate concatenation method
             if has_manual_silence:
-                # Use enhanced concatenation with silence support
+                # Use enhanced mixed-mode concatenation with silence and pause support
                 concat_metadata = concatenate_with_silence(
                     parsed_items=parsed_items,
                     output_path=output_path,
                     normalize_levels=request.normalize_levels,
                     crossfade_ms=request.crossfade_ms,
-                    outputs_dir=outputs_dir
+                    outputs_dir=outputs_dir,
+                    trim=request.trim,
+                    trim_threshold_ms=request.trim_threshold_ms,
+                    pause_duration_ms=request.pause_duration_ms,
+                    pause_variation_ms=request.pause_variation_ms
                 )
             else:
                 # Use concatenation with optional trimming

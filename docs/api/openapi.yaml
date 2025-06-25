@@ -639,7 +639,7 @@ components:
           type: integer
           minimum: 0
           maximum: 3000
-          default: 600
+          default: 0
           description: Base pause duration between clips in milliseconds (0 = no pause)
         pause_variation_ms:
           type: integer

@@ -6,6 +6,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.9.0] - 2025-06-25 - Mixed-Mode Concatenation
+
+### Added
+- **MAJOR: Mixed-Mode Concatenation** - Revolutionary audio production flexibility
+- **Per-Gap Decision Logic**: Manual silences and natural pauses can coexist in single request
+- **Intelligent Gap Analysis**: System determines appropriate behavior for each gap between audio files
+  - Manual silence: `"(1s)"` notation between files → precise timing
+  - Natural pause: No notation + `pause_duration_ms > 0` → randomized natural timing  
+  - Direct join: No notation + `pause_duration_ms = 0` → seamless connection
+- **Enhanced Metadata Tracking**: Separate counts for `silence_segments` and `natural_pauses`
+- **Detailed Processing Info**: Complete sequence breakdown showing manual vs natural gaps
+
+### Enhanced
+- **User Experience**: Users can specify precise timing where needed while maintaining natural flow elsewhere
+- **Professional Workflows**: Perfect for video (sync points + natural flow), podcasts (structured + conversational), audiobooks (chapters + reading flow)
+- **Parameter Interaction**: Smart handling of mixed timing requirements in single request
+- **Documentation**: Complete mixed-mode explanation with parameter interaction logic and working examples
+
+### Changed
+- **BREAKING: Default Behavior**: `pause_duration_ms` default changed from 600ms to 0ms for more intuitive behavior
+  - **Rationale**: Users expect no automatic pauses unless explicitly requested
+  - **Migration**: Add `"pause_duration_ms": 600` to maintain previous behavior
+  - **Benefit**: More predictable default behavior, no unwanted pauses
+
+### Technical
+- **New Functions**: `determine_gap_type()`, `generate_natural_pause_duration()`, `apply_audio_trimming()`
+- **Enhanced `concatenate_with_silence()`**: Now supports mixed-mode operation with pause parameters
+- **Improved Error Handling**: AudioSegment serialization fix for proper JSON responses
+- **Documentation Updates**: API spec, endpoint docs, and examples updated for new default values
+
+### Example Working
+```json
+{
+  "files": ["intro.wav", "(1s)", "main.wav", "conclusion.wav", "(500ms)", "outro.wav"],
+  "pause_duration_ms": 600,
+  "pause_variation_ms": 200
+}
+```
+Produces: intro → 1000ms manual → main → ~600±200ms natural → conclusion → 500ms manual → outro
+
 ## [1.8.0] - 2025-06-25 - Manual Silence Insertion
 
 ### Added

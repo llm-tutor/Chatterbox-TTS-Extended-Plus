@@ -542,7 +542,7 @@ Combine multiple generated audio files into a single file with natural pauses, m
 | `export_formats` | array[string] | `["wav"]` | No | Output formats: `"wav"`, `"mp3"`, `"flac"` |
 | `normalize_levels` | boolean | `true` | No | Normalize audio levels to prevent clipping |
 | `crossfade_ms` | integer | `0` | No | Crossfade duration in milliseconds (0-5000) |
-| `pause_duration_ms` | integer | `600` | No | Base pause duration between clips (0-3000ms, ignored when using manual silence) |
+| `pause_duration_ms` | integer | `0` | No | Base pause duration between clips (0-3000ms, ignored when using manual silence) |
 | `pause_variation_ms` | integer | `200` | No | Random variation in pause duration (0-500ms, ignored when using manual silence) |
 | `output_filename` | string | - | No | Custom output filename (without extension) |
 | `response_mode` | string | `"stream"` | No | Response mode: `"stream"` or `"url"` |

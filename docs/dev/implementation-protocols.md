@@ -137,6 +137,36 @@ core_validation_tests = [
 - Detailed error reporting and troubleshooting guidance
 - Option to run specific test categories
 
+### Server Log Monitoring
+
+#### **Real-Time Log Monitoring**
+**Purpose**: Monitor server activity during development and testing  
+**Location**: `logs/chatterbox_extended.log` (structured JSON format)  
+
+**Log Monitoring Commands**:
+```bash
+# View last 20 lines of server logs (equivalent to 'tail -20')
+desktop-commander:read_file --offset -20 logs/chatterbox_extended.log
+
+# View last 50 lines for detailed analysis  
+desktop-commander:read_file --offset -50 logs/chatterbox_extended.log
+
+# View last 10 lines for quick status check
+desktop-commander:read_file --offset -10 logs/chatterbox_extended.log
+```
+
+**Usage Scenarios**:
+- **During Testing**: Monitor API requests and responses in real-time
+- **Error Diagnosis**: Check detailed error context and request tracing
+- **Performance Analysis**: View operation timing and duration metrics
+- **Development Feedback**: Verify server behavior during implementation
+
+**Log Analysis Guidelines**:
+- **Request Tracing**: Follow `request_id` through complete request lifecycle
+- **Error Context**: Look for ERROR/WARNING level messages with context data
+- **Performance Metrics**: Check `duration_ms` fields for operation timing
+- **Model Loading**: Monitor TTS/VC model initialization and warmup times
+
 ### Testing Script Standards
 
 #### **Core Validation Scripts**
