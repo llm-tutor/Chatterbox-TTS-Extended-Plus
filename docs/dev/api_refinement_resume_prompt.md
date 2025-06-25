@@ -18,6 +18,7 @@ Please read and analyze the following documents to understand the current projec
 3. **Change History**: `docs/changelog.md` - Complete implementation history and version tracking
 4. **Current API Docs**: `docs/api/README.md` - Navigation hub for modular documentation structure
 5. **Validation Scripts**: `scripts/README.md` - Complete testing and validation infrastructure
+6. **Phase 11 Extended Features**: `docs/dev/phase11_silence_trimming_design.md` - Design document for manual silence insertion and audio trimming features (Tasks 11.2-11.4) - **REMOVE THIS REFERENCE AFTER IMPLEMENTATION**
 
 ## Implementation Standards Reference
 > **📖 Complete protocols**: See [`docs/dev/implementation-protocols.md`](implementation-protocols.md)

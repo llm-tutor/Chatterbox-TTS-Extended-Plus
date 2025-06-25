@@ -173,7 +173,7 @@
 ---
 
 ## **Phase 11: Audio Concatenation System**
-> **Focus**: Basic and advanced audio joining capabilities
+> **Focus**: Basic and advanced audio joining capabilities with professional production features
 
 ### **📋 Phase 11 Checklist**
 
@@ -193,34 +193,64 @@
 - [x] **DOCUMENTATION**: Add comprehensive curl examples and usage guides
 - [x] **MINOR ISSUE**: Filename encoding issue with variation symbol (functionality not affected)
 
-#### **Task 11.2: Advanced Concatenation Features**
+#### **Task 11.2: Manual Silence Insertion** (NEW)
+- [ ] Design and implement silence notation parsing: `"(duration[ms|s])"`
+- [ ] Support mixed file/silence arrays: `["file1.wav", "(500ms)", "file2.wav"]`
+- [ ] Add silence duration validation (50ms - 10s range)
+- [ ] Generate silence segments using audio processing libraries
+- [ ] Update concatenation logic for mixed file/silence processing
+- [ ] Update API models (`ConcatRequest`) to support silence notation
+- [ ] Add comprehensive documentation and examples for video/podcast production
+- [ ] Test silence insertion accuracy and audio quality preservation
+
+#### **Task 11.3: Audio Trimming System** (NEW)
+- [ ] Implement silence detection and trimming utilities using librosa/pydub
+- [ ] Add `trim` parameter to concat endpoint (boolean, default: false)
+- [ ] Add `trim_threshold_ms` parameter (default: 200ms, range: 50-1000ms)
+- [ ] Integrate trimming as pre-processing step in concatenation workflow
+- [ ] Test trimming effectiveness with various audio types and silence patterns
+- [ ] Update enhanced filename generation to include trim parameters
+- [ ] Add documentation for professional audio production workflows
+- [ ] Performance testing with large files and multiple trim operations
+
+#### **Task 11.4: TTS Trimming Integration** (NEW)
+- [ ] Add `trim` parameter to TTS endpoint (boolean, default: false)
+- [ ] Add `trim_threshold_ms` parameter with same validation as concat
+- [ ] Implement trimming as post-processing after speed_factor application
+- [ ] Apply trimming before secondary format generation (mp3, flac)
+- [ ] Update `TTSRequest` model and OpenAPI specification
+- [ ] Test trimming effectiveness across different voices and content types
+- [ ] Update TTS documentation with trimming examples and use cases
+- [ ] Validate integration with existing TTS workflow and parameters
+
+#### **Task 11.5: Advanced Concatenation Features** (RENAMED from 11.2)
 - [ ] Support mixed server files + uploads in single request
-- [ ] Add crossfading between segments
+- [ ] Add crossfading between segments (with silence insertion compatibility)
 - [ ] Implement advanced leveling algorithms
 - [ ] Add noise reduction options (if feasible)
 - [ ] Support order specification in requests
-- [ ] Test complex multi-source scenarios
+- [ ] Test complex multi-source scenarios with silence and trimming
 
-#### **Task 11.3: Concat Processing Pipeline**
-- [ ] Create `utils.concatenate_audio_files()` function
-- [ ] Add progress tracking for long operations
-- [ ] Implement temporary file management
-- [ ] Add comprehensive error handling
-- [ ] Include processing time estimates
-- [ ] Test memory efficiency with large files
+#### **Task 11.6: Concat Processing Pipeline** (RENAMED from 11.3)
+- [ ] Enhance `utils.concatenate_audio_files()` function for new features
+- [ ] Add progress tracking for long operations (silence generation, trimming)
+- [ ] Implement temporary file management for trim operations
+- [ ] Add comprehensive error handling for silence notation and trimming
+- [ ] Include processing time estimates for complex operations
+- [ ] Test memory efficiency with large files and multiple processing steps
 
-#### **Task 11.4: Integration & Testing**
-- [ ] Add concat results to output metadata system
-- [ ] Include concat files in `/api/v1/outputs` listings
-- [ ] Test cleanup of temporary processing files
-- [ ] Validate output quality and consistency
-- [ ] Performance testing with multiple large files
+#### **Task 11.7: Integration & Testing** (RENAMED from 11.4)
+- [ ] Add concat results to output metadata system (include silence/trim info)
+- [ ] Include concat files in `/api/v1/outputs` listings with processing metadata
+- [ ] Test cleanup of temporary processing files (trimmed audio cache)
+- [ ] Validate output quality and consistency with new features
+- [ ] Performance testing with multiple large files and complex processing
 - [ ] **ENHANCEMENT**: Address concatenation test script compatibility
   - **Issue**: `test_curl_examples.py` fails on concat examples with fictional filenames
   - **Solution**: Enhance test script to dynamically substitute real filenames from `/api/v1/outputs`
   - **Alternative**: Create dedicated test-safe concatenation examples section
   - **Current**: Core validation works, comprehensive testing needs enhancement
-  - **Priority**: Phase 11.2+ or dedicated test script improvement phase
+  - **Priority**: Phase 11.5+ or dedicated test script improvement phase
 
 #### **Testing Focus**
 - Audio quality preservation during concatenation
