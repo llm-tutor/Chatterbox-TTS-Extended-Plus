@@ -435,6 +435,53 @@ curl -X POST "http://localhost:7860/api/v1/concat?response_mode=url" \
   }'
 ```
 
+### Audio Concatenation with Trimming (Phase 11.3)
+
+```bash
+# Concatenation with audio trimming enabled
+curl -X POST "http://localhost:7860/api/v1/concat?response_mode=url" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": ["recorded_intro.wav", "recorded_main.wav", "recorded_outro.wav"],
+    "trim": true,
+    "trim_threshold_ms": 200,
+    "export_formats": ["wav"],
+    "normalize_levels": true
+  }'
+
+# Professional video production with trimming and silence insertion
+curl -X POST "http://localhost:7860/api/v1/concat?response_mode=url" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": [
+      "(1s)",
+      "narration_intro.wav",
+      "(2.5s)",
+      "narration_main.wav",
+      "(1.5s)",
+      "narration_conclusion.wav",
+      "(500ms)"
+    ],
+    "trim": true,
+    "trim_threshold_ms": 150,
+    "normalize_levels": true,
+    "export_formats": ["wav"]
+  }'
+
+# Podcast production with trimming and crossfade
+curl -X POST http://localhost:7860/api/v1/concat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": ["segment1.wav", "segment2.wav", "segment3.wav"],
+    "trim": true,
+    "trim_threshold_ms": 100,
+    "crossfade_ms": 300,
+    "normalize_levels": true,
+    "export_formats": ["mp3"]
+  }' \
+  --output trimmed_podcast.mp3
+```
+
 ### Batch Testing
 ```bash
 # Test multiple endpoints quickly

@@ -867,6 +867,12 @@ async def concatenate_audio(
                 "pause_variation_ms": request.pause_variation_ms
             })
         
+        # Include trimming parameters
+        concat_params.update({
+            "trim": request.trim,
+            "trim_threshold_ms": request.trim_threshold_ms
+        })
+        
         # Generate output filenames for each format
         output_files = []
         generated_metadata = {}
@@ -899,16 +905,32 @@ async def concatenate_audio(
                     outputs_dir=outputs_dir
                 )
             else:
-                # Use original concatenation with natural pauses
+                # Use concatenation with optional trimming
                 file_paths = [outputs_dir / item["source"] for item in parsed_items if item["type"] == "file"]
-                concat_metadata = concatenate_audio_files(
-                    file_paths=file_paths,
-                    output_path=output_path,
-                    normalize_levels=request.normalize_levels,
-                    crossfade_ms=request.crossfade_ms,
-                    pause_duration_ms=request.pause_duration_ms,
-                    pause_variation_ms=request.pause_variation_ms
-                )
+                
+                if request.trim:
+                    # Import the enhanced concatenation function
+                    from utils import concatenate_with_trimming
+                    concat_metadata = concatenate_with_trimming(
+                        file_paths=file_paths,
+                        output_path=output_path,
+                        trim=request.trim,
+                        trim_threshold_ms=request.trim_threshold_ms,
+                        normalize_levels=request.normalize_levels,
+                        crossfade_ms=request.crossfade_ms,
+                        pause_duration_ms=request.pause_duration_ms,
+                        pause_variation_ms=request.pause_variation_ms
+                    )
+                else:
+                    # Use original concatenation with natural pauses
+                    concat_metadata = concatenate_audio_files(
+                        file_paths=file_paths,
+                        output_path=output_path,
+                        normalize_levels=request.normalize_levels,
+                        crossfade_ms=request.crossfade_ms,
+                        pause_duration_ms=request.pause_duration_ms,
+                        pause_variation_ms=request.pause_variation_ms
+                    )
             
             output_files.append(base_filename)
             
@@ -924,7 +946,9 @@ async def concatenate_audio(
                     "crossfade_ms": request.crossfade_ms,
                     "manual_silence": has_manual_silence,
                     "file_count": audio_file_count,
-                    "silence_segments": silence_count
+                    "silence_segments": silence_count,
+                    "trim": request.trim,
+                    "trim_threshold_ms": request.trim_threshold_ms
                 },
                 "generation_info": concat_metadata,
                 "source_files_info": source_files_info

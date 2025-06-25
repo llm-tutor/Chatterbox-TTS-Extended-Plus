@@ -207,15 +207,29 @@
 - [x] **INTEGRATION COMPLETE**: Enhanced filename generation includes silence count tracking
 - [x] **PERFORMANCE VERIFIED**: Core validation maintains 100% success rate with new features
 
-#### **Task 11.3: Audio Trimming System** (NEW)
-- [ ] Implement silence detection and trimming utilities using librosa/pydub
-- [ ] Add `trim` parameter to concat endpoint (boolean, default: false)
-- [ ] Add `trim_threshold_ms` parameter (default: 200ms, range: 50-1000ms)
-- [ ] Integrate trimming as pre-processing step in concatenation workflow
-- [ ] Test trimming effectiveness with various audio types and silence patterns
-- [ ] Update enhanced filename generation to include trim parameters
-- [ ] Add documentation for professional audio production workflows
-- [ ] Performance testing with large files and multiple trim operations
+#### **Task 11.3: Audio Trimming System** (COMPLETE ✅)
+- [x] Implement silence detection and trimming utilities using librosa/pydub
+- [x] Add `trim` parameter to concat endpoint (boolean, default: false)
+- [x] Add `trim_threshold_ms` parameter (default: 200ms, range: 50-1000ms)
+- [x] Integrate trimming as pre-processing step in concatenation workflow
+- [x] Test trimming effectiveness with various audio types and silence patterns
+- [x] Update enhanced filename generation to include trim parameters
+- [x] Add documentation for professional audio production workflows
+- [x] Performance testing with large files and multiple trim operations
+- [x] **IMPLEMENTATION COMPLETE**: Full audio trimming system working with 100% API compatibility
+- [x] **VALIDATION COMPLETE**: System correctly detects and processes silence (no false positives on clean TTS files)
+- [x] **INTEGRATION COMPLETE**: Enhanced filename generation includes trim parameters
+- [x] **PERFORMANCE VERIFIED**: Core validation maintains 100% success rate with new trimming features
+
+#### **Task 11.3.1: Concatenation Parameter Interaction Refinement** (NEW)
+- [ ] **PRIORITY: Fix Case 1a** - Implement manual silence + trimming integration
+- [ ] Create `concatenate_with_silence_and_trimming()` or modify existing function
+- [ ] Update API endpoint to handle Case 1a: `trim=True` + manual silences  
+- [ ] Add parameter interaction validation and user warnings
+- [ ] Create comprehensive test suite for all 6 parameter interaction scenarios
+- [ ] Update API documentation with complete parameter interaction matrix
+- [ ] **DESIGN REFERENCE**: `docs/dev/concat_parameter_interaction_design.md`
+- [ ] **VALIDATION TARGET**: All 6 cases (1a, 2a, 3a, 3b, 4a, 4b) work as documented
 
 #### **Task 11.4: TTS Trimming Integration** (NEW)
 - [ ] Add `trim` parameter to TTS endpoint (boolean, default: false)

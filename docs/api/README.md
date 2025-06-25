@@ -29,6 +29,7 @@ Welcome to the comprehensive API documentation for Chatterbox TTS Extended Plus.
 - **[Health Endpoint](endpoints/health.md)** - Service status and diagnostics
 - **[Text-to-Speech (TTS)](endpoints/tts.md)** - Generate speech from text
 - **[Voice Conversion (VC)](endpoints/voice-conversion.md)** - Transform voice characteristics
+- **[Audio Concatenation](endpoints/concatenation.md)** - Combine multiple audio files with professional features
 - **[Voice Management](endpoints/voice-management.md)** - Upload and manage reference voices
 - **[File Operations](endpoints/file-operations.md)** - List and download generated files
 
@@ -58,7 +59,7 @@ This documentation uses a two-tier approach to organize endpoints based on their
 **Coverage**: Primary functionality for TTS, voice conversion, and voice management  
 **Location**: Main `openapi.yaml` specification and endpoint documentation
 
-**Includes**: `/tts`, `/vc`, `/voice*`, `/voices*`, `/outputs`, `/health`, `/config`
+**Includes**: `/tts`, `/vc`, `/concat`, `/voice*`, `/voices*`, `/outputs`, `/health`, `/config`
 
 ### Administrative API (Separate Documentation)
 **Audience**: System administrators, DevOps teams, monitoring systems  

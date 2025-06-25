@@ -155,6 +155,11 @@ def generate_enhanced_filename(generation_type: str, parameters: Dict[str, Any],
             param_parts.append(f"fade{parameters['crossfade_ms']}")
         if "normalize_levels" in parameters and parameters["normalize_levels"]:
             param_parts.append("leveled")
+        
+        # Add trim parameters
+        if parameters.get("trim", False):
+            trim_threshold = parameters.get("trim_threshold_ms", 200)
+            param_parts.append(f"trim{trim_threshold}")
     
     # Construct filename
     param_string = "_".join(param_parts) if param_parts else "default"
@@ -1343,6 +1348,9 @@ def concatenate_audio_files(file_paths: List[Path], output_path: Path,
             # Load audio file using pydub for format flexibility
             audio_segment = AudioSegment.from_file(str(file_path))
             
+            # Handle unusual audio formats (e.g., 64-bit from speed_factor processing)
+            audio_segment = normalize_audio_format(audio_segment, file_path)
+            
             # Normalize levels if requested
             if normalize_levels:
                 # Normalize to -20dB to prevent clipping
@@ -1510,6 +1518,9 @@ def concatenate_with_silence(parsed_items: List[Dict], output_path: Path,
                 # Load audio file
                 audio_segment = AudioSegment.from_file(str(file_path))
                 
+                # Handle unusual audio formats (e.g., 64-bit from speed_factor processing)
+                audio_segment = normalize_audio_format(audio_segment, file_path)
+                
                 # Normalize levels if requested
                 if normalize_levels:
                     target_dBFS = -20.0
@@ -1584,3 +1595,344 @@ def concatenate_with_silence(parsed_items: List[Dict], output_path: Path,
         "crossfade_ms": crossfade_ms,
         "normalized": normalize_levels
     }
+
+
+def normalize_audio_format(audio_segment, source_path: Path):
+    """
+    Normalize audio format to handle unusual bit depths (e.g., 64-bit from speed_factor processing)
+    
+    Args:
+        audio_segment: AudioSegment to normalize
+        source_path: Original file path (for temp file naming and logging)
+    
+    Returns:
+        AudioSegment with normalized format (16-bit PCM)
+    """
+    from pydub import AudioSegment  # Import here to avoid circular imports
+    
+    if audio_segment.sample_width <= 4:  # <= 32-bit, already compatible
+        return audio_segment
+    
+    logger.debug(f"Converting {audio_segment.sample_width*8}-bit audio to 16-bit for compatibility: {source_path.name}")
+    
+    try:
+        import soundfile as sf
+        import numpy as np
+        
+        # Load with soundfile and convert to standard format
+        data, samplerate = sf.read(str(source_path))
+        
+        # Ensure data is in proper range for 16-bit
+        if data.dtype != np.int16:
+            # Normalize to [-1, 1] then convert to 16-bit
+            if np.max(np.abs(data)) > 1.0:
+                data = data / np.max(np.abs(data))
+            data = (data * 32767).astype(np.int16)
+        
+        # Create temp file with standard format
+        temp_converted = source_path.with_suffix('.temp_converted.wav')
+        sf.write(str(temp_converted), data, samplerate, subtype='PCM_16')
+        
+        # Load the converted file with pydub
+        normalized_audio = AudioSegment.from_file(str(temp_converted))
+        
+        # Clean up temp file
+        temp_converted.unlink(missing_ok=True)
+        
+        logger.debug(f"Successfully converted to {normalized_audio.sample_width*8}-bit format")
+        return normalized_audio
+        
+    except Exception as conv_error:
+        logger.warning(f"Could not convert audio format for {source_path.name}: {conv_error}")
+        # If conversion fails, return original and hope for the best
+        return audio_segment
+
+
+# Audio Trimming System (Phase 11.3)
+def detect_silence_boundaries(audio_path: Path, threshold_ms: int = 200, 
+                            silence_thresh_db: float = -40.0) -> tuple:
+    """
+    Detect leading and trailing silence in audio file
+    
+    Args:
+        audio_path: Path to audio file
+        threshold_ms: Minimum silence duration to consider "extraneous"
+        silence_thresh_db: dB threshold for silence detection
+    
+    Returns:
+        (trim_start_ms, trim_end_ms) - amounts to trim from start/end
+    """
+    try:
+        import librosa
+        import numpy as np
+    except ImportError as e:
+        logger.warning(f"librosa not available for silence detection: {e}")
+        return (0, 0)
+    
+    try:
+        # Load audio with librosa for precise analysis
+        y, sr = librosa.load(str(audio_path), sr=None)
+        
+        if len(y) == 0:
+            logger.warning(f"Empty audio file: {audio_path}")
+            return (0, 0)
+        
+        # Find non-silent regions using librosa's split function
+        non_silent_intervals = librosa.effects.split(
+            y, 
+            top_db=-silence_thresh_db,
+            frame_length=2048,
+            hop_length=512
+        )
+        
+        if len(non_silent_intervals) == 0:
+            # Entire file is silence - don't trim to avoid empty file
+            logger.warning(f"Entire file appears to be silence: {audio_path}")
+            return (0, 0)
+        
+        # Calculate leading and trailing silence
+        first_sound_sample = non_silent_intervals[0][0]
+        last_sound_sample = non_silent_intervals[-1][1]
+        
+        # Convert samples to milliseconds
+        leading_silence_ms = (first_sound_sample / sr) * 1000
+        trailing_silence_ms = ((len(y) - last_sound_sample) / sr) * 1000
+        
+        # Only trim if silence exceeds threshold
+        trim_start_ms = max(0, leading_silence_ms - 50) if leading_silence_ms > threshold_ms else 0
+        trim_end_ms = max(0, trailing_silence_ms - 50) if trailing_silence_ms > threshold_ms else 0
+        
+        logger.debug(f"Silence analysis for {audio_path.name}: leading={leading_silence_ms:.1f}ms, trailing={trailing_silence_ms:.1f}ms")
+        logger.debug(f"Trim recommendation: start={trim_start_ms:.1f}ms, end={trim_end_ms:.1f}ms")
+        
+        return (trim_start_ms, trim_end_ms)
+        
+    except Exception as e:
+        logger.error(f"Error detecting silence boundaries in {audio_path}: {e}")
+        return (0, 0)
+
+
+def get_audio_duration_ms(audio_path: Path) -> float:
+    """
+    Get audio file duration in milliseconds
+    
+    Args:
+        audio_path: Path to audio file
+    
+    Returns:
+        Duration in milliseconds
+    """
+    try:
+        from pydub import AudioSegment
+        audio = AudioSegment.from_file(str(audio_path))
+        return len(audio)
+    except Exception as e:
+        logger.error(f"Error getting duration for {audio_path}: {e}")
+        return 0.0
+
+
+def trim_audio_file(input_path: Path, output_path: Path, 
+                   threshold_ms: int = 200, silence_thresh_db: float = -40.0) -> Dict:
+    """
+    Trim extraneous silence from audio file
+    
+    Args:
+        input_path: Input audio file path
+        output_path: Output audio file path
+        threshold_ms: Minimum silence duration to consider for trimming
+        silence_thresh_db: dB threshold for silence detection
+    
+    Returns:
+        Metadata about the trimming operation
+    """
+    import shutil
+    
+    try:
+        from pydub import AudioSegment
+    except ImportError as e:
+        raise ImportError(f"pydub required for audio trimming: {e}")
+    
+    logger.info(f"Trimming audio file: {input_path.name}")
+    start_time = time.time()
+    
+    # Detect silence boundaries
+    trim_start_ms, trim_end_ms = detect_silence_boundaries(
+        input_path, threshold_ms, silence_thresh_db
+    )
+    
+    original_duration_ms = get_audio_duration_ms(input_path)
+    
+    if trim_start_ms == 0 and trim_end_ms == 0:
+        # No trimming needed, copy file
+        logger.info(f"No trimming needed for {input_path.name}")
+        if input_path != output_path:
+            shutil.copy2(input_path, output_path)
+        
+        return {
+            "trimmed": False,
+            "original_duration_ms": original_duration_ms,
+            "trimmed_duration_ms": original_duration_ms,
+            "leading_silence_removed_ms": 0,
+            "trailing_silence_removed_ms": 0,
+            "processing_time_seconds": time.time() - start_time,
+            "threshold_ms": threshold_ms,
+            "silence_thresh_db": silence_thresh_db
+        }
+    
+    # Load and trim audio
+    try:
+        audio = AudioSegment.from_file(str(input_path))
+    except Exception as load_error:
+        logger.error(f"Could not load audio file {input_path}: {load_error}")
+        raise
+    
+    # Handle unusual audio formats by converting if needed
+    audio = normalize_audio_format(audio, input_path)
+    
+    # Apply trimming (pydub uses milliseconds)
+    start_trim_ms = int(trim_start_ms)
+    end_trim_ms = int(len(audio) - trim_end_ms)
+    
+    # Ensure we don't trim beyond the audio bounds
+    start_trim_ms = max(0, start_trim_ms)
+    end_trim_ms = min(len(audio), max(start_trim_ms + 100, end_trim_ms))  # Ensure at least 100ms remains
+    
+    trimmed_audio = audio[start_trim_ms:end_trim_ms]
+    
+    # Export trimmed audio
+    try:
+        trimmed_audio.export(str(output_path), format="wav")
+    except Exception as export_error:
+        logger.error(f"Could not export trimmed audio: {export_error}")
+        raise
+    
+    processing_time = time.time() - start_time
+    
+    logger.info(f"Trimmed {input_path.name}: {original_duration_ms:.0f}ms → {len(trimmed_audio):.0f}ms "
+                f"(removed {trim_start_ms:.1f}ms + {trim_end_ms:.1f}ms)")
+    
+    return {
+        "trimmed": True,
+        "original_duration_ms": len(audio),
+        "trimmed_duration_ms": len(trimmed_audio),
+        "leading_silence_removed_ms": trim_start_ms,
+        "trailing_silence_removed_ms": trim_end_ms,
+        "processing_time_seconds": processing_time,
+        "threshold_ms": threshold_ms,
+        "silence_thresh_db": silence_thresh_db
+    }
+
+
+def concatenate_with_trimming(file_paths: List[Path], output_path: Path,
+                            trim: bool = False, trim_threshold_ms: int = 200,
+                            normalize_levels: bool = True, crossfade_ms: int = 0,
+                            pause_duration_ms: int = 600, pause_variation_ms: int = 200,
+                            silence_thresh_db: float = -40.0) -> Dict[str, Any]:
+    """
+    Enhanced concatenation with optional pre-trimming of input files
+    
+    Args:
+        file_paths: List of paths to audio files to concatenate
+        output_path: Output file path
+        trim: Whether to trim silence from input files before concatenation
+        trim_threshold_ms: Minimum silence duration to consider for trimming
+        normalize_levels: Whether to normalize audio levels
+        crossfade_ms: Crossfade duration in milliseconds
+        pause_duration_ms: Base pause duration between clips in milliseconds
+        pause_variation_ms: Random variation in pause duration in milliseconds
+        silence_thresh_db: dB threshold for silence detection
+    
+    Returns:
+        Dictionary with concatenation and trimming metadata
+    """
+    import shutil
+    import tempfile
+    
+    if not trim:
+        # Use existing concatenation logic
+        return concatenate_audio_files(
+            file_paths=file_paths,
+            output_path=output_path,
+            normalize_levels=normalize_levels,
+            crossfade_ms=crossfade_ms,
+            pause_duration_ms=pause_duration_ms,
+            pause_variation_ms=pause_variation_ms
+        )
+    
+    # Pre-process files with trimming
+    logger.info(f"Starting concatenation with trimming: {len(file_paths)} files")
+    
+    # Create temporary directory for trimmed files
+    temp_dir = Path(tempfile.mkdtemp(prefix="trim_"))
+    
+    trimmed_files = []
+    trim_metadata = []
+    start_time = time.time()
+    
+    try:
+        # Trim each file
+        for i, file_path in enumerate(file_paths):
+            if not file_path.exists():
+                raise FileNotFoundError(f"Audio file not found: {file_path}")
+            
+            logger.info(f"Trimming file {i+1}/{len(file_paths)}: {file_path.name}")
+            
+            trimmed_path = temp_dir / f"trimmed_{i:03d}_{file_path.name}"
+            trim_info = trim_audio_file(
+                file_path, trimmed_path, trim_threshold_ms, silence_thresh_db
+            )
+            
+            trimmed_files.append(trimmed_path)
+            trim_metadata.append({
+                "original_file": str(file_path),
+                "trimmed_file": str(trimmed_path),
+                "trim_info": trim_info
+            })
+        
+        # Concatenate trimmed files
+        logger.info("Concatenating trimmed files...")
+        concat_result = concatenate_audio_files(
+            file_paths=trimmed_files,
+            output_path=output_path,
+            normalize_levels=normalize_levels,
+            crossfade_ms=crossfade_ms,
+            pause_duration_ms=pause_duration_ms,
+            pause_variation_ms=pause_variation_ms
+        )
+        
+        # Add trimming metadata to result
+        total_original_duration = sum(item["trim_info"]["original_duration_ms"] for item in trim_metadata) / 1000.0
+        total_trimmed_duration = sum(item["trim_info"]["trimmed_duration_ms"] for item in trim_metadata) / 1000.0
+        total_silence_removed = sum(
+            item["trim_info"]["leading_silence_removed_ms"] + item["trim_info"]["trailing_silence_removed_ms"] 
+            for item in trim_metadata
+        ) / 1000.0
+        
+        concat_result.update({
+            "trim_applied": True,
+            "trim_metadata": trim_metadata,
+            "trim_threshold_ms": trim_threshold_ms,
+            "silence_thresh_db": silence_thresh_db,
+            "total_original_duration_seconds": total_original_duration,
+            "total_trimmed_duration_seconds": total_trimmed_duration,
+            "total_silence_removed_seconds": total_silence_removed,
+            "files_trimmed": sum(1 for item in trim_metadata if item["trim_info"]["trimmed"]),
+            "files_not_trimmed": sum(1 for item in trim_metadata if not item["trim_info"]["trimmed"])
+        })
+        
+        processing_time = time.time() - start_time
+        concat_result["total_processing_time_seconds"] = processing_time
+        
+        logger.info(f"Concatenation with trimming completed in {processing_time:.2f}s")
+        logger.info(f"Silence removed: {total_silence_removed:.2f}s from {len(file_paths)} files")
+        
+        return concat_result
+        
+    finally:
+        # Cleanup temporary files
+        try:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            logger.debug(f"Cleaned up temporary directory: {temp_dir}")
+        except Exception as e:
+            logger.warning(f"Error cleaning up temporary directory {temp_dir}: {e}")
+

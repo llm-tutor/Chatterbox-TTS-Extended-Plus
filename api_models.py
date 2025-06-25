@@ -333,6 +333,8 @@ class ConcatRequest(BaseModel):
     crossfade_ms: int = Field(default=0, ge=0, le=5000, description="Crossfade duration in milliseconds")
     pause_duration_ms: int = Field(default=600, ge=0, le=3000, description="Base pause duration between clips in milliseconds (0 = no pause, ignored when using manual silence)")
     pause_variation_ms: int = Field(default=200, ge=0, le=500, description="Random variation in pause duration (+/-) in milliseconds (ignored when using manual silence)")
+    trim: bool = Field(default=False, description="Remove extraneous silence from input files before concatenation")
+    trim_threshold_ms: int = Field(default=200, ge=50, le=1000, description="Minimum silence duration (ms) to consider for trimming")
     output_filename: Optional[str] = Field(None, description="Custom output filename (without extension)")
     response_mode: str = Field(default="stream", description="Response mode: 'stream' or 'url'")
 

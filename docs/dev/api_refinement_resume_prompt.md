@@ -19,6 +19,7 @@ Please read and analyze the following documents to understand the current projec
 4. **Current API Docs**: `docs/api/README.md` - Navigation hub for modular documentation structure
 5. **Validation Scripts**: `scripts/README.md` - Complete testing and validation infrastructure
 6. **Phase 11 Extended Features**: `docs/dev/phase11_silence_trimming_design.md` - Design document for manual silence insertion and audio trimming features (Tasks 11.2-11.4) - **REMOVE THIS REFERENCE AFTER IMPLEMENTATION**
+7. **Concatenation Parameter Interactions**: `docs/dev/concat_parameter_interaction_design.md` - Comprehensive analysis of parameter interactions in `/api/v1/concat` endpoint (Task 11.3.1)
 
 ## Implementation Standards Reference
 > **📖 Complete protocols**: See [`docs/dev/implementation-protocols.md`](implementation-protocols.md)
