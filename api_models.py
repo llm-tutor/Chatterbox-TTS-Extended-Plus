@@ -319,12 +319,20 @@ class GeneratedFilesResponse(BaseModel):
 # Audio Concatenation Models
 class ConcatRequest(BaseModel):
     """Request model for audio concatenation"""
-    files: List[str] = Field(..., min_length=2, description="List of filenames from outputs/ directory to concatenate")
+    files: List[str] = Field(
+        ..., 
+        min_length=1, 
+        description="List of filenames and silence notations. Use '(duration[ms|s])' for silence: ['file1.wav', '(500ms)', 'file2.wav']",
+        examples=[
+            ["intro.wav", "main.wav", "outro.wav"],
+            ["(1s)", "speech.wav", "(500ms)", "music.wav", "(2s)"]
+        ]
+    )
     export_formats: List[str] = Field(default=["wav"], description="Output formats")
     normalize_levels: bool = Field(default=True, description="Normalize audio levels")
     crossfade_ms: int = Field(default=0, ge=0, le=5000, description="Crossfade duration in milliseconds")
-    pause_duration_ms: int = Field(default=600, ge=0, le=3000, description="Base pause duration between clips in milliseconds (0 = no pause)")
-    pause_variation_ms: int = Field(default=200, ge=0, le=500, description="Random variation in pause duration (+/-) in milliseconds")
+    pause_duration_ms: int = Field(default=600, ge=0, le=3000, description="Base pause duration between clips in milliseconds (0 = no pause, ignored when using manual silence)")
+    pause_variation_ms: int = Field(default=200, ge=0, le=500, description="Random variation in pause duration (+/-) in milliseconds (ignored when using manual silence)")
     output_filename: Optional[str] = Field(None, description="Custom output filename (without extension)")
     response_mode: str = Field(default="stream", description="Response mode: 'stream' or 'url'")
 
@@ -340,8 +348,38 @@ class ConcatRequest(BaseModel):
     @field_validator('files')
     @classmethod
     def validate_files_list(cls, v):
-        if len(v) < 2:
-            raise ValueError("At least 2 files required for concatenation")
+        import re
+        
+        if not v:
+            raise ValueError("Files array cannot be empty")
+        
+        # Validate silence notation and count actual audio files
+        silence_pattern = re.compile(r'^\((\d+(?:\.\d+)?)(ms|s)\)$')
+        audio_file_count = 0
+        
+        for item in v:
+            if silence_pattern.match(item):
+                # Validate silence duration
+                match = silence_pattern.match(item)
+                duration_value = float(match.group(1))
+                unit = match.group(2)
+                duration_ms = duration_value * 1000 if unit == 's' else duration_value
+                
+                if not (50 <= duration_ms <= 10000):
+                    raise ValueError(f"Silence duration must be between 50ms and 10s: {item}")
+            else:
+                # Count as audio file
+                audio_file_count += 1
+        
+        # Need at least one audio file
+        if audio_file_count == 0:
+            raise ValueError("At least one audio file required (silence-only concatenation not allowed)")
+        
+        # If no silence notation is used, require at least 2 files (original behavior)
+        has_silence = any(silence_pattern.match(item) for item in v)
+        if not has_silence and audio_file_count < 2:
+            raise ValueError("At least 2 files required for concatenation when not using manual silence")
+        
         return v
 
     @field_validator('pause_variation_ms')

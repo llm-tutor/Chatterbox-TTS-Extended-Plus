@@ -14,6 +14,69 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
+def parse_concat_files(files: List[str]) -> List[Dict[str, Union[str, int]]]:
+    """
+    Parse mixed file/silence array into processing instructions
+    
+    Args:
+        files: List of filenames and silence notations like "(500ms)" or "(1.5s)"
+    
+    Returns:
+        List of {"type": "file"|"silence", "source": str, "duration_ms": int}
+        
+    Raises:
+        ValueError: If silence notation is invalid or duration out of range
+    """
+    silence_pattern = re.compile(r'^\((\d+(?:\.\d+)?)(ms|s)\)$')
+    parsed_items = []
+    
+    for item in files:
+        silence_match = silence_pattern.match(item)
+        if silence_match:
+            duration_value = float(silence_match.group(1))
+            unit = silence_match.group(2)
+            
+            # Convert to milliseconds
+            duration_ms = int(duration_value * 1000) if unit == 's' else int(duration_value)
+            
+            # Validate duration range (50ms to 10s)
+            if not (50 <= duration_ms <= 10000):
+                raise ValueError(f"Silence duration must be between 50ms and 10s, got: {item}")
+            
+            parsed_items.append({
+                "type": "silence",
+                "source": item,
+                "duration_ms": duration_ms
+            })
+        else:
+            parsed_items.append({
+                "type": "file",
+                "source": item,
+                "duration_ms": 0  # Will be calculated from actual file
+            })
+    
+    return parsed_items
+
+
+def generate_silence_segment(duration_ms: int, sample_rate: int = 22050) -> 'AudioSegment':
+    """
+    Generate a silence segment of specified duration
+    
+    Args:
+        duration_ms: Duration in milliseconds
+        sample_rate: Target sample rate (match other audio)
+    
+    Returns:
+        AudioSegment containing silence
+    """
+    try:
+        from pydub import AudioSegment
+    except ImportError:
+        raise ImportError("pydub is required for silence generation")
+    
+    return AudioSegment.silent(duration=duration_ms, frame_rate=sample_rate)
+
+
 def generate_unique_filename(prefix: str = "output", extension: str = "wav") -> str:
     """Generate a unique filename with timestamp and hash"""
     timestamp = int(time.time())
@@ -73,13 +136,21 @@ def generate_enhanced_filename(generation_type: str, parameters: Dict[str, Any],
         # Include concat-specific parameters
         if "file_count" in parameters:
             param_parts.append(f"{parameters['file_count']}files")
-        if "pause_duration_ms" in parameters and parameters["pause_duration_ms"] > 0:
-            pause_ms = parameters["pause_duration_ms"]
-            variation_ms = parameters.get("pause_variation_ms", 0)
-            if variation_ms > 0:
-                param_parts.append(f"pause{pause_ms}v{variation_ms}")
-            else:
-                param_parts.append(f"pause{pause_ms}")
+        
+        # Add silence count if manual silences were used
+        if "silence_segments" in parameters and parameters["silence_segments"] > 0:
+            param_parts.append(f"sil{parameters['silence_segments']}")
+        
+        # Add pause parameters only if not using manual silence
+        if not parameters.get("manual_silence", False):
+            if "pause_duration_ms" in parameters and parameters["pause_duration_ms"] > 0:
+                pause_ms = parameters["pause_duration_ms"]
+                variation_ms = parameters.get("pause_variation_ms", 0)
+                if variation_ms > 0:
+                    param_parts.append(f"pause{pause_ms}v{variation_ms}")
+                else:
+                    param_parts.append(f"pause{pause_ms}")
+        
         if "crossfade_ms" in parameters and parameters["crossfade_ms"] > 0:
             param_parts.append(f"fade{parameters['crossfade_ms']}")
         if "normalize_levels" in parameters and parameters["normalize_levels"]:
@@ -1365,4 +1436,151 @@ def concatenate_audio_files(file_paths: List[Path], output_path: Path,
         "pause_duration_ms": pause_duration_ms,
         "pause_variation_ms": pause_variation_ms,
         "total_pause_duration_ms": total_pause_duration
+    }
+
+
+def concatenate_with_silence(parsed_items: List[Dict], output_path: Path, 
+                           normalize_levels: bool = True, crossfade_ms: int = 0,
+                           outputs_dir: Path = None) -> Dict[str, Any]:
+    """
+    Concatenate audio files and silence segments based on parsed instructions
+    
+    Args:
+        parsed_items: Output from parse_concat_files() containing file and silence instructions
+        output_path: Where to save the result
+        normalize_levels: Whether to normalize audio levels
+        crossfade_ms: Crossfade duration between audio segments (not applied to silence)
+        outputs_dir: Directory where audio files are located
+    
+    Returns:
+        Metadata about the concatenation process
+    """
+    try:
+        from pydub import AudioSegment
+    except ImportError:
+        raise ImportError("pydub is required for audio concatenation")
+    
+    start_time = time.time()
+    combined_audio = AudioSegment.empty()
+    processing_info = []
+    total_duration = 0
+    silence_count = 0
+    file_count = 0
+    last_segment_type = None  # Track the type of the last segment added
+    
+    logger.info(f"Starting enhanced concatenation with {len(parsed_items)} segments (files and silence)")
+    
+    for i, item in enumerate(parsed_items):
+        if item["type"] == "silence":
+            # Generate and add silence segment
+            silence_segment = generate_silence_segment(item["duration_ms"])
+            combined_audio += silence_segment
+            
+            silence_count += 1
+            duration_seconds = item["duration_ms"] / 1000.0
+            total_duration += duration_seconds
+            last_segment_type = "silence"
+            
+            processing_info.append({
+                "type": "silence",
+                "duration_ms": item["duration_ms"],
+                "duration_seconds": duration_seconds,
+                "notation": item["source"]
+            })
+            
+            logger.info(f"Added {item['duration_ms']}ms silence segment from notation: {item['source']}")
+            
+        else:
+            # Process audio file
+            file_count += 1
+            filename = item["source"]
+            
+            # Resolve file path
+            if outputs_dir:
+                file_path = outputs_dir / filename
+            else:
+                file_path = Path(filename)
+            
+            if not file_path.exists():
+                raise FileNotFoundError(f"Audio file not found: {file_path}")
+            
+            logger.info(f"Processing audio file {file_count}: {filename}")
+            
+            try:
+                # Load audio file
+                audio_segment = AudioSegment.from_file(str(file_path))
+                
+                # Normalize levels if requested
+                if normalize_levels:
+                    target_dBFS = -20.0
+                    change_in_dBFS = target_dBFS - audio_segment.dBFS
+                    audio_segment = audio_segment.apply_gain(change_in_dBFS)
+                
+                # Apply crossfade only between consecutive audio segments (not with silence)
+                if (crossfade_ms > 0 and 
+                    len(combined_audio) > 0 and 
+                    last_segment_type == "file"):
+                    # Only crossfade if the previous segment was also an audio file
+                    combined_audio = combined_audio.append(audio_segment, crossfade=crossfade_ms)
+                    logger.info(f"Applied {crossfade_ms}ms crossfade between audio files")
+                else:
+                    # No crossfade: either first segment, follows silence, or crossfade disabled
+                    combined_audio += audio_segment
+                    if crossfade_ms > 0 and last_segment_type == "silence":
+                        logger.info(f"Skipped crossfade after silence segment for clean audio start")
+                
+                duration_seconds = len(audio_segment) / 1000.0
+                total_duration += duration_seconds
+                last_segment_type = "file"
+                
+                processing_info.append({
+                    "type": "file",
+                    "filename": filename,
+                    "duration_seconds": duration_seconds,
+                    "size_bytes": file_path.stat().st_size
+                })
+                
+            except Exception as e:
+                logger.error(f"Error processing file {file_path}: {e}")
+                raise RuntimeError(f"Failed to process audio file {filename}: {e}")
+    
+    if len(combined_audio) == 0:
+        raise RuntimeError("No audio content to concatenate")
+    
+    # Export the combined audio
+    logger.info(f"Exporting enhanced concatenated audio to: {output_path}")
+    
+    # Determine format from extension
+    file_extension = output_path.suffix.lower()
+    
+    if file_extension == '.wav':
+        combined_audio.export(str(output_path), format="wav")
+    elif file_extension == '.mp3':
+        combined_audio.export(str(output_path), format="mp3", bitrate="192k")
+    elif file_extension == '.flac':
+        combined_audio.export(str(output_path), format="flac")
+    else:
+        # Default to WAV
+        combined_audio.export(str(output_path), format="wav")
+    
+    processing_time = time.time() - start_time
+    
+    # Calculate final file info
+    final_duration = len(combined_audio) / 1000.0
+    final_size = output_path.stat().st_size if output_path.exists() else 0
+    
+    logger.info(f"Enhanced concatenation completed in {processing_time:.2f}s")
+    logger.info(f"Final audio: {final_duration:.2f}s, {final_size} bytes")
+    logger.info(f"Processed: {file_count} audio files, {silence_count} silence segments")
+    
+    return {
+        "total_duration_seconds": final_duration,
+        "file_count": file_count,
+        "silence_segments": silence_count,
+        "total_segments": len(parsed_items),
+        "processing_time_seconds": processing_time,
+        "processing_details": processing_info,
+        "output_size_bytes": final_size,
+        "crossfade_ms": crossfade_ms,
+        "normalized": normalize_levels
     }

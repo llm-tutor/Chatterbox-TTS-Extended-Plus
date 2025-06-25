@@ -352,7 +352,37 @@ files_to_concat = [
 result = concatenate_audio(files_to_concat)
 print(f"Created: {result['output_files'][0]}")
 print(f"Duration: {result['total_duration_seconds']}s")
-print(f"Pause added: {result['metadata']['total_pause_duration_ms']}ms")
+print(f"Pause added: {result['metadata'].get('total_pause_duration_ms', 'N/A')}ms")
+
+# Example: Manual silence insertion for video production
+video_production_result = concatenate_audio([
+    "(1s)",           # Opening silence
+    "intro.wav", 
+    "(2.5s)",         # Dramatic pause
+    "main_content.wav",
+    "(1s)",           # Closing pause
+])
+
+print(f"Silence segments: {video_production_result['metadata']['silence_segments']}")
+print(f"Total segments: {video_production_result['metadata']['total_segments']}")
+
+# Example: Podcast with precise timing
+podcast_result = concatenate_audio([
+    "setup.wav",
+    "(1.2s)",         # Build suspense
+    "reveal.wav", 
+    "(800ms)",        # Let it sink in
+    "reaction.wav"
+])
+
+# The files array can mix audio files and silence notation
+mixed_result = concatenate_audio([
+    "tts_output_1.wav",
+    "(750ms)",        # Short pause
+    "tts_output_2.wav", 
+    "(2.5s)",         # Long pause
+    "tts_output_3.wav"
+])
 
 # Example: Custom timing for dramatic effect
 dramatic_result = concatenate_audio(
@@ -502,20 +532,69 @@ downloadFile('voice_conversion_456.wav', 'my_converted_voice.wav');
 
 **POST** `/api/v1/concat`
 
-Combine multiple generated audio files into a single file with natural pauses and optional crossfading.
+Combine multiple generated audio files into a single file with natural pauses, manual silence insertion, and optional crossfading.
 
 ### Request Parameters
 
 | Parameter | Type | Default | Required | Description |
 |-----------|------|---------|----------|-------------|
-| `files` | array[string] | - | Yes | List of filenames from outputs directory (minimum 2) |
+| `files` | array[string] | - | Yes | List of filenames and silence notations (see below) |
 | `export_formats` | array[string] | `["wav"]` | No | Output formats: `"wav"`, `"mp3"`, `"flac"` |
 | `normalize_levels` | boolean | `true` | No | Normalize audio levels to prevent clipping |
 | `crossfade_ms` | integer | `0` | No | Crossfade duration in milliseconds (0-5000) |
-| `pause_duration_ms` | integer | `600` | No | Base pause duration between clips (0-3000ms) |
-| `pause_variation_ms` | integer | `200` | No | Random variation in pause duration (0-500ms) |
+| `pause_duration_ms` | integer | `600` | No | Base pause duration between clips (0-3000ms, ignored when using manual silence) |
+| `pause_variation_ms` | integer | `200` | No | Random variation in pause duration (0-500ms, ignored when using manual silence) |
 | `output_filename` | string | - | No | Custom output filename (without extension) |
 | `response_mode` | string | `"stream"` | No | Response mode: `"stream"` or `"url"` |
+
+### Manual Silence Insertion
+
+**NEW**: You can now insert precise silence durations at any point using simple notation:
+
+#### Silence Notation Format
+```
+"(duration[unit])"
+```
+
+**Supported Units**:
+- `ms` - milliseconds
+- `s` - seconds (supports decimals)
+
+**Duration Range**: 50ms to 10s
+
+#### Examples
+- `"(500ms)"` - 500 milliseconds of silence
+- `"(1.5s)"` - 1.5 seconds of silence
+- `"(2s)"` - 2 seconds of silence
+
+#### Mixed File/Silence Arrays
+```json
+{
+  "files": [
+    "(1s)",           // Opening silence
+    "intro.wav",      // First audio file
+    "(800ms)",        // Dramatic pause
+    "main.wav",       // Second audio file
+    "(1.5s)",         // Longer break
+    "outro.wav",      // Final audio file
+    "(500ms)"         // Closing silence
+  ]
+}
+```
+
+### Concatenation Modes
+
+#### Manual Silence Mode (NEW)
+When the files array contains silence notation (`(duration)`):
+- Precise control over silence placement and duration
+- Automatic pause parameters (`pause_duration_ms`, `pause_variation_ms`) are ignored
+- Enhanced filename includes silence count (e.g., `sil3` for 3 silence segments)
+
+#### Natural Pause Mode (Default)
+When using audio files only (no silence notation):
+- Research-based natural pause system with random variation
+- Default: 600ms ± 200ms variation for optimal naturalness
+- Customizable duration and variation
 
 ### Natural Pause System
 
@@ -531,13 +610,73 @@ The concatenation endpoint includes a research-based natural pause system that a
 
 ### Crossfade Compatibility
 
-Pauses and crossfading can be used together:
-- **With pauses**: Crossfade first, then add pause for natural spacing
-- **Without pauses**: Standard crossfade behavior (audio overlap)
+Crossfading behavior depends on the concatenation mode:
+
+- **Manual Silence Mode**: Crossfade applies only between consecutive audio files, **never** between silence and audio
+  - Pattern `["audio1.wav", "(500ms)", "audio2.wav"]`: No crossfade applied (silence prevents it)
+  - Pattern `["audio1.wav", "audio2.wav", "(500ms)", "audio3.wav"]`: Crossfade between audio1↔audio2, none for audio3
+- **Natural Pause Mode**: Crossfade first, then add pause for natural spacing
+- **No Silence/Pauses**: Standard crossfade behavior (audio overlap only)
+
+**Important**: This design prevents the unnatural low-volume start that occurs when crossfading silence with audio.
 
 ### Example Requests
 
-#### Basic Concatenation with Natural Pauses
+#### Manual Silence Insertion (NEW)
+
+**Video Production with Precise Timing**
+```bash
+curl -X POST "http://localhost:7860/api/v1/concat" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": [
+      "(1s)",
+      "intro_narration.wav",
+      "(2.5s)",
+      "main_content.wav", 
+      "(1s)",
+      "conclusion.wav",
+      "(500ms)"
+    ],
+    "normalize_levels": true,
+    "export_formats": ["wav", "mp3"]
+  }'
+```
+
+**Podcast with Dramatic Pauses**
+```bash
+curl -X POST "http://localhost:7860/api/v1/concat" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": [
+      "setup.wav",
+      "(1.2s)",
+      "dramatic_reveal.wav",
+      "(800ms)", 
+      "reaction.wav"
+    ]
+  }'
+```
+
+**Mixed Units (Milliseconds and Seconds)**
+```bash
+curl -X POST "http://localhost:7860/api/v1/concat" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": [
+      "tts_output_1.wav",
+      "(750ms)",
+      "tts_output_2.wav",
+      "(2.5s)",
+      "tts_output_3.wav"
+    ],
+    "crossfade_ms": 200
+  }'
+```
+
+#### Natural Pause Mode (Traditional)
+
+**Basic Concatenation with Natural Pauses**
 
 ```bash
 curl -X POST "http://localhost:7860/api/v1/concat" \
@@ -600,7 +739,7 @@ When `response_mode="stream"` (default), returns the audio file directly for dow
 
 ```
 Content-Type: audio/wav (or audio/mpeg, audio/flac)
-Content-Disposition: attachment; filename="concat_2025-06-22_143100_123_2files_pause600±200_leveled.wav"
+Content-Disposition: attachment; filename="concat_2025-06-22_143100_123_2files_sil1_leveled.wav"
 
 [Binary audio data]
 ```
@@ -614,8 +753,8 @@ When `response_mode="url"`, returns metadata with file URLs:
   "success": true,
   "message": "Audio concatenation completed successfully",
   "output_files": [
-    "concat_2025-06-22_143100_123_2files_pause600±200_leveled.wav",
-    "concat_2025-06-22_143100_123_2files_pause600±200_leveled.mp3"
+    "concat_2025-06-22_143100_123_2files_sil1_leveled.wav",
+    "concat_2025-06-22_143100_123_2files_sil1_leveled.mp3"
   ],
   "total_duration_seconds": 8.45,
   "file_count": 2,
@@ -623,15 +762,25 @@ When `response_mode="url"`, returns metadata with file URLs:
   "metadata": {
     "total_duration_seconds": 8.45,
     "file_count": 2,
+    "silence_segments": 1,
+    "total_segments": 3,
     "processing_time_seconds": 0.23,
-    "processed_files": [
+    "processing_details": [
       {
+        "type": "silence",
+        "duration_ms": 1000,
+        "duration_seconds": 1.0,
+        "notation": "(1s)"
+      },
+      {
+        "type": "file",
         "filename": "tts_output_1.wav",
         "duration_seconds": 3.2,
         "size_bytes": 307200
       },
       {
-        "filename": "tts_output_2.wav", 
+        "type": "file", 
+        "filename": "tts_output_2.wav",
         "duration_seconds": 4.1,
         "size_bytes": 393600
       }
@@ -639,9 +788,7 @@ When `response_mode="url"`, returns metadata with file URLs:
     "output_size_bytes": 811200,
     "crossfade_ms": 500,
     "normalized": true,
-    "pause_duration_ms": 600,
-    "pause_variation_ms": 200,
-    "total_pause_duration_ms": 643
+    "manual_silence": true
   }
 }
 ```
@@ -655,14 +802,27 @@ When `response_mode="url"`, returns metadata with file URLs:
 }
 ```
 
-#### Invalid Parameters (422)
+#### Invalid Silence Notation (422)
 ```json
 {
   "detail": [
     {
       "type": "value_error",
       "loc": ["body", "files"],
-      "msg": "At least 2 files required for concatenation"
+      "msg": "Silence duration must be between 50ms and 10s: (15s)"
+    }
+  ]
+}
+```
+
+#### Invalid Format (422)
+```json
+{
+  "detail": [
+    {
+      "type": "value_error", 
+      "loc": ["body", "files"],
+      "msg": "Silence duration must be between 50ms and 10s: (invalid)"
     }
   ]
 }
@@ -696,13 +856,18 @@ vc_2025-06-22_143045_789_chunk60_overlap0.1_voicespeaker2.wav
 
 #### Concatenation Files
 ```
-concat_YYYY-MM-DD_HHMMSS_microseconds_{count}files_[pause{duration}v{variation}]_[fade{ms}]_leveled.{format}
+concat_YYYY-MM-DD_HHMMSS_microseconds_{count}files_[sil{count}]_[pause{duration}v{variation}]_[fade{ms}]_leveled.{format}
 
-# Examples:
-concat_2025-06-22_143100_123_2files_pause600v200_leveled.wav          # Natural pauses
-concat_2025-06-22_143100_123_3files_pause1000_fade500_leveled.wav     # Custom pauses + crossfade  
-concat_2025-06-22_143100_123_2files_fade300_leveled.wav               # Crossfade only
-concat_2025-06-22_143100_123_2files_leveled.wav                       # No pauses, no crossfade
+# Examples with manual silence:
+concat_2025-06-22_143100_123_1files_sil2_leveled.wav                       # 1 audio file + 2 silence segments
+concat_2025-06-22_143100_123_3files_sil4_fade200_leveled.wav               # 3 audio files + 4 silences + crossfade
+concat_2025-06-22_143100_123_2files_sil1_leveled.wav                       # 2 audio files + 1 silence
+
+# Examples with natural pauses:
+concat_2025-06-22_143100_123_2files_pause600v200_leveled.wav               # Natural pauses
+concat_2025-06-22_143100_123_3files_pause1000_fade500_leveled.wav          # Custom pauses + crossfade  
+concat_2025-06-22_143100_123_2files_fade300_leveled.wav                    # Crossfade only
+concat_2025-06-22_143100_123_2files_leveled.wav                            # No pauses, no crossfade
 ```
 
 ### File Organization

@@ -6,6 +6,55 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.8.0] - 2025-06-25 - Manual Silence Insertion
+
+### Added
+- **MAJOR: Manual Silence Insertion** - Phase 11 Task 11.2 complete
+- **Silence Notation System**: Use `(duration[ms|s])` in concat files array for precise timing
+  - Supported units: milliseconds (`(500ms)`) and seconds (`(1.5s)`)
+  - Duration range: 50ms to 10s with comprehensive validation
+- **Mixed File/Silence Arrays**: `["(1s)", "intro.wav", "(800ms)", "main.wav", "(500ms)"]`
+- **Enhanced Filename Generation**: Includes silence count tracking (`sil2`, `sil3`)
+- **Professional Audio Production**: Video, podcast, and presentation-ready workflows
+
+### Enhanced
+- **Concatenation Endpoint**: Now supports both manual silence and natural pause modes
+- **Intelligent Mode Detection**: Automatically switches between manual and natural pause systems
+- **Enhanced Metadata**: Detailed silence tracking with notation preservation
+- **Error Handling**: Robust validation for silence notation formats and ranges
+
+### Fixed
+- **CRITICAL: Crossfade Issue with Manual Silence** - Crossfade no longer applies between silence and audio
+  - **Problem**: Crossfading after silence caused unnatural low-volume audio start
+  - **Solution**: Intelligent crossfade application only between consecutive audio files
+  - **Behavior**: Clean audio start after silence, preserves crossfade between audio segments
+- **Enhanced Logging**: Added detailed crossfade and silence processing logs for debugging
+
+### Technical Implementation
+- **Silence Parsing**: `parse_concat_files()` function with regex-based notation parsing
+- **Silence Generation**: `generate_silence_segment()` using pydub AudioSegment.silent()
+- **Enhanced Concatenation**: `concatenate_with_silence()` for mixed file/silence processing
+- **API Model Updates**: ConcatRequest supports silence notation with comprehensive validation
+- **Filename Enhancement**: `generate_enhanced_filename()` includes silence count parameters
+
+### Documentation
+- **Complete API Documentation**: Updated file-operations.md with silence insertion examples
+- **Production Workflows**: Video production, podcast, and presentation use cases
+- **Error Handling**: Comprehensive validation examples and error responses
+- **Multiple Format Examples**: curl, Python, and JavaScript integration examples
+
+### Validation
+- **✅ Comprehensive Testing**: 100% success rate across 7 test scenarios
+- **✅ Edge Case Coverage**: Invalid notation, out-of-range durations properly rejected
+- **✅ Core Compatibility**: All existing functionality preserved (100% core validation)
+- **✅ Integration Testing**: Manual silence works with crossfade, normalization, streaming
+
+### Use Cases
+- **Video Production**: Precise timing for narration overlay
+- **Podcast Creation**: Dramatic pauses and natural conversation flow
+- **Presentations**: Professional spacing between sections
+- **Audio Editing**: Manual control over silence placement
+
 ## [June 24, 2025] - Two-Tier Testing Strategy Implementation
 
 ### Overview

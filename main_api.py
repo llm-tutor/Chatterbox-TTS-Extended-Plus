@@ -815,41 +815,57 @@ async def concatenate_audio(
     """
     start_time = time_module.time()
     try:
-        # Import concatenation function
-        from utils import concatenate_audio_files, generate_enhanced_filename, save_generation_metadata
+        # Import concatenation functions
+        from utils import concatenate_audio_files, concatenate_with_silence, parse_concat_files, generate_enhanced_filename, save_generation_metadata
         
         outputs_dir = Path(config_manager.get("paths.output_dir", "outputs"))
         if not outputs_dir.exists():
             raise HTTPException(status_code=404, detail="Outputs directory not found")
         
-        # Validate and resolve file paths
-        file_paths = []
+        # Parse the files array to detect silence notation
+        parsed_items = parse_concat_files(request.files)
+        
+        # Check if we have any silence notation (manual silence mode)
+        has_manual_silence = any(item["type"] == "silence" for item in parsed_items)
+        
+        # Validate and resolve file paths (only for actual files, not silence)
         source_files_info = []
         
-        for filename in request.files:
-            file_path = outputs_dir / filename
-            if not file_path.exists():
-                raise HTTPException(status_code=404, detail=f"File not found: {filename}")
-            
-            # Check if it's an audio file
-            audio_extensions = {'.wav', '.mp3', '.flac', '.ogg', '.m4a'}
-            if file_path.suffix.lower() not in audio_extensions:
-                raise HTTPException(status_code=400, detail=f"Not an audio file: {filename}")
-            
-            file_paths.append(file_path)
-            source_files_info.append({
-                "filename": filename,
-                "size_bytes": file_path.stat().st_size
-            })
+        for item in parsed_items:
+            if item["type"] == "file":
+                filename = item["source"]
+                file_path = outputs_dir / filename
+                if not file_path.exists():
+                    raise HTTPException(status_code=404, detail=f"File not found: {filename}")
+                
+                # Check if it's an audio file
+                audio_extensions = {'.wav', '.mp3', '.flac', '.ogg', '.m4a'}
+                if file_path.suffix.lower() not in audio_extensions:
+                    raise HTTPException(status_code=400, detail=f"Not an audio file: {filename}")
+                
+                source_files_info.append({
+                    "filename": filename,
+                    "size_bytes": file_path.stat().st_size
+                })
         
         # Prepare concatenation parameters
+        audio_file_count = sum(1 for item in parsed_items if item["type"] == "file")
+        silence_count = sum(1 for item in parsed_items if item["type"] == "silence")
+        
         concat_params = {
-            "file_count": len(request.files),
+            "file_count": audio_file_count,
+            "silence_segments": silence_count,
             "crossfade_ms": request.crossfade_ms,
             "normalize_levels": request.normalize_levels,
-            "pause_duration_ms": request.pause_duration_ms,
-            "pause_variation_ms": request.pause_variation_ms
+            "manual_silence": has_manual_silence
         }
+        
+        # Include pause parameters only if not using manual silence
+        if not has_manual_silence:
+            concat_params.update({
+                "pause_duration_ms": request.pause_duration_ms,
+                "pause_variation_ms": request.pause_variation_ms
+            })
         
         # Generate output filenames for each format
         output_files = []
@@ -872,15 +888,27 @@ async def concatenate_audio(
             
             output_path = outputs_dir / base_filename
             
-            # Perform concatenation
-            concat_metadata = concatenate_audio_files(
-                file_paths=file_paths,
-                output_path=output_path,
-                normalize_levels=request.normalize_levels,
-                crossfade_ms=request.crossfade_ms,
-                pause_duration_ms=request.pause_duration_ms,
-                pause_variation_ms=request.pause_variation_ms
-            )
+            # Choose appropriate concatenation method
+            if has_manual_silence:
+                # Use enhanced concatenation with silence support
+                concat_metadata = concatenate_with_silence(
+                    parsed_items=parsed_items,
+                    output_path=output_path,
+                    normalize_levels=request.normalize_levels,
+                    crossfade_ms=request.crossfade_ms,
+                    outputs_dir=outputs_dir
+                )
+            else:
+                # Use original concatenation with natural pauses
+                file_paths = [outputs_dir / item["source"] for item in parsed_items if item["type"] == "file"]
+                concat_metadata = concatenate_audio_files(
+                    file_paths=file_paths,
+                    output_path=output_path,
+                    normalize_levels=request.normalize_levels,
+                    crossfade_ms=request.crossfade_ms,
+                    pause_duration_ms=request.pause_duration_ms,
+                    pause_variation_ms=request.pause_variation_ms
+                )
             
             output_files.append(base_filename)
             
@@ -894,13 +922,20 @@ async def concatenate_audio(
                     "source_files": request.files,
                     "normalize_levels": request.normalize_levels,
                     "crossfade_ms": request.crossfade_ms,
-                    "pause_duration_ms": request.pause_duration_ms,
-                    "pause_variation_ms": request.pause_variation_ms,
-                    "file_count": len(request.files)
+                    "manual_silence": has_manual_silence,
+                    "file_count": audio_file_count,
+                    "silence_segments": silence_count
                 },
                 "generation_info": concat_metadata,
                 "source_files_info": source_files_info
             }
+            
+            # Add pause parameters only if not using manual silence
+            if not has_manual_silence:
+                metadata_to_save["parameters"].update({
+                    "pause_duration_ms": request.pause_duration_ms,
+                    "pause_variation_ms": request.pause_variation_ms
+                })
             
             save_generation_metadata(output_path, metadata_to_save)
         
@@ -912,7 +947,7 @@ async def concatenate_audio(
         response_data = ConcatResponse(
             output_files=output_files,
             total_duration_seconds=generated_metadata.get("total_duration_seconds"),
-            file_count=len(request.files),
+            file_count=audio_file_count,
             processing_time_seconds=generated_metadata.get("processing_time_seconds"),
             metadata=generated_metadata
         )
