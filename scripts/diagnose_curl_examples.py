@@ -5,7 +5,7 @@ Diagnostic script for cURL examples - just parsing and categorization
 
 import json
 from pathlib import Path
-from scripts.test_curl_examples import CurlExampleTester
+from test_curl_examples import CurlExampleTester
 
 
 def diagnose_examples():

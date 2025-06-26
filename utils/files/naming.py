@@ -4,9 +4,12 @@ import time
 import hashlib
 import random
 import re
+import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Union
+
+logger = logging.getLogger(__name__)
 
 
 def generate_unique_filename(prefix: str = "output", extension: str = "wav") -> str:
@@ -34,10 +37,10 @@ def generate_enhanced_filename(generation_type: str, parameters: Dict[str, Any],
     now = datetime.now()
     timestamp = now.strftime("%Y-%m-%d_%H%M%S")
     microseconds = now.microsecond
-    
+
     # Extract key parameters based on generation type
     param_parts = []
-    
+
     if generation_type == "tts":
         # Include key TTS parameters
         if "temperature" in parameters:
@@ -51,7 +54,7 @@ def generate_enhanced_filename(generation_type: str, parameters: Dict[str, Any],
         if "trim" in parameters and parameters["trim"]:
             trim_threshold = parameters.get("trim_threshold_ms", 200)
             param_parts.append(f"trim{trim_threshold}")
-            
+
     elif generation_type == "vc":
         # Include key VC parameters
         if "chunk_sec" in parameters and parameters["chunk_sec"] != 60:
@@ -64,16 +67,16 @@ def generate_enhanced_filename(generation_type: str, parameters: Dict[str, Any],
             # Sanitize and truncate voice name
             voice_name = re.sub(r'[^\w\-]', '', voice_name)[:10]
             param_parts.append(f"voice{voice_name}")
-            
+
     elif generation_type == "concat":
         # Include concat-specific parameters
         if "file_count" in parameters:
             param_parts.append(f"{parameters['file_count']}files")
-        
+
         # Add silence count if manual silences were used
         if "silence_segments" in parameters and parameters["silence_segments"] > 0:
             param_parts.append(f"sil{parameters['silence_segments']}")
-        
+
         # Add pause parameters only if not using manual silence
         if not parameters.get("manual_silence", False):
             if "pause_duration_ms" in parameters and parameters["pause_duration_ms"] > 0:
@@ -83,20 +86,20 @@ def generate_enhanced_filename(generation_type: str, parameters: Dict[str, Any],
                     param_parts.append(f"pause{pause_ms}v{variation_ms}")
                 else:
                     param_parts.append(f"pause{pause_ms}")
-        
+
         if "crossfade_ms" in parameters and parameters["crossfade_ms"] > 0:
             param_parts.append(f"fade{parameters['crossfade_ms']}")
         if "normalize_levels" in parameters and parameters["normalize_levels"]:
             param_parts.append("leveled")
-        
+
         # Add trim parameters
         if parameters.get("trim", False):
             trim_threshold = parameters.get("trim_threshold_ms", 200)
             param_parts.append(f"trim{trim_threshold}")
-    
+
     # Construct filename
     param_string = "_".join(param_parts) if param_parts else "default"
-    
+
     return f"{generation_type}_{timestamp}_{microseconds:06d}_{param_string}.{extension}"
 
 
@@ -112,11 +115,18 @@ def sanitize_filename(filename: str) -> str:
     return filename
 
 
+def normalize_audio_path(path_input: Union[str, Path]) -> Path:
+    """Normalize audio path input to Path object"""
+    if isinstance(path_input, str):
+        return Path(path_input)
+    return path_input
+
+
 def sanitize_file_path(file_path: str) -> str:
     """Sanitize file path for safe usage"""
     # Convert to Path and resolve any relative components
     path = Path(file_path)
-    
+
     # Remove any directory traversal attempts
     path_parts = []
     for part in path.parts:
@@ -124,7 +134,7 @@ def sanitize_file_path(file_path: str) -> str:
             continue
         part = sanitize_filename(part)
         path_parts.append(part)
-    
+
     # Reconstruct path using forward slashes (cross-platform)
     if path_parts:
         return '/'.join(path_parts)
