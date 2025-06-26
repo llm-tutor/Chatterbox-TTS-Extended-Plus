@@ -1,0 +1,42 @@
+refactor(utils): Phase 1 - migrate audio & concatenation modules from 2,391-line utils.py
+
+PHASE 1 COMPLETE: Core audio and concatenation functions migrated to modular structure
+
+STRUCTURE IMPLEMENTED:
+- utils.py (2,391 lines) → utils/ modular directory + utils_original.py (preserved)
+- utils/audio/ - COMPLETE: processing, analysis, trimming (600+ lines migrated)
+- utils/concatenation/ - MOSTLY COMPLETE: parsing, basic (300+ lines migrated)
+- utils/files/, voice/, outputs/, validation/, formatting/ - PLACEHOLDER: import from utils_original.py
+
+MIGRATED FUNCTIONS (900+ lines):
+✅ Audio processing: apply_speed_factor, calculate_audio_duration, trimming functions
+✅ Audio analysis: normalize_audio_format, detect_silence_boundaries  
+✅ Concatenation: parse_concat_files, concatenate_audio_files, silence handling
+🔄 Advanced concatenation: concatenate_with_silence (partial), others pending
+
+PLACEHOLDER MODULES (29 functions remain):
+📁 Files (9 functions): generate_enhanced_filename, sanitize_filename, validate_audio_file
+👤 Voice (10 functions): load_voice_metadata, delete_voice_file, bulk_delete_voices  
+📤 Outputs (3 functions): save_generation_metadata, scan_generated_files
+✅ Validation (6 functions): validate_text_input, validate_url, validate_audio_format
+🎨 Formatting (1 function): format_file_size
+
+BACKWARD COMPATIBILITY:
+- 100% compatible: All existing imports work unchanged
+- utils/__init__.py provides transparent access to all functions
+- utils_original.py preserved with all original functions for safety
+- Zero breaking changes to existing codebase (main_api.py, core_engine.py, etc.)
+
+DOCUMENTATION:
+- docs/dev/utils_refactoring_progress.md - Detailed checklist tracker
+- docs/dev/utils_refactoring_resume_prompt.md - Resume guide for future sessions  
+- docs/dev/utils_refactoring_summary.md - Phase 1 accomplishments
+
+VALIDATION PASSED:
+- Import testing: All key functions import successfully ✓
+- Server compatibility: FastAPI starts without errors ✓ 
+- Function integrity: Core audio and concatenation logic preserved ✓
+- Backward compatibility: All existing imports work unchanged ✓
+
+NEXT PHASE: Migrate remaining 29 functions from placeholder modules
+Priority: Complete concatenation/advanced.py → files/ → voice/ → validation/outputs/formatting
