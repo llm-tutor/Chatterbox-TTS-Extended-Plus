@@ -52,7 +52,8 @@
 - `main_api.py` - New endpoint logic
 - `api_models.py` - Enhanced request/response models
 - `core_engine.py` - New naming and metadata generation
-- `utils.py` - Filename and metadata utilities
+- `utils/files/naming.py` - Filename and metadata utilities
+- `utils/outputs/management.py` - Generation metadata handling
 
 ---
 
@@ -63,7 +64,7 @@
 
 #### **Task 10.1: Speed Factor Implementation**
 - [x] Add `speed_factor` parameter to `TTSRequest` model
-- [x] Implement `apply_speed_factor()` in `utils.py` using librosa
+- [x] Implement `apply_speed_factor()` in `utils/audio/processing.py` using librosa
 - [x] Add fallback implementation using torchaudio
 - [x] Integrate speed processing in `core_engine.py`
 - [x] Define reasonable min/max limits (0.5x to 2.0x)
@@ -167,7 +168,8 @@
 #### **Key Files Modified**
 - `api_models.py` - Voice and speed-related models
 - `main_api.py` - New voice and outputs endpoints
-- `utils.py` - Speed factor and metadata utilities
+- `utils/audio/processing.py` - Speed factor utilities
+- `utils/voice/metadata.py` - Voice metadata utilities
 - `core_engine.py` - Speed factor integration
 
 ---
@@ -303,7 +305,7 @@
 #### **Key Files Modified**
 - `main_api.py` - Concatenation endpoint
 - `api_models.py` - Concat request/response models
-- `utils.py` - Audio concatenation utilities
+- `utils/concatenation/` - Audio concatenation utilities
 - `management/` - Resource cleanup integration
 
 ---

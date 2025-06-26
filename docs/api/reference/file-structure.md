@@ -14,7 +14,38 @@ Chatterbox-TTS-Extended-Plus/
 ├── main_api.py                     # FastAPI application entry point
 ├── core_engine.py                  # Core TTS/VC functionality
 ├── api_models.py                   # Pydantic request/response models
-├── utils.py                        # Utility functions
+├── utils/                          # Modular utility functions
+│   ├── __init__.py                 # Module imports and organization
+│   ├── audio/                      # Audio processing utilities
+│   │   ├── __init__.py
+│   │   ├── processing.py           # Speed factor, duration calculation
+│   │   ├── analysis.py             # Format normalization, silence detection
+│   │   └── trimming.py             # Audio trimming functions
+│   ├── concatenation/              # Audio concatenation utilities
+│   │   ├── __init__.py
+│   │   ├── parsing.py              # Parse concat instructions
+│   │   ├── basic.py                # Basic concatenation
+│   │   └── advanced.py             # Advanced concatenation
+│   ├── files/                      # File operation utilities
+│   │   ├── __init__.py
+│   │   ├── naming.py               # Filename generation and sanitization
+│   │   └── operations.py           # File validation and management
+│   ├── voice/                      # Voice management utilities
+│   │   ├── __init__.py
+│   │   ├── metadata.py             # Voice metadata operations
+│   │   ├── management.py           # Voice file management
+│   │   └── organization.py         # Voice folder structure
+│   ├── outputs/                    # Output file utilities
+│   │   ├── __init__.py
+│   │   └── management.py           # Generation metadata and file scanning
+│   ├── validation/                 # Input validation utilities
+│   │   ├── __init__.py
+│   │   ├── text.py                 # Text validation
+│   │   ├── audio.py                # Audio format validation
+│   │   └── network.py              # URL validation
+│   └── formatting/                 # Display formatting utilities
+│       ├── __init__.py
+│       └── display.py              # File size formatting
 ├── requirements.txt                # Python dependencies
 ├── .env                           # Environment variables (optional)
 ├── .gitignore                     # Git ignore rules

@@ -69,7 +69,14 @@ Look at **Modular Documentation Structure** in complete protocols.
 main_api.py              # FastAPI application and endpoints
 api_models.py            # Pydantic request/response models  
 core_engine.py           # Core TTS/VC processing logic
-utils.py                 # Utility functions and helpers
+utils/                   # Modular utility functions
+├── audio/               # Audio processing utilities  
+├── concatenation/       # Audio concatenation utilities
+├── files/               # File operation utilities
+├── voice/               # Voice management utilities
+├── outputs/             # Output file utilities
+├── validation/          # Input validation utilities
+└── formatting/          # Display formatting utilities
 config.yaml              # Configuration settings
 ```
 
