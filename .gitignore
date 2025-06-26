@@ -11,7 +11,9 @@ __pycache__/
 repomix
 temp
 output
+# ignore outputs/ - include folder in utils/
 outputs
+!utils/outputs
 tests/media/
 
 # Audio files
