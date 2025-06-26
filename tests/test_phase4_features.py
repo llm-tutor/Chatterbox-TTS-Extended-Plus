@@ -14,6 +14,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from core_engine import CoreEngine
 from config import config_manager
+
+# Direct utils imports for better code visibility (Phase 4)  
+from utils.files.naming import sanitize_filename
+from utils.validation.audio import get_supported_audio_formats, validate_audio_format
 from api_models import TTSRequest, VCRequest
 
 # Setup logging
@@ -35,8 +39,6 @@ async def test_url_validation():
         return False
     
     # Test filename sanitization
-    from utils import sanitize_filename
-    
     unsafe_filename = "test<>file|name*.wav"
     safe_filename = sanitize_filename(unsafe_filename)
     logger.info(f"Filename sanitization: {unsafe_filename} -> {safe_filename}")
@@ -51,7 +53,6 @@ async def test_url_validation():
 
 async def test_audio_format_validation():
     """Test audio format validation"""
-    from utils import validate_audio_format, get_supported_audio_formats
     
     supported_formats = get_supported_audio_formats()
     logger.info(f"Supported formats: {supported_formats}")

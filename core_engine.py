@@ -33,7 +33,14 @@ from chatterbox.src.chatterbox.vc import ChatterboxVC
 # Project imports
 from config import config_manager
 from exceptions import ModelLoadError, GenerationError, AudioProcessingError, ResourceError, ValidationError
-from utils import generate_unique_filename, validate_audio_file, sanitize_filename
+
+# Direct utils imports for better code visibility (Phase 4)
+from utils.files.naming import generate_unique_filename, generate_enhanced_filename, sanitize_filename
+from utils.files.operations import validate_audio_file
+from utils.voice.metadata import update_voice_usage
+from utils.outputs.management import save_generation_metadata
+from utils.audio.processing import apply_speed_factor
+from utils.audio.trimming import apply_audio_trimming
 
 # Whisper imports
 import whisper
@@ -584,7 +591,6 @@ class CoreEngineSynchronous:
                     
                     # Update voice usage statistics
                     try:
-                        from utils import update_voice_usage
                         update_voice_usage(ref_audio_path)
                     except Exception as e:
                         logger.warning(f"Failed to update voice usage: {e}")
@@ -635,7 +641,6 @@ class CoreEngineSynchronous:
                 }
                 
                 # Save metadata using utility function
-                from utils import save_generation_metadata
                 if output_files:
                     save_generation_metadata(output_files[0]['filename'], metadata)
                 
@@ -783,7 +788,6 @@ class CoreEngineSynchronous:
             output_dir = Path(config_manager.get("paths.output_dir", "outputs"))
             
             # Use enhanced filename generation (excluding speed_factor for base file)
-            from utils import generate_enhanced_filename
             params = generation_params or {}
             # Create base filename without speed_factor
             base_params = {k: v for k, v in params.items() if k != 'speed_factor'}
@@ -840,7 +844,6 @@ class CoreEngineSynchronous:
             audio_tensor, sample_rate = torchaudio.load(audio_path)
             
             # Apply speed factor using optimized utils function
-            from utils import apply_speed_factor
             speed_factor_library = generation_params.get('speed_factor_library', 'auto')
             processed_audio = apply_speed_factor(
                 audio_tensor, 
@@ -850,7 +853,6 @@ class CoreEngineSynchronous:
             )
             
             # Create new filename with speed factor
-            from utils import generate_enhanced_filename
             
             params = generation_params or {}
             # Include speed_factor in the filename for the final version
@@ -888,7 +890,6 @@ class CoreEngineSynchronous:
             audio_segment = AudioSegment.from_wav(audio_path)
             
             # Apply trimming using existing utility function
-            from utils import apply_audio_trimming
             trim_result = apply_audio_trimming(
                 audio_segment=audio_segment,
                 filename=Path(audio_path).name,
@@ -897,7 +898,6 @@ class CoreEngineSynchronous:
             
             if trim_result["trimmed"]:
                 # Create new filename with trim parameters
-                from utils import generate_enhanced_filename
                 
                 params = generation_params or {}
                 filename_params = {
@@ -974,7 +974,6 @@ class CoreEngineSynchronous:
                 
                 # Update voice usage statistics for target voice
                 try:
-                    from utils import update_voice_usage
                     update_voice_usage(target_path)
                 except Exception as e:
                     logger.warning(f"Failed to update voice usage: {e}")
@@ -1008,7 +1007,6 @@ class CoreEngineSynchronous:
                 }
                 
                 # Save metadata using utility function
-                from utils import save_generation_metadata
                 if output_files:
                     save_generation_metadata(output_files[0]['filename'], metadata)
                 
@@ -1060,7 +1058,6 @@ class CoreEngineSynchronous:
             logger.info(f"Input audio: {total_sec:.2f} seconds")
             
             # Generate enhanced output filename
-            from utils import generate_enhanced_filename
             vc_params = {
                 'chunk_sec': kwargs.get('chunk_sec', 60),
                 'overlap_sec': kwargs.get('overlap_sec', 0.1),

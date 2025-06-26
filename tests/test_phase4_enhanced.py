@@ -13,7 +13,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from core_engine import CoreEngine
 from api_models import TTSRequest, VCRequest, ErrorResponse
-from utils import validate_url, sanitize_file_path, validate_text_input
+# Direct utils imports for better code visibility (Phase 4)
+from utils.validation.network import validate_url
+from utils.files.paths import sanitize_file_path
+from utils.validation.text import validate_text_input
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

@@ -2,7 +2,12 @@
 
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field, validator, model_validator, field_validator
-from utils import validate_text_length, validate_audio_format, validate_text_input
+
+# Direct utils imports for better code visibility (Phase 4)
+from utils.validation.text import validate_text_length, validate_text_input
+from utils.validation.audio import validate_audio_format
+from utils.files.naming import sanitize_file_path
+
 from config import config_manager
 
 def get_default_speed_factor() -> float:
@@ -111,7 +116,6 @@ class TTSRequest(BaseModel):
 
     @validator('reference_audio_filename')
     def validate_reference_audio(cls, v):
-        from utils import sanitize_file_path
         if v is not None:
             v = v.strip()
             # If it's not a URL, sanitize the file path
@@ -132,7 +136,6 @@ class VCRequest(BaseModel):
 
     @validator('input_audio_source', 'target_voice_source')
     def validate_audio_sources(cls, v):
-        from utils import sanitize_file_path
         if not v or not v.strip():
             raise ValueError("Audio source cannot be empty")
         

@@ -39,6 +39,16 @@ from monitoring import (
 # Resource management
 from management import cleanup_scheduler, resource_manager
 
+# Direct utils imports for better code visibility (Phase 4)
+from utils.voice.metadata import load_voice_metadata, save_voice_metadata, create_voice_metadata_from_upload
+from utils.voice.management import validate_voice_file, save_uploaded_voice, delete_voice_file, update_voice_metadata_only
+from utils.voice.organization import bulk_delete_voices, get_voice_folder_structure
+from utils.outputs.management import scan_generated_files, find_files_by_names, save_generation_metadata
+from utils.concatenation.basic import concatenate_audio_files
+from utils.concatenation.advanced import concatenate_with_trimming, concatenate_with_mixed_sources, concatenate_with_silence
+from utils.concatenation.parsing import parse_concat_files
+from utils.files.naming import generate_enhanced_filename
+
 # Setup enhanced logging
 logger = get_logger(__name__)
 
@@ -468,7 +478,6 @@ async def list_voices(
     folder: Optional[str] = Query(None, description="Filter by folder path")
 ):
     """List available reference voices with enhanced metadata, pagination, and search"""
-    from utils import load_voice_metadata
     import math
     
     voices = []
@@ -545,7 +554,6 @@ async def upload_voice(
     overwrite: bool = Form(False, description="Overwrite existing voice file")
 ):
     """Upload a new voice file with metadata"""
-    from utils import validate_voice_file, save_uploaded_voice, create_voice_metadata_from_upload, save_voice_metadata
     from api_models import VoiceMetadata
     import json
     
@@ -620,7 +628,6 @@ async def delete_voice(
     confirm: bool = Query(False, description="Confirmation required to delete voice")
 ):
     """Delete a single voice file and its metadata"""
-    from utils import delete_voice_file
     
     if not confirm:
         raise HTTPException(status_code=400, detail="Deletion requires confirm=true parameter for safety")
@@ -653,7 +660,6 @@ async def bulk_delete_voices(
     filenames: Optional[str] = Query(None, description="Comma-separated list of filenames to delete")
 ):
     """Bulk delete voices based on criteria"""
-    from utils import bulk_delete_voices
     
     if not confirm:
         raise HTTPException(status_code=400, detail="Bulk deletion requires confirm=true parameter for safety")
@@ -693,7 +699,6 @@ async def update_voice_metadata(
     metadata_update: VoiceMetadataUpdateRequest
 ):
     """Update voice metadata without changing the audio file"""
-    from utils import update_voice_metadata_only
     from api_models import VoiceMetadata
     
     try:
@@ -724,7 +729,6 @@ async def update_voice_metadata(
 @app.get("/api/v1/voices/folders", response_model=VoiceFoldersResponse)
 async def get_voice_folders():
     """Get voice library folder structure"""
-    from utils import get_voice_folder_structure
     
     try:
         folder_data = get_voice_folder_structure()
@@ -752,7 +756,6 @@ async def list_generated_files(
     filenames: Optional[str] = Query(None, description="Comma-separated list of specific filenames to find")
 ):
     """List generated audio files with metadata, pagination, and search"""
-    from utils import scan_generated_files, find_files_by_names
     import math
     
     try:
@@ -815,8 +818,6 @@ async def concatenate_audio(
     """
     start_time = time_module.time()
     try:
-        # Import concatenation functions
-        from utils import concatenate_audio_files, concatenate_with_silence, parse_concat_files, generate_enhanced_filename, save_generation_metadata
         
         outputs_dir = Path(config_manager.get("paths.output_dir", "outputs"))
         if not outputs_dir.exists():
@@ -914,8 +915,6 @@ async def concatenate_audio(
                 file_paths = [outputs_dir / item["source"] for item in parsed_items if item["type"] == "file"]
                 
                 if request.trim:
-                    # Import the enhanced concatenation function
-                    from utils import concatenate_with_trimming
                     concat_metadata = concatenate_with_trimming(
                         file_paths=file_paths,
                         output_path=output_path,
@@ -1043,8 +1042,6 @@ async def concatenate_mixed_audio(
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Invalid request format: {e}")
         
-        # Import concatenation functions
-        from utils import concatenate_with_mixed_sources, generate_enhanced_filename, save_generation_metadata
         
         outputs_dir = Path(config_manager.get("paths.output_dir", "outputs"))
         temp_dir = Path(config_manager.get("paths.temp_dir", "temp"))
