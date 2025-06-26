@@ -83,7 +83,7 @@
 - parsing.py, basic.py, advanced.py, __init__.py
 
 ### **✅ Files Module (209 lines)**
-- naming.py, operations.py, paths.py, __init__.py
+- naming.py, operations.py, __init__.py
 
 ### **✅ Voice Module (507 lines)**
 - metadata.py, management.py, organization.py, __init__.py

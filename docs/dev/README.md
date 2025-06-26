@@ -21,7 +21,8 @@ Completed projects organized by category:
 archives/
 ├── api-implementation/          # Original API development (Phases 1-7)
 ├── api-docs-reorganization/     # API documentation restructuring  
-└── two-tier-testing/           # Testing strategy implementation
+├── two-tier-testing/           # Testing strategy implementation
+└── utils-refactoring/          # Utils.py modular refactoring project
 ```
 
 ## 🔄 **Archival Workflow & Conventions**
@@ -87,6 +88,11 @@ Each project archive typically contains:
 - **Scope**: Balanced testing approach implementation
 - **Key Achievements**: Core validation (2-3 min), comprehensive testing (8-15 min), implementation protocols
 - **Reference**: Testing patterns and validation procedures
+
+### **Utils Refactoring** (`archives/utils-refactoring/`)
+- **Scope**: Modular transformation of monolithic utils.py (2,391 lines → organized modules)
+- **Key Achievements**: 29 functions migrated across 6 modules, 100% backward compatibility, zero breaking changes
+- **Reference**: Modular architecture patterns and incremental migration strategies
 
 ## 🔍 **Finding Information**
 
