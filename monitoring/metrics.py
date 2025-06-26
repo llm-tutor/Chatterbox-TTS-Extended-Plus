@@ -108,7 +108,27 @@ class PerformanceTracker:
         if not duration_data:
             return {'min_ms': 0, 'max_ms': 0, 'avg_ms': 0, 'count': 0}
             
-        durations = [d['duration_ms'] for d in duration_data]
+        # Extract durations and ensure they are numeric
+        durations = []
+        for d in duration_data:
+            duration_value = d.get('duration_ms', 0)
+            # Convert string to float if needed
+            if isinstance(duration_value, str):
+                try:
+                    duration_value = float(duration_value)
+                except (ValueError, TypeError):
+                    duration_value = 0
+            elif duration_value is None:
+                duration_value = 0
+            # Ensure final value is numeric
+            try:
+                durations.append(float(duration_value))
+            except (ValueError, TypeError):
+                durations.append(0.0)
+        
+        if not durations:
+            return {'min_ms': 0, 'max_ms': 0, 'avg_ms': 0, 'count': 0}
+            
         return {
             'min_ms': min(durations),
             'max_ms': max(durations),

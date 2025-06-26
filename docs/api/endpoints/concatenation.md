@@ -384,3 +384,241 @@ curl -X POST http://localhost:7860/api/v1/concat \
 3. **Monitor Output Quality**: Verify trimming doesn't cut into actual content
 4. **Combine Features**: Use trimming with normalization for best results
 5. **File Organization**: Keep source files in outputs/ directory for easy access
+
+---
+
+# Mixed Source Concatenation API
+
+The mixed concatenation API supports combining audio from multiple sources: server files, uploaded files, and silence segments in a single request.
+
+## Endpoint
+
+```
+POST /api/v1/concat/mixed
+```
+
+**Content-Type**: `multipart/form-data`
+
+## Request Parameters
+
+### Form Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `request_json` | string | **required** | JSON string containing MixedConcatRequest |
+| `uploaded_files` | file[] | conditional | Audio files to upload (required if segments reference uploads) |
+
+### MixedConcatRequest Structure
+
+| Parameter | Type | Default | Range | Description |
+|-----------|------|---------|-------|-------------|
+| `segments` | array[object] | **required** | 1+ items | Ordered list of segments to concatenate |
+| `export_formats` | array[string] | `["wav"]` | wav, mp3, flac | Output audio formats |
+| `normalize_levels` | boolean | `true` | - | Normalize audio levels across segments |
+| `crossfade_ms` | integer | `0` | 0-5000 | Crossfade duration in milliseconds |
+| `pause_duration_ms` | integer | `0` | 0-3000 | Base pause duration between clips (ignored when using manual silence) |
+| `pause_variation_ms` | integer | `200` | 0-500 | Random variation in pause duration (+/-) |
+| `trim` | boolean | `false` | - | Remove silence from input files before concatenation |
+| `trim_threshold_ms` | integer | `200` | 50-1000 | Minimum silence duration to consider for trimming |
+| `output_filename` | string | optional | - | Custom output filename (without extension) |
+
+### Segment Object Structure
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | **required** | Segment type: "server_file", "upload", or "silence" |
+| `source` | string | conditional | For server_file: filename; for silence: duration notation |
+| `index` | integer | conditional | For upload: index in uploaded files array |
+
+#### Segment Types
+
+**server_file**: References a file in the outputs directory
+- `source`: filename (e.g., "intro.wav")
+- `index`: not used
+
+**upload**: References an uploaded file
+- `source`: not used  
+- `index`: 0-based index in uploaded_files array
+
+**silence**: Generates silence segment
+- `source`: duration notation (e.g., "(500ms)", "(1.5s)")
+- `index`: not used
+
+## Example Requests
+
+### Mixed Sources with Upload
+
+```bash
+curl -X POST "http://localhost:7860/api/v1/concat/mixed" \
+  -F 'request_json={
+    "segments": [
+      {"type": "server_file", "source": "intro.wav"},
+      {"type": "upload", "index": 0},
+      {"type": "silence", "source": "(1s)"},
+      {"type": "server_file", "source": "outro.wav"}
+    ],
+    "export_formats": ["wav", "mp3"],
+    "normalize_levels": true,
+    "crossfade_ms": 250
+  }' \
+  -F "uploaded_files=@my_audio.wav"
+```
+
+### Server Files with Advanced Processing
+
+```bash
+curl -X POST "http://localhost:7860/api/v1/concat/mixed" \
+  -F 'request_json={
+    "segments": [
+      {"type": "server_file", "source": "segment1.wav"},
+      {"type": "silence", "source": "(200ms)"},
+      {"type": "server_file", "source": "segment2.wav"},
+      {"type": "silence", "source": "(500ms)"},
+      {"type": "server_file", "source": "segment3.wav"}
+    ],
+    "export_formats": ["wav"],
+    "normalize_levels": true,
+    "crossfade_ms": 100,
+    "trim": true,
+    "trim_threshold_ms": 150,
+    "output_filename": "professional_edit"
+  }'
+```
+
+### Multiple Uploads Example
+
+```bash
+curl -X POST "http://localhost:7860/api/v1/concat/mixed" \
+  -F 'request_json={
+    "segments": [
+      {"type": "upload", "index": 0},
+      {"type": "silence", "source": "(300ms)"},
+      {"type": "upload", "index": 1},
+      {"type": "server_file", "source": "transition.wav"},
+      {"type": "upload", "index": 2}
+    ],
+    "export_formats": ["wav", "mp3"],
+    "pause_duration_ms": 0
+  }' \
+  -F "uploaded_files=@part1.wav" \
+  -F "uploaded_files=@part2.wav" \
+  -F "uploaded_files=@part3.wav"
+```
+
+## Response Format
+
+### Success Response (Stream Mode)
+Returns the audio file directly as binary data with appropriate `Content-Type` header.
+
+### Success Response (URL Mode)
+```json
+{
+  "success": true,
+  "message": "Audio concatenation completed successfully",
+  "output_files": ["concat_2025-06-25_143022_456_5files_sil2_fade100_leveled_trim150.wav"],
+  "total_duration_seconds": 45.2,
+  "file_count": 3,
+  "processing_time_seconds": 2.1,
+  "metadata": {
+    "type": "concat",
+    "timestamp": "2025-06-25T14:30:22.456Z",
+    "total_duration_seconds": 45.2,
+    "processing_time_seconds": 2.1,
+    "generation_info": {
+      "audio_segment_count": 3,
+      "silence_segment_count": 2,
+      "upload_count": 1,
+      "crossfade_applied": true,
+      "normalization_applied": true,
+      "trim_applied": true,
+      "manual_silence_mode": true
+    }
+  }
+}
+```
+
+## Advanced Features
+
+### File Upload Validation
+- Supports common audio formats: WAV, MP3, FLAC, OGG, M4A
+- File size limits apply (configurable)
+- Content-Type validation for uploaded files
+- Automatic cleanup of temporary files
+
+### Segment Order Control
+The `segments` array defines the exact order of concatenation. This allows for complex arrangements:
+
+```json
+{
+  "segments": [
+    {"type": "silence", "source": "(500ms)"},
+    {"type": "server_file", "source": "intro.wav"},
+    {"type": "upload", "index": 0},
+    {"type": "server_file", "source": "transition.wav"},
+    {"type": "upload", "index": 1},
+    {"type": "silence", "source": "(1s)"},
+    {"type": "server_file", "source": "outro.wav"}
+  ]
+}
+```
+
+### Mixed Mode Processing
+- **Manual silence**: When silence segments are specified, natural pauses are disabled
+- **Natural pauses**: When no silence segments exist, automatic pauses between audio files
+- **Crossfading**: Applied between audio segments (not silence)
+- **Trimming**: Applied to all audio files before concatenation
+
+## Error Responses
+
+### Upload Count Mismatch
+```json
+{
+  "detail": "Expected 2 uploaded files, got 1"
+}
+```
+
+### Invalid Segment Configuration  
+```json
+{
+  "detail": "Upload segments must specify index field"
+}
+```
+
+### Server File Not Found
+```json
+{
+  "detail": "Server file not found: missing_file.wav"
+}
+```
+
+### Invalid Upload Index
+```json
+{
+  "detail": "Upload file with index 1 not found"
+}
+```
+
+## Use Cases
+
+### Podcast Production
+- Combine intro music (server) + recorded content (upload) + outro music (server)
+- Add consistent silence gaps between segments
+- Apply professional leveling and crossfades
+
+### Voice Acting Workflows  
+- Mix multiple takes (uploads) with background music (server files)
+- Insert precise silence for timing
+- Process with trimming to remove unwanted silence
+
+### Interactive Content
+- Combine user-generated content (uploads) with system audio (server)
+- Dynamic audio assembly based on user choices
+- Real-time audio processing and delivery
+
+## Performance Considerations
+
+- **Upload Processing**: Files are temporarily stored and cleaned up automatically
+- **Memory Usage**: Scales with total uploaded file size + processing requirements
+- **Concurrent Uploads**: Multiple file uploads processed efficiently
+- **Streaming**: Large concatenated files stream directly without intermediate storage
+- **Validation**: Comprehensive input validation prevents processing invalid requests

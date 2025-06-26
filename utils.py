@@ -5,6 +5,7 @@ import logging
 import hashlib
 import time
 import re
+from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any, Union
 import torch
@@ -2137,4 +2138,254 @@ def concatenate_with_trimming(file_paths: List[Path], output_path: Path,
             logger.debug(f"Cleaned up temporary directory: {temp_dir}")
         except Exception as e:
             logger.warning(f"Error cleaning up temporary directory {temp_dir}: {e}")
+
+
+def concatenate_with_mixed_sources(
+    segments: list, upload_paths: dict, output_path: Path, outputs_dir: Path,
+    normalize_levels: bool = True, crossfade_ms: int = 0,
+    trim: bool = False, trim_threshold_ms: int = 200,
+    pause_duration_ms: int = 0, pause_variation_ms: int = 0) -> dict:
+    """
+    Concatenate audio from mixed sources (server files, uploads, silence)
+    
+    Args:
+        segments: List of MixedConcatSegment objects defining the concatenation order
+        upload_paths: Dictionary mapping upload indices to their temporary file paths
+        output_path: Where to save the concatenated result
+        outputs_dir: Directory containing server files
+        normalize_levels: Whether to normalize audio levels
+        crossfade_ms: Crossfade duration between audio segments
+        trim: Whether to trim silence from audio files before concatenation
+        trim_threshold_ms: Silence threshold for trimming
+        pause_duration_ms: Natural pause duration between audio files (when no manual silence)
+        pause_variation_ms: Randomization range for natural pauses
+    
+    Returns:
+        Dictionary with concatenation metadata
+    """
+    from datetime import datetime
+
+    try:
+        from pydub import AudioSegment
+        import librosa
+        import soundfile as sf
+        import random
+        import re
+        
+        start_time = time.time()
+        
+        logger.info(f"Starting mixed source concatenation with {len(segments)} segments")
+        
+        # Check if we have any manual silence (affects pause behavior)
+        has_manual_silence = any(seg.type == 'silence' for seg in segments)
+        
+        # Process segments and build concatenation queue
+        audio_segments = []
+        audio_segment_count = 0
+        silence_count = 0
+        processing_metadata = []
+        
+        for i, segment in enumerate(segments):
+            if segment.type == 'server_file':
+                # Load server file
+                file_path = outputs_dir / segment.source
+                logger.debug(f"Loading server file: {file_path}")
+                
+                if trim:
+                    # Apply trimming to server file
+                    audio_segment = AudioSegment.from_file(str(file_path))
+                    trim_result = apply_audio_trimming(audio_segment, segment.source, trim_threshold_ms)
+                    audio_segment = trim_result["audio_segment"]
+                    # Extract serializable trim info (exclude AudioSegment object)
+                    trim_info = {k: v for k, v in trim_result.items() if k != "audio_segment"}
+                    processing_metadata.append({
+                        "segment_index": i,
+                        "type": "server_file",
+                        "source": segment.source,
+                        "trim_info": trim_info
+                    })
+                else:
+                    audio_segment = AudioSegment.from_file(str(file_path))
+                    processing_metadata.append({
+                        "segment_index": i,
+                        "type": "server_file",
+                        "source": segment.source,
+                        "trim_info": {"trimmed": False}
+                    })
+                
+                if normalize_levels:
+                    audio_segment = audio_segment.normalize()
+                
+                audio_segments.append(audio_segment)
+                audio_segment_count += 1
+                
+            elif segment.type == 'upload':
+                # Load uploaded file
+                upload_path = upload_paths[segment.index]
+                logger.debug(f"Loading uploaded file: {upload_path}")
+                
+                if trim:
+                    # Apply trimming to uploaded file
+                    audio_segment = AudioSegment.from_file(str(upload_path))
+                    trim_result = apply_audio_trimming(audio_segment, str(upload_path.name), trim_threshold_ms)
+                    audio_segment = trim_result["audio_segment"]
+                    # Extract serializable trim info (exclude AudioSegment object)
+                    trim_info = {k: v for k, v in trim_result.items() if k != "audio_segment"}
+                    processing_metadata.append({
+                        "segment_index": i,
+                        "type": "upload",
+                        "index": segment.index,
+                        "source": str(upload_path.name),
+                        "trim_info": trim_info
+                    })
+                else:
+                    audio_segment = AudioSegment.from_file(str(upload_path))
+                    processing_metadata.append({
+                        "segment_index": i,
+                        "type": "upload",
+                        "index": segment.index,
+                        "source": str(upload_path.name),
+                        "trim_info": {"trimmed": False}
+                    })
+                
+                if normalize_levels:
+                    audio_segment = audio_segment.normalize()
+                
+                audio_segments.append(audio_segment)
+                audio_segment_count += 1
+                
+            elif segment.type == 'silence':
+                # Parse silence duration
+                silence_pattern = re.compile(r'^\((\d+(?:\.\d+)?)(ms|s)\)$')
+                match = silence_pattern.match(segment.source)
+                if not match:
+                    raise ValueError(f"Invalid silence notation: {segment.source}")
+                
+                duration_value = float(match.group(1))
+                unit = match.group(2)
+                duration_ms = duration_value * 1000 if unit == 's' else duration_value
+                
+                # Generate silence segment
+                silence_segment = AudioSegment.silent(duration=int(duration_ms))
+                audio_segments.append(silence_segment)
+                silence_count += 1
+                
+                processing_metadata.append({
+                    "segment_index": i,
+                    "type": "silence",
+                    "source": segment.source,
+                    "duration_ms": duration_ms
+                })
+                
+                logger.debug(f"Generated silence: {duration_ms}ms")
+        
+        # Build final concatenated audio with proper gap handling
+        logger.info(f"Concatenating {len(audio_segments)} segments (audio: {audio_segment_count}, silence: {silence_count})")
+        
+        if len(audio_segments) == 0:
+            raise ValueError("No audio segments to concatenate")
+        
+        # Start with first segment
+        final_audio = audio_segments[0]
+        
+        # Process remaining segments with gap logic
+        for i in range(1, len(audio_segments)):
+            current_segment = audio_segments[i]
+            prev_segment_info = processing_metadata[i-1]
+            current_segment_info = processing_metadata[i]
+            
+            # Determine what goes between segments
+            gap_audio = None
+            
+            # Check if there was an explicit silence between these segments
+            if (i > 1 and processing_metadata[i-1]["type"] == "silence"):
+                # Previous segment was silence, no additional gap needed
+                gap_audio = None
+            elif not has_manual_silence and pause_duration_ms > 0:
+                # Add natural pause between consecutive audio segments
+                if (prev_segment_info["type"] in ["server_file", "upload"] and 
+                    current_segment_info["type"] in ["server_file", "upload"]):
+                    
+                    # Calculate pause with variation
+                    if pause_variation_ms > 0:
+                        variation = random.randint(-pause_variation_ms, pause_variation_ms)
+                        actual_pause_ms = max(50, pause_duration_ms + variation)
+                    else:
+                        actual_pause_ms = pause_duration_ms
+                    
+                    gap_audio = AudioSegment.silent(duration=actual_pause_ms)
+                    logger.debug(f"Added natural pause: {actual_pause_ms}ms between segments {i-1} and {i}")
+            
+            # Apply crossfading if specified (only between audio segments, not silence)
+            if (crossfade_ms > 0 and gap_audio is None and 
+                prev_segment_info["type"] in ["server_file", "upload"] and 
+                current_segment_info["type"] in ["server_file", "upload"]):
+                
+                # Apply crossfade
+                crossfade_duration = min(crossfade_ms, len(final_audio), len(current_segment))
+                final_audio = final_audio.append(current_segment, crossfade=crossfade_duration)
+                logger.debug(f"Applied crossfade: {crossfade_duration}ms between segments {i-1} and {i}")
+            else:
+                # Standard concatenation (with optional gap)
+                if gap_audio:
+                    final_audio = final_audio + gap_audio
+                final_audio = final_audio + current_segment
+        
+        # Export the final audio
+        logger.info(f"Exporting concatenated audio to {output_path}")
+        final_audio.export(str(output_path), format=output_path.suffix[1:])
+        
+        # Calculate metadata
+        processing_time = time.time() - start_time
+        total_duration_seconds = len(final_audio) / 1000.0
+        
+        # Prepare generation info
+        generation_info = {
+            "processing_time_seconds": processing_time,
+            "total_duration_seconds": total_duration_seconds,
+            "audio_segment_count": audio_segment_count,
+            "silence_segment_count": silence_count,
+            "crossfade_applied": crossfade_ms > 0,
+            "normalization_applied": normalize_levels,
+            "trim_applied": trim,
+            "manual_silence_mode": has_manual_silence
+        }
+        
+        if trim:
+            # Add trim statistics
+            trim_stats = {
+                "files_trimmed": sum(1 for meta in processing_metadata 
+                                   if meta.get("trim_info", {}).get("trimmed", False)),
+                "total_silence_removed_ms": sum(
+                    meta.get("trim_info", {}).get("leading_silence_removed_ms", 0) +
+                    meta.get("trim_info", {}).get("trailing_silence_removed_ms", 0)
+                    for meta in processing_metadata
+                )
+            }
+            generation_info.update(trim_stats)
+        
+        if not has_manual_silence and pause_duration_ms > 0:
+            generation_info.update({
+                "natural_pauses_added": sum(1 for i in range(1, len(processing_metadata))
+                                          if (processing_metadata[i-1]["type"] in ["server_file", "upload"] and
+                                              processing_metadata[i]["type"] in ["server_file", "upload"])),
+                "pause_duration_ms": pause_duration_ms,
+                "pause_variation_ms": pause_variation_ms
+            })
+        
+        logger.info(f"Mixed source concatenation completed in {processing_time:.2f}s")
+        logger.info(f"Result: {total_duration_seconds:.2f}s audio from {audio_segment_count} files + {silence_count} silence segments")
+        
+        return {
+            "type": "concat",
+            "timestamp": datetime.now().isoformat(),
+            "total_duration_seconds": total_duration_seconds,
+            "processing_time_seconds": processing_time,
+            "generation_info": generation_info,
+            "processing_metadata": processing_metadata
+        }
+        
+    except Exception as e:
+        logger.error(f"Mixed source concatenation failed: {e}")
+        raise
 

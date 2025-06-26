@@ -405,3 +405,125 @@ class ConcatResponse(BaseModel):
     file_count: int = 0
     processing_time_seconds: Optional[float] = None
     metadata: Optional[Dict[str, Any]] = None
+
+
+# Enhanced Audio Concatenation Models (Mixed Files + Uploads)
+class MixedConcatSegment(BaseModel):
+    """Represents a single segment in mixed file concatenation"""
+    type: str = Field(..., description="Segment type: 'server_file', 'upload', or 'silence'")
+    source: Optional[str] = Field(None, description="For server_file: filename; for silence: duration notation like '(500ms)'")
+    index: Optional[int] = Field(None, description="For upload: index in uploaded files array")
+
+    @field_validator('type')
+    @classmethod
+    def validate_segment_type(cls, v):
+        valid_types = {'server_file', 'upload', 'silence'}
+        if v not in valid_types:
+            raise ValueError(f"Invalid segment type: {v}. Must be one of {valid_types}")
+        return v
+
+    @field_validator('source')
+    @classmethod
+    def validate_source(cls, v, info):
+        segment_type = info.data.get('type')
+        if segment_type == 'silence':
+            if not v:
+                raise ValueError("Silence segments must specify duration in source field")
+            import re
+            silence_pattern = re.compile(r'^\((\d+(?:\.\d+)?)(ms|s)\)$')
+            if not silence_pattern.match(v):
+                raise ValueError(f"Invalid silence notation: {v}. Use format '(duration[ms|s])'")
+            # Validate duration range
+            match = silence_pattern.match(v)
+            duration_value = float(match.group(1))
+            unit = match.group(2)
+            duration_ms = duration_value * 1000 if unit == 's' else duration_value
+            if not (50 <= duration_ms <= 10000):
+                raise ValueError(f"Silence duration must be between 50ms and 10s: {v}")
+        elif segment_type == 'server_file':
+            if not v:
+                raise ValueError("Server file segments must specify filename in source field")
+        elif segment_type == 'upload':
+            if v is not None:
+                raise ValueError("Upload segments should not specify source field (use index instead)")
+        return v
+
+    @field_validator('index')
+    @classmethod
+    def validate_index(cls, v, info):
+        segment_type = info.data.get('type')
+        if segment_type == 'upload':
+            if v is None:
+                raise ValueError("Upload segments must specify index field")
+            if v < 0:
+                raise ValueError("Upload index must be non-negative")
+        elif segment_type in ['server_file', 'silence']:
+            if v is not None:
+                raise ValueError(f"{segment_type} segments should not specify index field")
+        return v
+
+
+class MixedConcatRequest(BaseModel):
+    """Request model for mixed file concatenation (server files + uploads)"""
+    segments: List[MixedConcatSegment] = Field(
+        ...,
+        min_length=1,
+        description="Ordered list of segments to concatenate",
+        examples=[
+            [
+                {"type": "server_file", "source": "intro.wav"},
+                {"type": "upload", "index": 0},
+                {"type": "silence", "source": "(500ms)"},
+                {"type": "server_file", "source": "outro.wav"}
+            ]
+        ]
+    )
+    export_formats: List[str] = Field(default=["wav"], description="Output formats")
+    normalize_levels: bool = Field(default=True, description="Normalize audio levels")
+    crossfade_ms: int = Field(default=0, ge=0, le=5000, description="Crossfade duration in milliseconds")
+    pause_duration_ms: int = Field(default=0, ge=0, le=3000, description="Base pause duration between clips in milliseconds (0 = no pause, ignored when using manual silence)")
+    pause_variation_ms: int = Field(default=200, ge=0, le=500, description="Random variation in pause duration (+/-) in milliseconds (ignored when using manual silence)")
+    trim: bool = Field(default=False, description="Remove extraneous silence from input files before concatenation")
+    trim_threshold_ms: int = Field(default=200, ge=50, le=1000, description="Minimum silence duration (ms) to consider for trimming")
+    output_filename: Optional[str] = Field(None, description="Custom output filename (without extension)")
+
+    @field_validator('export_formats')
+    @classmethod
+    def validate_export_formats(cls, v):
+        valid_formats = {'wav', 'mp3', 'flac'}
+        for fmt in v:
+            if fmt not in valid_formats:
+                raise ValueError(f"Invalid format: {fmt}. Must be one of {valid_formats}")
+        return v
+
+    @field_validator('segments')
+    @classmethod
+    def validate_segments(cls, v):
+        if not v:
+            raise ValueError("Segments array cannot be empty")
+        
+        # Count actual audio segments (exclude silence)
+        audio_segment_count = sum(1 for seg in v if seg.type in ['server_file', 'upload'])
+        
+        if audio_segment_count == 0:
+            raise ValueError("At least one audio segment required (silence-only concatenation not allowed)")
+        
+        # Validate upload indices are within reasonable range and consecutive
+        upload_indices = [seg.index for seg in v if seg.type == 'upload' and seg.index is not None]
+        if upload_indices:
+            max_index = max(upload_indices)
+            expected_indices = set(range(max_index + 1))
+            actual_indices = set(upload_indices)
+            if actual_indices != expected_indices:
+                raise ValueError(f"Upload indices must be consecutive starting from 0. Expected: {sorted(expected_indices)}, Found: {sorted(actual_indices)}")
+        
+        return v
+
+    @field_validator('pause_variation_ms')
+    @classmethod
+    def validate_pause_variation(cls, v, info):
+        if 'pause_duration_ms' in info.data:
+            base_duration = info.data['pause_duration_ms']
+            if base_duration > 0 and v >= base_duration:
+                raise ValueError("Pause variation must be less than base pause duration when pause is enabled")
+        return v

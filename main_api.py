@@ -6,7 +6,7 @@ import time as time_module
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union, Optional, List
 
 from fastapi import FastAPI, HTTPException, Request, Query, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
@@ -20,7 +20,7 @@ from api_models import (
     VoicesResponse, VoiceInfo, VoiceMetadata, ErrorSummaryResponse,
     VoiceUploadRequest, VoiceUploadResponse, GeneratedFileMetadata, GeneratedFilesResponse,
     VoiceMetadataUpdateRequest, VoiceDeletionResponse, VoiceFolderInfo, VoiceFoldersResponse,
-    ConcatRequest, ConcatResponse
+    ConcatRequest, ConcatResponse, MixedConcatSegment, MixedConcatRequest
 )
 from core_engine import engine_sync, get_or_load_tts_model, get_or_load_vc_model
 from config import config_manager
@@ -861,6 +861,7 @@ async def concatenate_audio(
         }
         
         # Include pause parameters only if not using manual silence
+        # TODO: We want to  use pause duration between two files without manual silence
         if not has_manual_silence:
             concat_params.update({
                 "pause_duration_ms": request.pause_duration_ms,
@@ -959,6 +960,7 @@ async def concatenate_audio(
             }
             
             # Add pause parameters only if not using manual silence
+            # TODO: We want to  use pause duration between two files without manual silence
             if not has_manual_silence:
                 metadata_to_save["parameters"].update({
                     "pause_duration_ms": request.pause_duration_ms,
@@ -1013,6 +1015,276 @@ async def concatenate_audio(
     except Exception as e:
         logger.error(f"Concatenation failed: {e}")
         raise GenerationError(f"Audio concatenation failed: {e}")
+
+
+@app.post("/api/v1/concat/mixed", response_model=ConcatResponse)
+async def concatenate_mixed_audio(
+    request_json: str = Form(..., description="JSON string of MixedConcatRequest"),
+    uploaded_files: List[UploadFile] = File(default=[], description="Audio files to upload"),
+    response_mode: str = Query("stream", description="Response mode: 'stream' or 'url'")
+):
+    """
+    Concatenate audio files from mixed sources (server files + uploads + silence)
+    
+    Supports combining files from the outputs directory with uploaded files and manual silence.
+    Use segments array to specify order and source type for each segment.
+    """
+    start_time = time_module.time()
+    temp_files = []  # Track temporary files for cleanup
+    
+    try:
+        # Parse the JSON request
+        import json
+        try:
+            request_data = json.loads(request_json)
+            request = MixedConcatRequest(**request_data)
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON in request: {e}")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid request format: {e}")
+        
+        # Import concatenation functions
+        from utils import concatenate_with_mixed_sources, generate_enhanced_filename, save_generation_metadata
+        
+        outputs_dir = Path(config_manager.get("paths.output_dir", "outputs"))
+        temp_dir = Path(config_manager.get("paths.temp_dir", "temp"))
+        temp_dir.mkdir(exist_ok=True)
+        
+        # Validate that uploaded files match the expected upload segments
+        upload_segments = [seg for seg in request.segments if seg.type == 'upload']
+        max_upload_index = max([seg.index for seg in upload_segments], default=-1)
+        
+        if max_upload_index >= 0:
+            expected_upload_count = max_upload_index + 1
+            if len(uploaded_files) != expected_upload_count:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Expected {expected_upload_count} uploaded files, got {len(uploaded_files)}"
+                )
+        
+        # Process uploaded files and save to temp directory
+        upload_paths = {}
+        for i, uploaded_file in enumerate(uploaded_files):
+            # Validate file type
+            if not uploaded_file.content_type or not uploaded_file.content_type.startswith('audio/'):
+                if not uploaded_file.filename or not any(uploaded_file.filename.lower().endswith(ext) for ext in ['.wav', '.mp3', '.flac', '.ogg', '.m4a']):
+                    raise HTTPException(status_code=400, detail=f"Invalid audio file: {uploaded_file.filename}")
+            
+            # Save uploaded file to temp directory
+            file_extension = Path(uploaded_file.filename).suffix if uploaded_file.filename else '.wav'
+            temp_filename = f"upload_{i}_{int(time_module.time() * 1000)}{file_extension}"
+            temp_path = temp_dir / temp_filename
+            
+            try:
+                with open(temp_path, "wb") as temp_file:
+                    content = await uploaded_file.read()
+                    temp_file.write(content)
+                temp_files.append(temp_path)
+                upload_paths[i] = temp_path
+                
+                logger.info(f"Saved uploaded file {i} as {temp_filename} ({len(content)} bytes)")
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Failed to save uploaded file {i}: {e}")
+        
+        # Check if we have any silence notation (manual silence mode)
+        has_manual_silence = any(seg.type == 'silence' for seg in request.segments)
+        
+        # Validate and collect segment information
+        source_files_info = []
+        audio_segment_count = 0
+        silence_count = 0
+        
+        for seg in request.segments:
+            if seg.type == 'server_file':
+                file_path = outputs_dir / seg.source
+                if not file_path.exists():
+                    raise HTTPException(status_code=404, detail=f"Server file not found: {seg.source}")
+                
+                # Check if it's an audio file
+                audio_extensions = {'.wav', '.mp3', '.flac', '.ogg', '.m4a'}
+                if file_path.suffix.lower() not in audio_extensions:
+                    raise HTTPException(status_code=400, detail=f"Not an audio file: {seg.source}")
+                
+                source_files_info.append({
+                    "type": "server_file",
+                    "filename": seg.source,
+                    "size_bytes": file_path.stat().st_size
+                })
+                audio_segment_count += 1
+                
+            elif seg.type == 'upload':
+                if seg.index not in upload_paths:
+                    raise HTTPException(status_code=400, detail=f"Upload file with index {seg.index} not found")
+                
+                upload_path = upload_paths[seg.index]
+                source_files_info.append({
+                    "type": "upload",
+                    "index": seg.index,
+                    "filename": f"upload_{seg.index}_{upload_path.name}",
+                    "size_bytes": upload_path.stat().st_size
+                })
+                audio_segment_count += 1
+                
+            elif seg.type == 'silence':
+                silence_count += 1
+        
+        # Prepare metadata for filename generation
+        filename_metadata = {
+            "file_count": audio_segment_count,
+            "silence_segments": silence_count,
+            "upload_count": len(uploaded_files),
+            "crossfade_ms": request.crossfade_ms,
+            "normalize_levels": request.normalize_levels,
+            "manual_silence": has_manual_silence
+        }
+        
+        # Include pause parameters only if not using manual silence
+        # TODO: We want to  use pause duration between two files without manual silence
+        if not has_manual_silence:
+            filename_metadata.update({
+                "pause_duration_ms": request.pause_duration_ms,
+                "pause_variation_ms": request.pause_variation_ms
+            })
+        
+        # Include trimming parameters
+        filename_metadata.update({
+            "trim": request.trim,
+            "trim_threshold_ms": request.trim_threshold_ms
+        })
+        
+        # Generate output filenames for each format
+        output_files = []
+        generated_metadata = {}
+        
+        for export_format in request.export_formats:
+            # Generate enhanced filename
+            if request.output_filename:
+                # Use custom filename with timestamp to avoid collisions
+                base_filename = f"{request.output_filename}_{int(time_module.time() * 1000)}"
+            else:
+                # Generate timestamp-based filename
+                base_filename = generate_enhanced_filename("mixed", filename_metadata)
+            
+            # Ensure proper extension
+            if not base_filename.endswith(f".{export_format}"):
+                if '.' in base_filename:
+                    base_filename = base_filename.rsplit('.', 1)[0]
+                base_filename = f"{base_filename}.{export_format}"
+            
+            output_path = outputs_dir / base_filename
+            
+            # Perform concatenation with mixed sources
+            concat_result = concatenate_with_mixed_sources(
+                segments=request.segments,
+                upload_paths=upload_paths,
+                output_path=output_path,
+                outputs_dir=outputs_dir,
+                normalize_levels=request.normalize_levels,
+                crossfade_ms=request.crossfade_ms,
+                trim=request.trim,
+                trim_threshold_ms=request.trim_threshold_ms,
+                pause_duration_ms=request.pause_duration_ms,
+                pause_variation_ms=request.pause_variation_ms
+            )
+            
+            output_files.append(base_filename)
+            
+            if export_format == request.export_formats[0]:  # Store metadata once
+                generated_metadata = concat_result
+        
+        # Save metadata JSON file
+        metadata_to_save = {
+            "type": "concat",
+            "timestamp": generated_metadata.get("timestamp"),
+            "parameters": {
+                "segments": [seg.model_dump() for seg in request.segments],
+                "normalize_levels": request.normalize_levels,
+                "crossfade_ms": request.crossfade_ms,
+                "manual_silence": has_manual_silence,
+                "audio_segment_count": audio_segment_count,
+                "silence_segments": silence_count,
+                "upload_count": len(uploaded_files),
+                "trim": request.trim,
+                "trim_threshold_ms": request.trim_threshold_ms
+            },
+            "generation_info": generated_metadata.get("generation_info", {}),
+            "source_files_info": source_files_info
+        }
+        
+        # Add pause parameters only if not using manual silence
+        if not has_manual_silence:
+            metadata_to_save["parameters"].update({
+                "pause_duration_ms": request.pause_duration_ms,
+                "pause_variation_ms": request.pause_variation_ms
+            })
+        
+        save_generation_metadata(outputs_dir / output_files[0], metadata_to_save)
+        
+        # Record operation time
+        operation_time_ms = (time_module.time() - start_time) * 1000
+        record_operation_time("concatenation_mixed", operation_time_ms)
+        
+        # Prepare response
+        response_data = ConcatResponse(
+            output_files=output_files,
+            total_duration_seconds=generated_metadata.get("total_duration_seconds"),
+            file_count=audio_segment_count,
+            processing_time_seconds=generated_metadata.get("processing_time_seconds"),
+            metadata=generated_metadata
+        )
+        
+        # Handle response mode
+        if response_mode == "stream" and len(output_files) == 1:
+            # Stream the first (primary) file
+            primary_file = outputs_dir / output_files[0]
+            if primary_file.exists():
+                # Ensure file is fully written to disk
+                import os
+                try:
+                    # Force file system sync to ensure data is written
+                    fd = os.open(str(primary_file), os.O_RDONLY)
+                    os.fsync(fd)
+                    os.close(fd)
+                except Exception as sync_error:
+                    logger.warning(f"File sync failed: {sync_error}")
+                
+                def file_streamer():
+                    with open(primary_file, "rb") as f:
+                        while chunk := f.read(8192):
+                            yield chunk
+                
+                # Determine content type
+                content_type = "audio/wav"
+                if primary_file.suffix.lower() == ".mp3":
+                    content_type = "audio/mpeg"
+                elif primary_file.suffix.lower() == ".flac":
+                    content_type = "audio/flac"
+                
+                return StreamingResponse(
+                    file_streamer(),
+                    media_type=content_type,
+                    headers={
+                        "Content-Disposition": f"attachment; filename={primary_file.name}"
+                    }
+                )
+        
+        # Default: return URL-based response
+        return response_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Mixed concatenation failed: {e}")
+        raise GenerationError(f"Mixed audio concatenation failed: {e}")
+    finally:
+        # Cleanup temporary files
+        for temp_file in temp_files:
+            try:
+                if temp_file.exists():
+                    temp_file.unlink()
+                    logger.debug(f"Cleaned up temp file: {temp_file}")
+            except Exception as e:
+                logger.warning(f"Failed to cleanup temp file {temp_file}: {e}")
 
 
 @app.get("/api/v1/resources")

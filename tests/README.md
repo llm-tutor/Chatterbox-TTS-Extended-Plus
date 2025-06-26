@@ -2,6 +2,29 @@
 
 This folder contains comprehensive test clients for the API implementation across multiple phases.
 
+## Utility Scripts
+
+### `generate_test_files.py` - Test Audio Generation Utility
+```bash
+cd tests && python generate_test_files.py
+```
+**Purpose**: Generates small TTS audio files for concatenation testing  
+**Function**: Creates 5 small test audio files using different texts and seeds  
+**Output**: WAV files saved to `outputs/` directory for use in concatenation tests  
+**Usage**: Run before mixed concatenation tests to ensure sufficient test files exist  
+**Features**:
+- Different seed values for each file (100, 200, 300, 400, 500)
+- Short, distinct text content for easy identification
+- Progress reporting with file size information
+- Automatic timeout and error handling
+
+**Generated Test Texts**:
+1. "This is the first test audio file."
+2. "Here is the second test audio for concatenation."
+3. "Third audio file for mixed concatenation testing."
+4. "Fourth test file to ensure we have enough samples."
+5. "Fifth and final test audio for comprehensive testing."
+
 ## Core Test Files
 
 ### Phase 9 - Core Response & Upload Enhancement
@@ -19,6 +42,43 @@ This folder contains comprehensive test clients for the API implementation acros
 - `test_phase10_task_10_4_outputs_listing.py` - Generated files listing testing
 - `test_phase10_task_10_3_enhanced.py` - Enhanced voice management (delete/update/folders)
 - `test_phase10_comprehensive.py` - Complete Phase 10 integration testing
+
+### Phase 11 - Audio Concatenation System
+- `test_phase11_5_mixed_concatenation.py` - Mixed source concatenation (server files + uploads + silence)
+
+#### **Mixed Source Concatenation Testing** (`test_phase11_5_mixed_concatenation.py`)
+```bash
+cd tests && python test_phase11_5_mixed_concatenation.py
+```
+**Advanced concatenation with mixed inputs**:
+- **Server files + uploads**: Combine files from outputs/ directory with direct uploads
+- **Manual silence insertion**: Precise silence control with notation like "(500ms)" or "(1.2s)"
+- **Advanced processing**: Crossfading, trimming, normalization, multiple output formats
+- **Natural pauses**: Randomized pause insertion between consecutive audio files
+- **URL and streaming modes**: Both direct download and JSON metadata responses
+
+**Key Test Scenarios**:
+1. **Server files only**: Multiple files from outputs/ with silence and processing
+2. **Mixed sources**: Combine uploads + server files with manual silence
+3. **Natural pauses**: Automatic pause insertion with variation
+4. **Complex scenario**: 11 segments with uploads, server files, and silence
+5. **URL response mode**: JSON metadata instead of file streaming
+6. **Validation testing**: Error handling for missing files and invalid input
+
+**⚠️ Known Issues (to be fixed later)**:
+- **Tests 2 & 4**: Downloaded files are partially truncated (1-3KB instead of full size)
+  - Server-side files in outputs/ are generated correctly with proper sizes
+  - Issue appears to be in the streaming response for complex mixed operations
+- **MP3 duration mismatch**: In Test 4, the MP3 version has different duration than WAV/FLAC
+  - Example: WAV/FLAC = 26.55s, MP3 = 46.18s for same content
+  - May be related to MP3 encoding or metadata differences
+
+**Working Features**:
+- ✅ All validation and error scenarios work correctly
+- ✅ Server-side concatenation logic produces correct files
+- ✅ Simple concatenations (Test 1, 3, 5) stream properly
+- ✅ URL response mode returns complete metadata
+- ✅ Small file operations work perfectly
 
 ### Legacy/Reference Tests
 - `test_api_basic.py` - Basic API functionality

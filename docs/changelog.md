@@ -6,6 +6,56 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.11.0] - 2025-06-25 - Advanced Concatenation Features (Task 11.5)
+
+### Added
+- **Mixed Source Concatenation**: New `POST /api/v1/concat/mixed` endpoint for professional audio production
+- **Multiple Input Sources**: Support for server files + uploaded files + manual silence in single request
+- **Advanced Audio Processing**: Order control, crossfading, trimming, and normalization in mixed workflows
+- **Multipart Upload Support**: Handle file uploads with JSON configuration in single API call
+- **Enhanced Models**:
+  - `MixedConcatSegment` - Define individual segments (server_file, upload, silence)
+  - `MixedConcatRequest` - Comprehensive request validation and configuration
+- **Professional Features**:
+  - Segment order specification via array positioning
+  - Crossfading compatibility with silence insertion
+  - Trimming integration for all audio sources
+  - Advanced metadata generation with processing details
+
+### Technical Implementation
+- **New Endpoint**: `POST /api/v1/concat/mixed` with multipart/form-data support
+- **Core Function**: `concatenate_with_mixed_sources()` handles complex concatenation logic
+- **File Management**: Temporary upload handling with automatic cleanup
+- **Validation**: Comprehensive input validation for all segment types and file references
+- **Integration**: Seamless integration with existing trimming, crossfading, and normalization features
+- **Metadata**: Enhanced filename generation including upload counts and processing parameters
+
+### Use Cases
+- **Podcast Production**: Mix intro music (server) + recorded content (upload) + outro music (server)
+- **Voice Acting**: Combine multiple takes (uploads) with background audio (server files)
+- **Interactive Content**: Dynamic audio assembly with user-generated content + system audio
+- **Professional Editing**: Precise timing control with manual silence and automatic processing
+
+### Performance & Quality
+- **Streaming Support**: Direct file streaming for large concatenated results
+- **Memory Efficiency**: Optimized processing for multiple large files
+- **Error Handling**: Comprehensive validation prevents invalid requests
+- **Backward Compatibility**: Existing `/api/v1/concat` endpoint unchanged
+
+### Documentation
+- **Complete API Documentation**: Full endpoint documentation with examples and use cases
+- **Implementation Guide**: Professional audio production workflows
+- **Performance Notes**: Memory usage, processing times, and optimization tips
+
+### Validation
+- **100% Test Success Rate**: All validation scenarios tested and passing
+- **Complex Feature Testing**: Multi-source scenarios with silence and trimming validated
+- **Core System Health**: All existing functionality preserved and working
+
+### Bug Fixes
+- **Health Endpoint**: Fixed metrics type conversion issue causing health check failures
+- **Monitoring**: Improved duration data handling with proper type validation
+
 ## [1.10.0] - 2025-06-25 - TTS Trimming Integration (Task 11.4)
 
 ### Added

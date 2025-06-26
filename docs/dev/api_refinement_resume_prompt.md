@@ -22,7 +22,8 @@ Please read and analyze the following documents to understand the current projec
    `docs/dev/concat_parameter_interaction_design.md` - Comprehensive analysis of parameter interactions in `/api/v1/concat` endpoint (Task 11.3.1)
 
 ## Implementation Standards Reference
-> **📖 Complete protocols**: See [`docs/dev/implementation-protocols.md`](implementation-protocols.md)
+> **📖 Complete protocols**: Read [`docs/dev/implementation-protocols.md`](implementation-protocols.md)
+
 ### Development Environment (see complete protocols)
 
 ### Environment Guidelines & Testing (see complete protocols)

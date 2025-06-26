@@ -326,6 +326,12 @@ python scripts/test_core_examples.py  # 2-3 minutes
 python scripts/check_links.py        # 30 seconds
 python scripts/sync_openapi.py       # 10 seconds
 ```
+As MCP commands they may look like:
+```bash
+  `command`: `cd E:\\Repos\\Chatterbox-TTS-Extended-Plus; git status`,
+  `timeout_ms`: 30000
+```
+
 
 ### Phase Completion Protocol
 Before marking a phase complete:
