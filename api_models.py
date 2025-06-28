@@ -328,6 +328,51 @@ class VoiceFoldersResponse(BaseModel):
     total_voices: int
 
 
+# VC Input Upload Models
+class VCInputUploadRequest(BaseModel):
+    """Request model for VC input upload (metadata part)"""
+    text: Optional[str] = Field(None, description="Content description of the audio file")
+    folder_path: Optional[str] = Field(None, description="Folder organization path", alias="project")
+    overwrite: bool = Field(False, description="Overwrite existing VC input file")
+
+
+class VCInputMetadata(BaseModel):
+    """Metadata for VC input files"""
+    filename: str
+    folder_path: Optional[str] = None
+    text: Optional[str] = None
+    file_size_bytes: int
+    duration_seconds: float
+    sample_rate: int
+    format: str
+    created_date: str
+    upload_date: str
+
+
+class VCInputUploadResponse(BaseModel):
+    """Response model for VC input upload"""
+    success: bool = True
+    message: str = "VC input uploaded successfully"
+    metadata: VCInputMetadata
+    filename: str
+
+
+class VCInputDeletionResponse(BaseModel):
+    """Response model for VC input deletion"""
+    success: bool = True
+    message: str = "VC input deleted successfully"
+    deleted_files: List[str] = Field(default_factory=list, description="List of deleted files")
+    deleted_count: int = 0
+
+
+class OutputDeletionResponse(BaseModel):
+    """Response model for output file deletion"""
+    success: bool = True
+    message: str = "Output deleted successfully"
+    deleted_files: List[str] = Field(default_factory=list, description="List of deleted files")
+    deleted_count: int = 0
+
+
 # Generated Files Models
 class GeneratedFileMetadata(BaseModel):
     """Metadata for generated audio files"""

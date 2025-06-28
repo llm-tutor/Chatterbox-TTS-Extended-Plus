@@ -255,6 +255,206 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/v1/vc_input:
+    post:
+      summary: Upload VC Input File
+      description: Upload a new VC input file with metadata
+      operationId: uploadVCInput
+      tags:
+        - Voice Conversion
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                vc_input_file:
+                  type: string
+                  format: binary
+                  description: VC input audio file
+                text:
+                  type: string
+                  description: Content description of the audio file
+                folder_path:
+                  type: string
+                  description: Folder organization path
+                project:
+                  type: string
+                  description: Alias for folder_path
+                overwrite:
+                  type: boolean
+                  default: false
+                  description: Overwrite existing VC input file
+              required:
+                - vc_input_file
+      responses:
+        '200':
+          description: VC input uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VCInputUploadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+    delete:
+      summary: Delete VC Input File
+      description: Delete a specific VC input file
+      operationId: deleteVCInput
+      tags:
+        - Voice Conversion
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+          description: VC input filename to delete
+        - name: confirm
+          in: query
+          required: true
+          schema:
+            type: boolean
+          description: Confirmation required to delete VC input
+      responses:
+        '200':
+          description: VC input deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VCInputDeletionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/vc_inputs:
+    delete:
+      summary: Bulk Delete VC Inputs
+      description: Delete multiple VC inputs based on criteria
+      operationId: bulkDeleteVCInputs
+      tags:
+        - Voice Conversion
+      parameters:
+        - name: confirm
+          in: query
+          required: true
+          schema:
+            type: boolean
+          description: Confirmation required to delete VC inputs
+        - name: folder
+          in: query
+          schema:
+            type: string
+          description: Delete VC inputs in specific folder
+        - name: project
+          in: query
+          schema:
+            type: string
+          description: Alias for folder parameter
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Delete VC inputs matching search term
+        - name: filenames
+          in: query
+          schema:
+            type: string
+          description: Comma-separated list of filenames to delete
+      responses:
+        '200':
+          description: VC inputs deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VCInputDeletionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/output/{filename}:
+    delete:
+      summary: Delete Output File
+      description: Delete a specific output file
+      operationId: deleteOutput
+      tags:
+        - Files
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Output filename to delete
+        - name: confirm
+          in: query
+          required: true
+          schema:
+            type: boolean
+          description: Confirmation required to delete output
+      responses:
+        '200':
+          description: Output deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputDeletionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/outputs:
+    delete:
+      summary: Bulk Delete Outputs
+      description: Delete multiple outputs based on criteria
+      operationId: bulkDeleteOutputs
+      tags:
+        - Files
+      parameters:
+        - name: confirm
+          in: query
+          required: true
+          schema:
+            type: boolean
+          description: Confirmation required to delete outputs
+        - name: folder
+          in: query
+          schema:
+            type: string
+          description: Delete outputs in specific folder
+        - name: project
+          in: query
+          schema:
+            type: string
+          description: Alias for folder parameter
+        - name: generation_type
+          in: query
+          schema:
+            type: string
+            enum: [tts, vc, concat]
+          description: Delete outputs of specific type
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Delete outputs matching search term
+        - name: filenames
+          in: query
+          schema:
+            type: string
+          description: Comma-separated list of filenames to delete
+      responses:
+        '200':
+          description: Outputs deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutputDeletionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
   /api/v1/tts:
     post:
       summary: Text-to-Speech Generation
@@ -940,6 +1140,73 @@ components:
         default_parameters:
           type: object
           description: Default TTS parameters for this voice
+
+    VCInputUploadResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        metadata:
+          $ref: '#/components/schemas/VCInputMetadata'
+        filename:
+          type: string
+
+    VCInputMetadata:
+      type: object
+      properties:
+        filename:
+          type: string
+        folder_path:
+          type: string
+          nullable: true
+        text:
+          type: string
+          nullable: true
+        file_size_bytes:
+          type: integer
+        duration_seconds:
+          type: number
+        sample_rate:
+          type: integer
+        format:
+          type: string
+        created_date:
+          type: string
+        upload_date:
+          type: string
+
+    VCInputDeletionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        deleted_files:
+          type: array
+          items:
+            type: string
+        deleted_count:
+          type: integer
+
+    OutputDeletionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: true
+        message:
+          type: string
+        deleted_files:
+          type: array
+          items:
+            type: string
+        deleted_count:
+          type: integer
 
     VoiceFoldersResponse:
       type: object

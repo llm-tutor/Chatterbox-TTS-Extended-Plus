@@ -477,6 +477,24 @@ outputs/
 - Process shorter audio segments
 - Check available RAM
 
+## Related Endpoints
+
+### VC Input Management
+
+For managing VC input files, see the [File Operations](file-operations.md) documentation:
+
+- **POST** `/api/v1/vc_input` - Upload new VC input files with metadata
+- **GET** `/api/v1/vc_inputs` - List available VC input files with filtering and search
+- **DELETE** `/api/v1/vc_input/{filename}` - Delete specific VC input files
+- **DELETE** `/api/v1/vc_inputs` - Bulk delete VC inputs based on criteria
+- **GET** `/api/v1/vc_inputs/folders` - Get VC inputs folder structure
+
+These endpoints allow you to:
+- Upload audio files for voice conversion directly via API
+- Organize VC inputs in project folders
+- Search and filter available input files
+- Clean up unused input files
+
 ---
 
 *Need help? Check the [Quick Start Guide](../quick-start.md) or [Error Handling Guide](../guides/error-handling.md)*

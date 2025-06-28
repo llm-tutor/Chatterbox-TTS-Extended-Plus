@@ -482,8 +482,19 @@ outputs/
 
 ## Related Endpoints
 
+### Output Management
+
+For managing TTS-generated files, see the [File Operations](file-operations.md) documentation:
+
+- **GET** `/api/v1/outputs` - List generated TTS files with filtering
+- **DELETE** `/api/v1/output/{filename}` - Delete specific TTS output files
+- **DELETE** `/api/v1/outputs` - Bulk delete TTS outputs based on criteria (use `generation_type=tts`)
+- **GET** `/api/v1/outputs/folders` - Get outputs folder structure
+
+### Other Related Endpoints
+
 - **[Voice Management](voice-management.md)** - Upload and manage reference voices
-- **[File Operations](file-operations.md)** - List and download generated files
+- **[File Operations](file-operations.md)** - Complete file management operations
 - **[Health Check](health.md)** - Verify API status
 
 ## Advanced Features

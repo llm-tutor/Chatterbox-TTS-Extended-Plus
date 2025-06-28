@@ -4,7 +4,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Any, Union, Optional
+from typing import List, Dict, Any, Union, Optional, Tuple
 
 from config import config_manager
 
@@ -175,3 +175,105 @@ def find_files_by_names(outputs_dir: Union[str, Path], filenames: List[str]) -> 
                     break
     
     return found_files
+
+
+def delete_output_file(output_filename: str) -> Tuple[bool, str, List[str]]:
+    """
+    Delete an output file and its metadata
+    
+    Args:
+        output_filename: Name of output file to delete (can include path)
+    
+    Returns:
+        (success, message, deleted_files_list)
+    """
+    outputs_dir = Path(config_manager.get("paths.output_dir", "outputs"))
+    deleted_files = []
+    
+    # Find the output file
+    matches = list(outputs_dir.rglob(output_filename))
+    
+    if not matches:
+        return False, f"Output file not found: {output_filename}", []
+    
+    output_path = matches[0]  # Use first match
+    
+    try:
+        # Delete the main audio file
+        if output_path.exists():
+            output_path.unlink()
+            deleted_files.append(str(output_path.name))
+            logger.info(f"Deleted output file: {output_path}")
+        
+        # Delete metadata file if it exists
+        metadata_path = output_path.with_suffix(output_path.suffix + '.json')
+        if metadata_path.exists():
+            metadata_path.unlink()
+            deleted_files.append(str(metadata_path.name))
+            logger.info(f"Deleted output metadata: {metadata_path}")
+        
+        # Also check for standalone metadata (base_name.json)
+        base_metadata_path = output_path.with_suffix('.json')
+        if base_metadata_path.exists() and base_metadata_path != metadata_path:
+            base_metadata_path.unlink()
+            deleted_files.append(str(base_metadata_path.name))
+            logger.info(f"Deleted output base metadata: {base_metadata_path}")
+        
+        return True, f"Output file '{output_filename}' deleted successfully", deleted_files
+        
+    except Exception as e:
+        logger.error(f"Failed to delete output file: {e}")
+        return False, f"Failed to delete output file: {e}", deleted_files
+
+
+def bulk_delete_outputs(folder: Optional[str] = None,
+                       generation_type: Optional[str] = None,
+                       search: Optional[str] = None,
+                       filenames: Optional[List[str]] = None) -> Tuple[bool, str, List[str]]:
+    """
+    Bulk delete outputs based on criteria
+    
+    Args:
+        folder: Delete outputs in specific folder
+        generation_type: Delete outputs of specific type ('tts', 'vc', 'concat')
+        search: Delete outputs matching search term
+        filenames: Delete specific output filenames
+    
+    Returns:
+        (success, message, deleted_files_list)
+    """
+    outputs_dir = Path(config_manager.get("paths.output_dir", "outputs"))
+    deleted_files = []
+    
+    if not outputs_dir.exists():
+        return False, "Outputs directory not found", []
+    
+    # Get all output files matching criteria
+    all_files = scan_generated_files(outputs_dir, generation_type=generation_type)
+    
+    # Filter by folder
+    if folder:
+        all_files = [f for f in all_files if f.get('folder_path') == folder]
+    
+    # Filter by search term
+    if search:
+        search_lower = search.lower()
+        all_files = [f for f in all_files if search_lower in f['filename'].lower()]
+    
+    # Filter by specific filenames
+    if filenames:
+        all_files = [f for f in all_files if f['filename'] in filenames]
+    
+    if not all_files:
+        return False, "No output files found matching criteria", []
+    
+    # Delete each file
+    total_deleted = 0
+    for file_info in all_files:
+        success, _, file_deleted_list = delete_output_file(file_info['filename'])
+        if success:
+            deleted_files.extend(file_deleted_list)
+            total_deleted += 1
+    
+    message = f"Deleted {total_deleted} output file(s)"
+    return True, message, deleted_files

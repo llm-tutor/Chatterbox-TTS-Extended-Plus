@@ -6,6 +6,60 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.11.0] - 2025-06-27 - Complete File Management System
+
+### Added
+- **NEW: VC Input Upload System** - Direct file upload for voice conversion
+  - Added `POST /api/v1/vc_input` endpoint for uploading VC input files with metadata
+  - Support for `vc_input_file` (required), `text` (description), `project`/`folder_path` (organization), `overwrite` (safety)
+  - Automatic metadata generation: file size, duration, sample rate, format, timestamps
+  - Project folder organization with automatic directory creation
+  - File validation with size limits (50MB) and format checking (WAV, MP3, FLAC, OGG, M4A)
+  - JSON companion files for complete metadata persistence
+
+- **NEW: Comprehensive Deletion Endpoints** - Safe file deletion with confirmation requirements
+  - Added `DELETE /api/v1/vc_input/{filename}` for single VC input file deletion
+  - Added `DELETE /api/v1/vc_inputs` for bulk VC input deletion with filtering
+  - Added `DELETE /api/v1/output/{filename}` for single output file deletion  
+  - Added `DELETE /api/v1/outputs` for bulk output deletion with filtering
+  - Safety confirmation requirement (`confirm=true`) for all deletion operations
+  - Support for filtering by folder/project, generation_type, search terms, and specific filenames
+  - Complete cleanup of both audio files and metadata files
+
+- **NEW: Enhanced File Management Models** - Complete API model coverage
+  - Added `VCInputUploadResponse`, `VCInputDeletionResponse`, `OutputDeletionResponse` models
+  - Added `VCInputMetadata` model with comprehensive file information
+  - Extended utility functions in `utils/vc_inputs/management.py` and `utils/outputs/management.py`
+  - Bulk operation support with detailed response information
+
+### Enhanced
+- **File Operations Documentation** - Complete endpoint coverage in `docs/api/endpoints/file-operations.md`
+  - Added documentation for all new upload and deletion endpoints
+  - Comprehensive examples with curl commands and response formats
+  - Safety guidelines and parameter documentation
+- **Cross-Reference Documentation** - Improved endpoint discoverability
+  - Updated `voice-conversion.md` with VC input management section
+  - Updated `tts.md` with output management section
+  - Enhanced navigation between related endpoints
+
+### Technical
+- **OpenAPI Specification** - Complete API specification updates
+  - Added all new endpoints with proper request/response schemas
+  - Added deletion response models and VC input metadata schemas
+  - Updated endpoint tags and operation IDs for consistency
+- **Validation & Testing** - Comprehensive endpoint validation
+  - Core validation: 100% pass rate (6/6 tests)
+  - Upload functionality: File upload with metadata generation tested
+  - Deletion safety: Confirmation requirements validated
+  - Error handling: Proper validation and error responses confirmed
+  - Documentation integrity: Link validation completed
+
+### Security
+- **Deletion Safety System** - Comprehensive protection against accidental deletion
+  - All deletion endpoints require explicit `confirm=true` parameter
+  - Proper error responses (400) when confirmation is missing
+  - Detailed deletion logging and response information
+
 ## [1.10.0] - 2025-06-28
 
 ### Added

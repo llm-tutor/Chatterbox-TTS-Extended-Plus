@@ -7,8 +7,13 @@ This document covers all file operation endpoints for managing generated files, 
 ### Endpoints in this document:
 - **GET** `/api/v1/outputs` - List generated audio files with metadata and filtering
 - **GET** `/api/v1/outputs/folders` - Get folder structure of outputs directory
+- **DELETE** `/api/v1/output/{filename}` - Delete a single output file and its metadata
+- **DELETE** `/api/v1/outputs` - Bulk delete outputs based on criteria
 - **GET** `/api/v1/vc_inputs` - List VC input files with metadata and filtering  
 - **GET** `/api/v1/vc_inputs/folders` - Get folder structure of vc_inputs directory
+- **POST** `/api/v1/vc_input` - Upload a new VC input file with metadata
+- **DELETE** `/api/v1/vc_input/{filename}` - Delete a single VC input file and its metadata
+- **DELETE** `/api/v1/vc_inputs` - Bulk delete VC inputs based on criteria
 - **GET** `/outputs/{filename}` - Download individual files directly
 
 ## Overview
@@ -1029,6 +1034,58 @@ outputs/
 - **Disk space**: Monitor output directory size
 - **Formats**: Multiple formats increase storage usage
 - **Metadata**: JSON companion files for detailed information
+
+## Upload VC Input File
+
+**POST** `/api/v1/vc_input`
+
+Upload a new VC input file with metadata for voice conversion.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `vc_input_file` | file | Yes | Audio file to upload (WAV, MP3, FLAC) |
+| `text` | string | No | Content description of the audio file |
+| `folder_path` | string | No | Folder organization path |
+| `project` | string | No | Alias for folder_path |
+| `overwrite` | boolean | No | Overwrite existing file (default: false) |
+
+### Example Request
+
+```bash
+curl -X POST "http://localhost:7860/api/v1/vc_input" \
+  -F "vc_input_file=@audio.wav" \
+  -F "text=Meeting recording for voice conversion" \
+  -F "project=client_work/demo" \
+  -F "overwrite=true"
+```
+
+## Delete Output File
+
+**DELETE** `/api/v1/output/{filename}`
+
+Delete a single output file and its metadata.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `filename` | string | Yes | Name of the output file to delete (can include path) |
+| `confirm` | boolean | Yes | Confirmation required for safety (`true`) |
+
+## Delete VC Input File
+
+**DELETE** `/api/v1/vc_input/{filename}`
+
+Delete a single VC input file and its metadata.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `filename` | string | Yes | Name of the VC input file to delete |
+| `confirm` | boolean | Yes | Confirmation required for safety (`true`) |
 
 ## Error Handling
 

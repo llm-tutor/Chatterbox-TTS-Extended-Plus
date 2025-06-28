@@ -80,16 +80,34 @@
 - [x] Updated OpenAPI specification with project/folder parameters
 
 #### **Task 11.9: New endpoints for complete file management**
-- [ ] Add the new endpoint **POST** `/api/v1/vc_input`. It will upload a new file to the 'vc_inputs' folder. It will be implemented similarly as how the endpoint **POST** `/api/v1/voice` was. As parameters: `vc_input_file` (the binary file, required), `text` (content of the audio file, optional), `project` or `folder_path` (optional), `overwrite` (boolean, default false). The response will be very similar to the POST v1/voice response, except for name, tags and description fields (instead the 'filename', 'folder_path', 'text' if present, etc).
-- [ ] Mention new end point also in `api/docs/README.md` if appropriate, or where relevant.
-- [ ] Add end point **DELETE** `/api/v1/output/{filename}` - Delete a single outputs file, filename can include a path structure. Use **DELETE** `/api/v1/voice/{filename}` as reference
-- [ ] Add end point **DELETE** `/api/v1/vc_input/{filename}` - Delete a single vc_input file, filename can include a path structure. Use **DELETE** `/api/v1/voice/{filename}` as reference
-- [ ] Add end point **DELETE** `/api/v1/outputs/` - Delete multiple outputs based on criteria (folder, search, filenames). Use **DELETE** `/api/v1/voices` as reference
-- [ ] Add end point **DELETE** `/api/v1/vc_inputs/` - Delete multiple vc_inputs based on criteria (folder, search, filenames). Use **DELETE** `/api/v1/voices` as reference
-- [ ] Document new features in `docs/api/endpoints/file-operations.md`
-- [ ] Add a note and reference in `docs/api/endpoints/voice-conversion.md` mentioning new endpoints
-- [ ] Add a note and reference in `docs/api/endpoints/tts.md` mentioning new endpoints
-- [ ] Small, relevant update in `docs/api/README>md`
+- [x] Add the new endpoint **POST** `/api/v1/vc_input`. It will upload a new file to the 'vc_inputs' folder. It will be implemented similarly as how the endpoint **POST** `/api/v1/voice` was. As parameters: `vc_input_file` (the binary file, required), `text` (content of the audio file, optional), `project` or `folder_path` (optional), `overwrite` (boolean, default false). The response will be very similar to the POST v1/voice response, except for name, tags and description fields (instead the 'filename', 'folder_path', 'text' if present, etc).
+- [x] Mention new end point also in `api/docs/README.md` if appropriate, or where relevant.
+- [x] Add end point **DELETE** `/api/v1/output/{filename}` - Delete a single outputs file, filename can include a path structure. Use **DELETE** `/api/v1/voice/{filename}` as reference
+- [x] Add end point **DELETE** `/api/v1/vc_input/{filename}` - Delete a single vc_input file, filename can include a path structure. Use **DELETE** `/api/v1/voice/{filename}` as reference
+- [x] Add end point **DELETE** `/api/v1/outputs/` - Delete multiple outputs based on criteria (folder, search, filenames). Use **DELETE** `/api/v1/voices` as reference
+- [x] Add end point **DELETE** `/api/v1/vc_inputs/` - Delete multiple vc_inputs based on criteria (folder, search, filenames). Use **DELETE** `/api/v1/voices` as reference
+- [x] Document new features in `docs/api/endpoints/file-operations.md`
+- [x] Add a note and reference in `docs/api/endpoints/voice-conversion.md` mentioning new endpoints
+- [x] Add a note and reference in `docs/api/endpoints/tts.md` mentioning new endpoints
+- [x] Small, relevant update in `docs/api/README>md`
+
+#### **Task 11.9.1: Small fixes**
+- [ ] Adjustment to DELETE bulk end points for outputs and vc_inputs: We 
+  need to remove the top folder referenced. Example, if we request 
+  to delete 'books/chapter1/section1', we should not only delete the files 
+  inside 'section1', but also the folder itself 'section1'. This applies 
+  both for vc_inputs and outputs folders. This deviates from DELETE voices, 
+  since in voices/, empty subfolders can mean empty voice categories. 
+  Outputs and vc_inputs sub-folders have no such meaning, so the behavior 
+  should be to delete not only the files, but the folder itself. 
+- [ ] Often we have problems making the right request for v1/tts, when it 
+  comes of JSON mode vs Stream mode. Probably because of incomplete, 
+  inconsistent documentation. Let's find out what are the right ways to 
+  define each of those modes and document it. The file 
+  'scripts/test_core_examples.py' should contain working code that we can 
+  use as our starting point to define clearly, in all the documents and 
+  examples, how to make the call on each of the modes. 
+  
 
 #### **Task 11.10: Integrated test for file management**
 - [ ] Integrated test for: output (tts) generation in folders/projects, reading folders, finding files, deleting files and deleting output folders. Once successful, store it at 'scripts/', document it either in 'docs/api/guides' or 'docs/api/schemas/examples' or both

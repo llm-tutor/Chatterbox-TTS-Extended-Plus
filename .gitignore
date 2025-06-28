@@ -25,11 +25,13 @@ tests/media/
 vc_inputs/*.mp3
 vc_inputs/*.wav
 vc_inputs/*.flac
+vc_inputs/*.json
 
 # Exclude audio files in all subfolders
 vc_inputs/*/*.mp3
 vc_inputs/*/*.wav
 vc_inputs/*/*.flac
+vc_inputs/*/*.json
 
 # But include the test_inputs folder and its contents
 !vc_inputs/test_inputs/

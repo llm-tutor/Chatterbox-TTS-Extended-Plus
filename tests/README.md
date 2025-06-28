@@ -45,6 +45,38 @@ cd tests && python generate_test_files.py
 
 ### Phase 11 - Audio Concatenation System
 - `test_phase11_5_mixed_concatenation.py` - Mixed source concatenation (server files + uploads + silence)
+- `test_phase11_task_11_9_file_management.py` - Complete file management system testing (upload, deletion, project organization)
+
+#### **Complete File Management System** (`test_phase11_task_11_9_file_management.py`)
+```bash
+cd tests && python test_phase11_task_11_9_file_management.py
+```
+**Comprehensive testing of Task 11.9 file management endpoints**:
+- **VC input upload**: Direct file upload with metadata and project organization
+- **TTS with projects**: Generate files in organized folder structures
+- **Safe deletion system**: Single and bulk deletion with confirmation requirements
+- **File listing validation**: Check uploaded and generated files appear correctly
+
+**Key Test Scenarios**:
+1. **VC Input Upload**: Upload audio files to root and project folders with metadata
+2. **TTS Project Generation**: Create TTS files organized in project directories
+3. **File Discovery**: Validate uploaded and generated files appear in listings
+4. **Deletion Operations**: Test single and bulk deletion with safety confirmations
+
+**Endpoints Tested**:
+- `POST /api/v1/vc_input` - Upload VC input files with project organization
+- `POST /api/v1/tts` - Generate TTS with project parameter
+- `GET /api/v1/vc_inputs` - List VC input files
+- `GET /api/v1/outputs` - List generated files  
+- `DELETE /api/v1/vc_input/{filename}` - Delete single VC input file
+- `DELETE /api/v1/outputs` - Bulk delete outputs by project
+
+**Features Validated**:
+- ✅ File upload with automatic metadata generation (duration, sample rate, file size)
+- ✅ Project/folder organization with automatic directory creation
+- ✅ Safety confirmation requirements for all deletion operations
+- ✅ Cross-endpoint integration (upload → list → delete workflow)
+- ✅ Error handling and proper HTTP status codes
 
 #### **Mixed Source Concatenation Testing** (`test_phase11_5_mixed_concatenation.py`)
 ```bash

@@ -21,7 +21,8 @@ from api_models import (
     VoiceUploadRequest, VoiceUploadResponse, GeneratedFileMetadata, GeneratedFilesResponse,
     VoiceMetadataUpdateRequest, VoiceDeletionResponse, VoiceFolderInfo, VoiceFoldersResponse,
     ConcatRequest, ConcatResponse, MixedConcatSegment, MixedConcatRequest,
-    VCInputFileMetadata, VCInputFilesResponse
+    VCInputFileMetadata, VCInputFilesResponse, VCInputUploadResponse, VCInputMetadata, 
+    VCInputDeletionResponse, OutputDeletionResponse
 )
 from core_engine import engine_sync, get_or_load_tts_model, get_or_load_vc_model
 from config import config_manager
@@ -750,6 +751,147 @@ async def get_voice_folders():
         raise HTTPException(status_code=500, detail=f"Failed to get voice folders: {str(e)}")
 
 
+# ================================================================================
+# VC INPUT MANAGEMENT ENDPOINTS
+# ================================================================================
+
+@app.post("/api/v1/vc_input", response_model=VCInputUploadResponse)
+async def upload_vc_input(
+    vc_input_file: UploadFile = File(..., description="VC input audio file"),
+    text: Optional[str] = Form(None, description="Content description of the audio file"),
+    folder_path: Optional[str] = Form(None, description="Folder organization path"),
+    project: Optional[str] = Form(None, description="Alias for folder_path"),
+    overwrite: bool = Form(False, description="Overwrite existing VC input file")
+):
+    """Upload a new VC input file with metadata"""
+    from api_models import VCInputMetadata
+    from utils.vc_inputs.management import save_uploaded_vc_input, create_vc_input_metadata_from_upload, save_vc_input_metadata, validate_vc_input_file
+    
+    try:
+        # Read file content
+        file_content = await vc_input_file.read()
+        
+        # Validate file
+        is_valid, error_msg = validate_vc_input_file(file_content, vc_input_file.filename)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+        
+        # Use project as alias for folder_path
+        effective_folder_path = folder_path or project
+        
+        # Save file
+        success, message, saved_path = save_uploaded_vc_input(
+            file_content=file_content,
+            filename=vc_input_file.filename,
+            folder_path=effective_folder_path,
+            overwrite=overwrite
+        )
+        
+        if not success:
+            raise HTTPException(status_code=400, detail=message)
+        
+        # Create metadata
+        upload_metadata = {
+            'text': text,
+            'folder_path': effective_folder_path
+        }
+        
+        metadata = create_vc_input_metadata_from_upload(saved_path, upload_metadata)
+        
+        # Save metadata
+        save_vc_input_metadata(saved_path, metadata)
+        
+        # Create response
+        vc_input_metadata = VCInputMetadata(**metadata)
+        
+        return VCInputUploadResponse(
+            metadata=vc_input_metadata,
+            filename=saved_path.name,
+            message=f"VC input '{saved_path.name}' uploaded successfully"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"VC input upload failed: {e}")
+        raise HTTPException(status_code=500, detail=f"VC input upload failed: {str(e)}")
+
+
+@app.delete("/api/v1/vc_input/{filename}", response_model=VCInputDeletionResponse)
+async def delete_vc_input(
+    filename: str,
+    confirm: bool = Query(False, description="Confirmation required to delete VC input")
+):
+    """Delete a single VC input file and its metadata"""
+    from utils.vc_inputs.management import delete_vc_input_file
+    
+    if not confirm:
+        raise HTTPException(status_code=400, detail="Deletion requires confirm=true parameter for safety")
+    
+    try:
+        success, message, deleted_files = delete_vc_input_file(filename)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail=message)
+        
+        return VCInputDeletionResponse(
+            message=message,
+            deleted_files=deleted_files,
+            deleted_count=len([f for f in deleted_files if not f.endswith('.json')])
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"VC input deletion failed: {e}")
+        raise HTTPException(status_code=500, detail=f"VC input deletion failed: {str(e)}")
+
+
+@app.delete("/api/v1/vc_inputs", response_model=VCInputDeletionResponse)
+async def bulk_delete_vc_inputs(
+    confirm: bool = Query(False, description="Confirmation required to delete VC inputs"),
+    folder: Optional[str] = Query(None, description="Delete VC inputs in specific folder"),
+    project: Optional[str] = Query(None, description="Alias for folder parameter"),
+    search: Optional[str] = Query(None, description="Delete VC inputs matching search term"),
+    filenames: Optional[str] = Query(None, description="Comma-separated list of filenames to delete")
+):
+    """Bulk delete VC inputs based on criteria"""
+    from utils.vc_inputs.management import bulk_delete_vc_inputs
+    
+    if not confirm:
+        raise HTTPException(status_code=400, detail="Bulk deletion requires confirm=true parameter for safety")
+    
+    # Use project as alias for folder
+    effective_folder = folder or project
+    
+    # Parse filenames if provided
+    filename_list = None
+    if filenames:
+        filename_list = [name.strip() for name in filenames.split(',') if name.strip()]
+    
+    try:
+        success, message, deleted_files = bulk_delete_vc_inputs(
+            folder=effective_folder,
+            search=search,
+            filenames=filename_list
+        )
+        
+        if not success:
+            raise HTTPException(status_code=404, detail=message)
+        
+        return VCInputDeletionResponse(
+            message=message,
+            deleted_files=deleted_files,
+            deleted_count=len([f for f in deleted_files if not f.endswith('.json')])
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"VC input bulk deletion failed: {e}")
+        raise HTTPException(status_code=500, detail=f"VC input bulk deletion failed: {str(e)}")
+
+
 @app.get("/api/v1/outputs", response_model=GeneratedFilesResponse)
 async def list_generated_files(
     page: int = Query(1, ge=1, description="Page number"),
@@ -840,6 +982,83 @@ async def get_outputs_folders():
     except Exception as e:
         logger.error(f"Failed to get outputs folder structure: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get outputs folder structure: {str(e)}")
+
+
+@app.delete("/api/v1/output/{filename}", response_model=OutputDeletionResponse)
+async def delete_output(
+    filename: str,
+    confirm: bool = Query(False, description="Confirmation required to delete output")
+):
+    """Delete a single output file and its metadata"""
+    from utils.outputs.management import delete_output_file
+    
+    if not confirm:
+        raise HTTPException(status_code=400, detail="Deletion requires confirm=true parameter for safety")
+    
+    try:
+        success, message, deleted_files = delete_output_file(filename)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail=message)
+        
+        return OutputDeletionResponse(
+            message=message,
+            deleted_files=deleted_files,
+            deleted_count=len([f for f in deleted_files if not f.endswith('.json')])
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Output deletion failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Output deletion failed: {str(e)}")
+
+
+@app.delete("/api/v1/outputs", response_model=OutputDeletionResponse)
+async def bulk_delete_outputs_endpoint(
+    confirm: bool = Query(False, description="Confirmation required to delete outputs"),
+    folder: Optional[str] = Query(None, description="Delete outputs in specific folder"),
+    project: Optional[str] = Query(None, description="Alias for folder parameter"),
+    generation_type: Optional[str] = Query(None, description="Delete outputs of specific type (tts, vc, concat)"),
+    search: Optional[str] = Query(None, description="Delete outputs matching search term"),
+    filenames: Optional[str] = Query(None, description="Comma-separated list of filenames to delete")
+):
+    """Bulk delete outputs based on criteria"""
+    from utils.outputs.management import bulk_delete_outputs
+    
+    if not confirm:
+        raise HTTPException(status_code=400, detail="Bulk deletion requires confirm=true parameter for safety")
+    
+    # Use project as alias for folder
+    effective_folder = folder or project
+    
+    # Parse filenames if provided
+    filename_list = None
+    if filenames:
+        filename_list = [name.strip() for name in filenames.split(',') if name.strip()]
+    
+    try:
+        success, message, deleted_files = bulk_delete_outputs(
+            folder=effective_folder,
+            generation_type=generation_type,
+            search=search,
+            filenames=filename_list
+        )
+        
+        if not success:
+            raise HTTPException(status_code=404, detail=message)
+        
+        return OutputDeletionResponse(
+            message=message,
+            deleted_files=deleted_files,
+            deleted_count=len([f for f in deleted_files if not f.endswith('.json')])
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Output bulk deletion failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Output bulk deletion failed: {str(e)}")
 
 
 @app.get("/api/v1/vc_inputs", response_model=VCInputFilesResponse)
