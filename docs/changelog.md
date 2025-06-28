@@ -6,6 +6,70 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.9.0] - 2025-06-28
+
+### Added
+- **NEW: VC Input File Management** - Complete VC input file listing and management system
+  - **GET** `/api/v1/vc_inputs` - List VC input files with pagination, search, and folder filtering
+  - **GET** `/api/v1/vc_inputs/folders` - Get folder structure of vc_inputs directory
+- **NEW: Enhanced Folder Management** 
+  - **GET** `/api/v1/outputs/folders` - Get folder structure of outputs directory
+  - Added `folder` and `project` parameters to `/api/v1/outputs` for filtering by folder path
+  - Added `project` parameter (alias for `folder`) to `/api/v1/voices` endpoint
+- **NEW: Corrupted File Cleanup System** - Automated cleanup of size-0 (corrupted) audio files
+  - Integrated into startup and scheduled cleanup (every 4 hours)
+  - Comprehensive logging of cleanup operations
+  - Scans outputs/, reference_audio/, and vc_inputs/ directories recursively
+
+### Fixed
+- **CRITICAL: Audio Duration Calculation Error** - Fixed crashes when processing corrupted files (size 0)
+  - Added file size validation before calling `calculate_audio_duration()`
+  - Enhanced error handling and logging for empty files
+- **Fixed `/api/v1/voices/folders` Endpoint** - Updated response format to match API models
+  - Corrected `get_voice_folder_structure()` function to return proper response format
+  - Fixed compatibility with `VoiceFoldersResponse` model
+
+### Enhanced
+- **Comprehensive File Management** - Unified approach across all audio directories
+  - Consistent pagination, search, and filtering across outputs, voices, and vc_inputs
+  - Enhanced metadata collection with folder path tracking
+  - Improved error handling for file system operations
+- **Enhanced Parameter Support** - `project` parameter as intuitive alias for `folder`
+  - Supports both `/api/v1/outputs?folder=chapter1` and `/api/v1/outputs?project=chapter1`
+  - Consistent across all file listing endpoints
+
+### Documentation
+- **Updated OpenAPI Specification** - Complete coverage of all new endpoints and parameters
+- **Enhanced File Operations Guide** - Comprehensive documentation for new VC input management
+- **Updated Voice Management Guide** - Added project parameter examples and usage
+- **API Reference Updates** - Complete parameter documentation with examples
+
+### Technical Implementation
+- **New Utility Modules**:
+  - `utils/vc_inputs/management.py` - VC input file scanning and metadata
+  - `utils/vc_inputs/folders.py` - VC inputs folder structure management
+  - `utils/outputs/folders.py` - Outputs folder structure management
+  - `utils/cleanup/corrupted_files.py` - Comprehensive corrupted file cleanup
+- **Enhanced API Models**: `VCInputFileMetadata`, `VCInputFilesResponse` for type safety
+- **Improved Resource Management**: Extended cleanup scheduler with corrupted file handling
+
+### Validation
+- **✅ All New Endpoints**: Confirmed working with 200 status codes and proper responses
+- **✅ Folder Filtering**: Verified parameter aliasing and filtering functionality
+- **✅ Cleanup System**: Integrated into resource management with comprehensive logging
+- **✅ Backward Compatibility**: All existing functionality preserved and enhanced
+- **✅ Documentation Accuracy**: Complete OpenAPI spec and endpoint documentation
+
+### Files Modified
+- `main_api.py` - Added new endpoints for VC inputs and folder structures
+- `api_models.py` - New models for VC input file management
+- `utils/outputs/management.py` - Enhanced file size validation
+- `management/resource_manager.py` - Integrated corrupted file cleanup
+- `utils/voice/organization.py` - Fixed folder structure response format
+- `docs/api/openapi.yaml` - Complete specification updates
+- `docs/api/endpoints/file-operations.md` - Comprehensive new endpoint documentation
+- `docs/api/endpoints/voice-management.md` - Enhanced parameter documentation
+
 ## [Utils Refactoring - Complete] - 2025-06-26 - Phase 4 Direct Import Optimization
 
 ### Added

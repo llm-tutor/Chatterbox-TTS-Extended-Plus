@@ -1,4 +1,4 @@
-# utils/outputs/management.py - Generated Content Management Functions
+# utils/vc_inputs/management.py - VC Input Files Management
 
 import json
 import logging
@@ -11,62 +11,27 @@ from config import config_manager
 logger = logging.getLogger(__name__)
 
 
-def save_generation_metadata(filename: str, generation_data: Dict[str, Any]) -> bool:
+def scan_vc_input_files(vc_inputs_dir: Union[str, Path], folder: Optional[str] = None) -> List[Dict[str, Any]]:
     """
-    Save generation metadata as JSON companion file
+    Scan vc_inputs directory for audio files and their metadata
     
     Args:
-        filename: Base filename (without path)
-        generation_data: Complete generation context and parameters
-    
-    Returns:
-        True if metadata saved successfully, False otherwise
-    """
-    try:
-        # Get output directory
-        output_dir = Path(config_manager.get("paths.output_dir", "outputs"))
+        vc_inputs_dir: Path to vc_inputs directory
+        folder: Filter by folder path within vc_inputs directory
         
-        # Create metadata filename
-        base_name = Path(filename).stem
-        metadata_file = output_dir / f"{base_name}.json"
-        
-        # Add timestamp if not present
-        if "timestamp" not in generation_data:
-            generation_data["timestamp"] = datetime.now().isoformat()
-        
-        # Save metadata
-        with open(metadata_file, 'w', encoding='utf-8') as f:
-            json.dump(generation_data, f, indent=2, ensure_ascii=False)
-        
-        logger.info(f"Metadata saved: {metadata_file}")
-        return True
-        
-    except Exception as e:
-        logger.error(f"Failed to save metadata for {filename}: {e}")
-        return False
-
-
-def scan_generated_files(outputs_dir: Union[str, Path], generation_type: Optional[str] = None) -> List[Dict[str, Any]]:
-    """
-    Scan outputs directory for generated files and their metadata
-    
-    Args:
-        outputs_dir: Path to outputs directory
-        generation_type: Filter by generation type ('tts', 'vc', 'concat')
-    
     Returns:
         List of file metadata dictionaries
     """
     from ..audio.processing import calculate_audio_duration
     
-    outputs_path = Path(outputs_dir)
-    if not outputs_path.exists():
+    vc_inputs_path = Path(vc_inputs_dir)
+    if not vc_inputs_path.exists():
         return []
     
     files_metadata = []
     audio_extensions = {'.wav', '.mp3', '.flac', '.ogg', '.m4a'}
     
-    for audio_file in outputs_path.rglob("*"):
+    for audio_file in vc_inputs_path.rglob("*"):
         if audio_file.is_file() and audio_file.suffix.lower() in audio_extensions:
             # Look for companion JSON metadata file
             metadata_file = audio_file.with_suffix(audio_file.suffix + '.json')
@@ -74,13 +39,11 @@ def scan_generated_files(outputs_dir: Union[str, Path], generation_type: Optiona
             # Initialize metadata
             metadata = {
                 'filename': audio_file.name,
-                'generation_type': 'unknown',
                 'created_date': None,
                 'file_size_bytes': None,
                 'duration_seconds': None,
                 'format': audio_file.suffix.lower().lstrip('.'),
-                'parameters': {},
-                'source_files': [],
+                'text': None,
                 'folder_path': None
             }
             
@@ -89,7 +52,8 @@ def scan_generated_files(outputs_dir: Union[str, Path], generation_type: Optiona
                 try:
                     with open(metadata_file, 'r', encoding='utf-8') as f:
                         json_metadata = json.load(f)
-                        metadata.update(json_metadata)
+                        if 'text' in json_metadata:
+                            metadata['text'] = json_metadata['text']
                 except Exception as e:
                     logger.warning(f"Failed to load metadata for {audio_file}: {e}")
             
@@ -110,28 +74,16 @@ def scan_generated_files(outputs_dir: Union[str, Path], generation_type: Optiona
                         metadata['duration_seconds'] = 0.0
                         logger.warning(f"Skipping duration calculation for empty file: {audio_file}")
                 
-                # Calculate folder path relative to outputs directory
-                relative_path = audio_file.relative_to(outputs_path)
+                # Calculate folder path relative to vc_inputs directory
+                relative_path = audio_file.relative_to(vc_inputs_path)
                 if relative_path.parent != Path('.'):
                     metadata['folder_path'] = str(relative_path.parent)
-                
-                # Infer generation type from filename pattern if not set
-                if metadata['generation_type'] == 'unknown':
-                    filename_lower = audio_file.name.lower()
-                    if filename_lower.startswith('tts_'):
-                        metadata['generation_type'] = 'tts'
-                    elif filename_lower.startswith('vc_'):
-                        metadata['generation_type'] = 'vc'
-                    elif filename_lower.startswith('concat_'):
-                        metadata['generation_type'] = 'concat'
-                    else:
-                        metadata['generation_type'] = 'unknown'
                 
             except Exception as e:
                 logger.warning(f"Failed to calculate metadata for {audio_file}: {e}")
             
-            # Apply generation type filter
-            if generation_type and metadata['generation_type'] != generation_type:
+            # Apply folder filter
+            if folder and metadata.get('folder_path') != folder:
                 continue
             
             files_metadata.append(metadata)
@@ -142,33 +94,33 @@ def scan_generated_files(outputs_dir: Union[str, Path], generation_type: Optiona
     return files_metadata
 
 
-def find_files_by_names(outputs_dir: Union[str, Path], filenames: List[str]) -> List[Dict[str, Any]]:
+def find_vc_input_files_by_names(vc_inputs_dir: Union[str, Path], filenames: List[str]) -> List[Dict[str, Any]]:
     """
-    Find specific files by their names in outputs directory
+    Find specific VC input files by their names
     
     Args:
-        outputs_dir: Path to outputs directory
+        vc_inputs_dir: Path to vc_inputs directory
         filenames: List of filenames to find
-    
+        
     Returns:
         List of found file metadata dictionaries
     """
-    outputs_path = Path(outputs_dir)
-    if not outputs_path.exists():
+    vc_inputs_path = Path(vc_inputs_dir)
+    if not vc_inputs_path.exists():
         return []
     
     found_files = []
     
     for filename in filenames:
         # Try to find the file
-        matches = list(outputs_path.rglob(filename))
+        matches = list(vc_inputs_path.rglob(filename))
         
         if matches:
             # Use the first match
             audio_file = matches[0]
             
             # Get metadata for this file
-            file_metadata = scan_generated_files(outputs_dir)
+            file_metadata = scan_vc_input_files(vc_inputs_dir)
             for metadata in file_metadata:
                 if metadata['filename'] == filename:
                     found_files.append(metadata)

@@ -31,7 +31,7 @@ Welcome to the comprehensive API documentation for Chatterbox TTS Extended Plus.
 - **[Voice Conversion (VC)](endpoints/voice-conversion.md)** - Transform voice characteristics
 - **[Audio Concatenation](endpoints/concatenation.md)** - Combine multiple audio files with professional features
 - **[Voice Management](endpoints/voice-management.md)** - Upload and manage reference voices
-- **[File Operations](endpoints/file-operations.md)** - List and download generated files
+- **[File Operations](endpoints/file-operations.md)** - List, download, and manage generated files and VC inputs with folder organization
 
 ### Advanced Features
 - **[Streaming Responses](guides/streaming-responses.md)** - Direct file downloads

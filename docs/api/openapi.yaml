@@ -80,6 +80,16 @@ paths:
           description: Search term
           schema:
             type: string
+        - name: folder
+          in: query
+          description: Filter by folder path
+          schema:
+            type: string
+        - name: project
+          in: query
+          description: Alias for folder parameter
+          schema:
+            type: string
       responses:
         '200':
           description: Voices retrieved successfully
@@ -340,7 +350,7 @@ paths:
   /api/v1/outputs:
     get:
       summary: List Generated Files
-      description: Get list of generated audio files
+      description: Get list of generated audio files with metadata, pagination, and filtering
       operationId: listOutputs
       tags:
         - Files
@@ -350,11 +360,42 @@ paths:
           schema:
             type: integer
             default: 1
+            minimum: 1
+          description: Page number
         - name: page_size
           in: query
           schema:
             type: integer
             default: 50
+            minimum: 1
+            maximum: 100
+          description: Items per page
+        - name: generation_type
+          in: query
+          schema:
+            type: string
+            enum: [tts, vc, concat]
+          description: Filter by generation type
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search in filenames
+        - name: filenames
+          in: query
+          schema:
+            type: string
+          description: Comma-separated list of specific filenames to find
+        - name: folder
+          in: query
+          schema:
+            type: string
+          description: Filter by folder path within outputs directory
+        - name: project
+          in: query
+          schema:
+            type: string
+          description: Alias for folder parameter
       responses:
         '200':
           description: Files retrieved successfully
@@ -362,6 +403,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GeneratedFilesResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /outputs/{filename}:
     get:
@@ -386,6 +433,105 @@ paths:
                 format: binary
         '404':
           $ref: '#/components/responses/NotFound'
+
+  /api/v1/outputs/folders:
+    get:
+      summary: Get Outputs Folder Structure
+      description: Get folder structure of outputs directory
+      operationId: getOutputsFolders
+      tags:
+        - Files
+      responses:
+        '200':
+          description: Folder structure retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceFoldersResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/vc_inputs:
+    get:
+      summary: List VC Input Files
+      description: Get list of VC input audio files with metadata, pagination, and filtering
+      operationId: listVCInputs
+      tags:
+        - Files
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Page number
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: Items per page
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search in filenames
+        - name: filenames
+          in: query
+          schema:
+            type: string
+          description: Comma-separated list of specific filenames to find
+        - name: folder
+          in: query
+          schema:
+            type: string
+          description: Filter by folder path within vc_inputs directory
+        - name: project
+          in: query
+          schema:
+            type: string
+          description: Alias for folder parameter
+      responses:
+        '200':
+          description: VC input files retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VCInputFilesResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/vc_inputs/folders:
+    get:
+      summary: Get VC Inputs Folder Structure
+      description: Get folder structure of vc_inputs directory
+      operationId: getVCInputsFolders
+      tags:
+        - Files
+      responses:
+        '200':
+          description: Folder structure retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoiceFoldersResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/concat:
     post:
@@ -830,6 +976,60 @@ components:
           type: integer
         format:
           type: string
+
+    VCInputFilesResponse:
+      type: object
+      properties:
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/VCInputFileMetadata'
+        count:
+          type: integer
+          description: Number of files in current page
+        page:
+          type: integer
+          description: Current page number
+        page_size:
+          type: integer
+          description: Number of items per page
+        total_pages:
+          type: integer
+          description: Total number of pages
+        has_next:
+          type: boolean
+          description: Whether there is a next page
+        has_previous:
+          type: boolean
+          description: Whether there is a previous page
+        total_files:
+          type: integer
+          description: Total number of files
+
+    VCInputFileMetadata:
+      type: object
+      properties:
+        filename:
+          type: string
+          description: Name of the VC input file
+        created_date:
+          type: string
+          description: File creation date in ISO format
+        file_size_bytes:
+          type: integer
+          description: File size in bytes
+        duration_seconds:
+          type: number
+          description: Audio duration in seconds
+        format:
+          type: string
+          description: Audio format (wav, mp3, etc.)
+        text:
+          type: string
+          description: Content description
+        folder_path:
+          type: string
+          description: Folder path within vc_inputs directory
 
     ErrorResponse:
       type: object

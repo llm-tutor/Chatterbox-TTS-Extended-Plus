@@ -50,27 +50,17 @@
 - [x] Streaming fixes for AudioSegment serialization
 - [x] Known: Test scenarios 2&4 partial download, MP3 duration inconsistency
 
-#### **Task 11.6: Fixes and enhancements to API**
-- [ ] Fix the error in function 'utils.audio.calculate_audio_duration()'. Invoked from end point 'v1/outputs'. Server logs below. Looking at the specific file on the logs, its size on disk is 0, a corrupted or failed generation. We can do two things. Always check for size in the listing process, if that is effective or economical, and also add to the start up clean up process (set also every 4 hours I think), as to remove files of size 0 from outputs/, voices/ and vc_inputs/ (with sub-folder search inside of each), as to keep clean the files on the system. Of course add each deletion to the logs. Probably doing this makes unnecesary adding operations to each listing call, but let's consider both things.
-```
-{"timestamp": "2025-06-27T20:42:59.803930+00:00", "level": "INFO", "logger": "monitoring.middleware", "message": "Request started: GET http://localhost:7860/api/v1/outputs?page_size=20", "module": "logg
-er", "function": "_log", "line": 267, "request_id": "7d14f181-ab66-4016-bc89-aa62fe7fd563", "operation": "GET http://localhost:7860/api/v1/outputs?page_size=20", "data": {"method": "GET", "url": "http://localhost:7860/api/v1/outputs?page_size=20", "client_ip": "127.0.0.1", "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:139.0) Gecko/20100101 Firefox/139.0"}}
-INFO:monitoring.middleware:Request started: GET http://localhost:7860/api/v1/outputs?page_size=20
-E:\Repos\Chatterbox-TTS-Extended-Plus\utils\audio\processing.py:268: UserWarning: PySoundFile failed. Trying audioread instead.
-  y, sr = librosa.load(str(file_path), sr=None)
-E:\Repos\Chatterbox-TTS-Extended-Plus\.venv\lib\site-packages\librosa\core\audio.py:184: FutureWarning: librosa.core.audio.__audioread_load
-        Deprecated as of librosa version 0.10.0.
-        It will be removed in librosa version 1.0.
-  y, sr_native = __audioread_load(path, offset, duration, dtype)
-WARNING:utils.audio.processing:Could not calculate duration for outputs\tts_2025-06-22_102857_299633_temp0.75_speed1.2.mp3
-```
-- [ ] Fix **GET** `/api/v1/voices/folders` Docs in `docs/api/endpoints/voice-management.md` Problem maybe related to refactoring (function moved from 'utils.py' to '/utils/voice/organization.py')
-- [ ] Add parameter 'folder' to **GET** `/api/v1/outputs`, as to filter by folder path, documentation at `docs/api/endpoints/file-operations.md`. Use **GET** `/api/v1/voices` as reference (look at `docs/api/endpoints/voice-management.md`),
-- [ ] Create new end point **GET** `/api/v1/outputs/folders`, to get the folder structure inside 'outputs/', add documentation in `docs/api/endpoints/file-operations.md`. Use **GET** `/api/v1/voices/folders` as reference (`docs/api/endpoints/voice-management.md`),
-- [ ] Create new end point **GET** `/api/v1/vc_inputs` to list the files inside 'vc_inputs/'. Implement the same set of parameters used for **GET** `/api/v1/outputs/` documented at `docs/api/endpoints/file-operations.md`. Omit only "generation_type" value from "sort_by", include the new parameter "folder", so we can list files inside a sub-folder of 'vc_inputs/'. Document this new end point also in `docs/api/endpoints/file-operations.md`.
-- [ ] Create new end point **GET** `/api/v1/vc_inputs/folders`, to get the folder structure inside 'vc_inputs/', add documentation in `docs/api/endpoints/file-operations.md`. Use **GET** `/api/v1/voices/folders` as reference (`docs/api/endpoints/voice-management.md`).
-- [ ] Add the parameter "project" as an alias for "folder", for **GET** `/api/v1/outputs`,  for **GET** `/api/v1/voices`, and for the new **GET** `/api/v1/vc_inputs`.
-- [ ] Mention new end points in `api/docs/README.md` if appropriate, or where relevant.
+#### **Task 11.6: Fixes and enhancements to API** ✅
+- [x] Fix the error in function 'utils.audio.calculate_audio_duration()' by adding file size check for corrupted files
+- [x] Create cleanup system for corrupted files (size 0) - integrated into startup and scheduled cleanup with comprehensive logging
+- [x] Fix **GET** `/api/v1/voices/folders` - Updated `get_voice_folder_structure()` to return proper API response format
+- [x] Add parameter 'folder' to **GET** `/api/v1/outputs`, as to filter by folder path, with 'project' alias
+- [x] Create new end point **GET** `/api/v1/outputs/folders`, to get the folder structure inside 'outputs/'
+- [x] Create new end point **GET** `/api/v1/vc_inputs` to list the files inside 'vc_inputs/' with full feature set (pagination, search, folder filtering)
+- [x] Create new end point **GET** `/api/v1/vc_inputs/folders`, to get the folder structure inside 'vc_inputs/'
+- [x] Add the parameter "project" as an alias for "folder", for **GET** `/api/v1/outputs`, **GET** `/api/v1/voices`, and **GET** `/api/v1/vc_inputs`
+- [x] Update OpenAPI specification with all new endpoints and parameters
+- [x] Update comprehensive documentation for all new features
 
 #### **Task 11.7: Improve API documentation**
 - [ ] At the top of each document in `docs/api/endpoints`, create a list of all the end points documented in that document, as an index for that document, with general descriptions of each end point. Exception: When the document contains only a single end point we dont need such index, just make it clear it is the only one.

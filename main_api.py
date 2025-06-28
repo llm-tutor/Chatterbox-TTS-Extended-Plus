@@ -20,7 +20,8 @@ from api_models import (
     VoicesResponse, VoiceInfo, VoiceMetadata, ErrorSummaryResponse,
     VoiceUploadRequest, VoiceUploadResponse, GeneratedFileMetadata, GeneratedFilesResponse,
     VoiceMetadataUpdateRequest, VoiceDeletionResponse, VoiceFolderInfo, VoiceFoldersResponse,
-    ConcatRequest, ConcatResponse, MixedConcatSegment, MixedConcatRequest
+    ConcatRequest, ConcatResponse, MixedConcatSegment, MixedConcatRequest,
+    VCInputFileMetadata, VCInputFilesResponse
 )
 from core_engine import engine_sync, get_or_load_tts_model, get_or_load_vc_model
 from config import config_manager
@@ -475,7 +476,8 @@ async def list_voices(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(50, ge=1, le=100, description="Items per page"),
     search: Optional[str] = Query(None, description="Search term for voice names"),
-    folder: Optional[str] = Query(None, description="Filter by folder path")
+    folder: Optional[str] = Query(None, description="Filter by folder path"),
+    project: Optional[str] = Query(None, description="Alias for folder parameter")
 ):
     """List available reference voices with enhanced metadata, pagination, and search"""
     import math
@@ -497,8 +499,9 @@ async def list_voices(
                 # Calculate folder path
                 folder_path = str(relative_path.parent) if relative_path.parent != Path('.') else None
                 
-                # Apply folder filter
-                if folder and folder_path != folder:
+                # Apply folder filter (project is alias for folder)
+                folder_filter = folder or project
+                if folder_filter and folder_path != folder_filter:
                     continue
                 
                 # Apply search filter
@@ -753,13 +756,18 @@ async def list_generated_files(
     page_size: int = Query(50, ge=1, le=100, description="Items per page"),
     generation_type: Optional[str] = Query(None, description="Filter by generation type (tts, vc, concat)"),
     search: Optional[str] = Query(None, description="Search in filenames"),
-    filenames: Optional[str] = Query(None, description="Comma-separated list of specific filenames to find")
+    filenames: Optional[str] = Query(None, description="Comma-separated list of specific filenames to find"),
+    folder: Optional[str] = Query(None, description="Filter by folder path within outputs directory"),
+    project: Optional[str] = Query(None, description="Alias for folder parameter")
 ):
     """List generated audio files with metadata, pagination, and search"""
     import math
     
     try:
         outputs_dir = Path(config_manager.get("paths.outputs_dir", "outputs"))
+        
+        # Handle folder/project parameter (project is alias for folder)
+        folder_filter = folder or project
         
         # Handle specific filename lookup
         if filenames:
@@ -775,6 +783,13 @@ async def list_generated_files(
                 files_metadata = [
                     file_meta for file_meta in files_metadata
                     if search_lower in file_meta['filename'].lower()
+                ]
+            
+            # Apply folder filter
+            if folder_filter:
+                files_metadata = [
+                    file_meta for file_meta in files_metadata
+                    if file_meta.get('folder_path') == folder_filter
                 ]
         
         # Calculate pagination
@@ -803,6 +818,113 @@ async def list_generated_files(
     except Exception as e:
         logger.error(f"Failed to list generated files: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to list generated files: {str(e)}")
+
+
+@app.get("/api/v1/outputs/folders", response_model=VoiceFoldersResponse)
+async def get_outputs_folders():
+    """Get folder structure of outputs directory"""
+    
+    try:
+        from utils.outputs.folders import get_outputs_folder_structure
+        folder_data = get_outputs_folder_structure()
+        
+        # Convert to response model
+        folders = [VoiceFolderInfo(**folder_info) for folder_info in folder_data['folders']]
+        
+        return VoiceFoldersResponse(
+            folders=folders,
+            total_folders=folder_data['total_folders'],
+            total_voices=folder_data['total_voices']  # Using total_voices field for total files
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to get outputs folder structure: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get outputs folder structure: {str(e)}")
+
+
+@app.get("/api/v1/vc_inputs", response_model=VCInputFilesResponse)
+async def list_vc_input_files(
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(50, ge=1, le=100, description="Items per page"),
+    search: Optional[str] = Query(None, description="Search in filenames"),
+    filenames: Optional[str] = Query(None, description="Comma-separated list of specific filenames to find"),
+    folder: Optional[str] = Query(None, description="Filter by folder path within vc_inputs directory"),
+    project: Optional[str] = Query(None, description="Alias for folder parameter")
+):
+    """List VC input audio files with metadata, pagination, and search"""
+    import math
+    
+    try:
+        from utils.vc_inputs.management import scan_vc_input_files, find_vc_input_files_by_names
+        vc_inputs_dir = Path(config_manager.get("paths.vc_input_dir", "vc_inputs"))
+        
+        # Handle folder/project parameter (project is alias for folder)
+        folder_filter = folder or project
+        
+        # Handle specific filename lookup
+        if filenames:
+            filename_list = [name.strip() for name in filenames.split(',') if name.strip()]
+            files_metadata = find_vc_input_files_by_names(vc_inputs_dir, filename_list)
+        else:
+            # Scan all files
+            files_metadata = scan_vc_input_files(vc_inputs_dir, folder_filter)
+            
+            # Apply search filter
+            if search:
+                search_lower = search.lower()
+                files_metadata = [
+                    file_meta for file_meta in files_metadata
+                    if search_lower in file_meta['filename'].lower()
+                ]
+        
+        # Calculate pagination
+        total_files = len(files_metadata)
+        total_pages = max(1, math.ceil(total_files / page_size))
+        
+        # Apply pagination
+        start_idx = (page - 1) * page_size
+        end_idx = start_idx + page_size
+        paginated_files = files_metadata[start_idx:end_idx]
+        
+        # Convert to response model
+        response_files = [VCInputFileMetadata(**file_meta) for file_meta in paginated_files]
+        
+        return VCInputFilesResponse(
+            files=response_files,
+            count=len(response_files),
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
+            has_next=page < total_pages,
+            has_previous=page > 1,
+            total_files=total_files
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to list VC input files: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to list VC input files: {str(e)}")
+
+
+@app.get("/api/v1/vc_inputs/folders", response_model=VoiceFoldersResponse)
+async def get_vc_inputs_folders():
+    """Get folder structure of vc_inputs directory"""
+    
+    try:
+        from utils.vc_inputs.folders import get_vc_inputs_folder_structure
+        folder_data = get_vc_inputs_folder_structure()
+        
+        # Convert to response model
+        folders = [VoiceFolderInfo(**folder_info) for folder_info in folder_data['folders']]
+        
+        return VoiceFoldersResponse(
+            folders=folders,
+            total_folders=folder_data['total_folders'],
+            total_voices=folder_data['total_voices']  # Using total_voices field for total files
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to get vc_inputs folder structure: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get vc_inputs folder structure: {str(e)}")
 
 
 @app.post("/api/v1/concat", response_model=ConcatResponse)

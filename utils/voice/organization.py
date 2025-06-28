@@ -91,33 +91,77 @@ def get_voice_folder_structure() -> Dict[str, Any]:
     Get the folder structure of voice files in reference_audio directory
     
     Returns:
-        Dictionary representing folder structure with file counts
+        Dictionary with 'folders' list and summary statistics
     """
     ref_audio_dir = Path(config_manager.get("paths.reference_audio_dir", "reference_audio"))
     if not ref_audio_dir.exists():
-        return {"error": "Reference audio directory not found"}
+        return {
+            "folders": [],
+            "total_folders": 0,
+            "total_voices": 0
+        }
     
     audio_extensions = {'.wav', '.mp3', '.flac', '.ogg', '.m4a'}
-    folder_structure = {}
+    folder_data = {}
     
+    # Scan all directories
+    for path in ref_audio_dir.rglob("*"):
+        if path.is_dir():
+            relative_path = path.relative_to(ref_audio_dir)
+            folder_path = str(relative_path) if relative_path != Path('.') else "root"
+            
+            if folder_path not in folder_data:
+                folder_data[folder_path] = {
+                    "voice_count": 0,
+                    "subfolders": set()
+                }
+    
+    # Count voices and track folder relationships
+    total_voices = 0
     for audio_file in ref_audio_dir.rglob("*"):
         if audio_file.is_file() and audio_file.suffix.lower() in audio_extensions:
             relative_path = audio_file.relative_to(ref_audio_dir)
             
             if relative_path.parent == Path('.'):
                 # Root level file
-                folder_key = "root"
+                folder_path = "root"
             else:
                 # File in subfolder
-                folder_key = str(relative_path.parent)
+                folder_path = str(relative_path.parent)
             
-            if folder_key not in folder_structure:
-                folder_structure[folder_key] = {
-                    "count": 0,
-                    "files": []
+            # Ensure folder exists in data
+            if folder_path not in folder_data:
+                folder_data[folder_path] = {
+                    "voice_count": 0,
+                    "subfolders": set()
                 }
             
-            folder_structure[folder_key]["count"] += 1
-            folder_structure[folder_key]["files"].append(audio_file.name)
+            folder_data[folder_path]["voice_count"] += 1
+            total_voices += 1
+            
+            # Track parent-child relationships
+            path_parts = Path(folder_path).parts if folder_path != "root" else []
+            for i in range(len(path_parts)):
+                parent_path = str(Path(*path_parts[:i])) if i > 0 else "root"
+                if i < len(path_parts) - 1:
+                    child_path = str(Path(*path_parts[:i+1]))
+                    if parent_path in folder_data:
+                        folder_data[parent_path]["subfolders"].add(child_path)
     
-    return folder_structure
+    # Build response format
+    folders = []
+    for folder_path, data in folder_data.items():
+        folders.append({
+            "path": folder_path,
+            "voice_count": data["voice_count"],
+            "subfolders": sorted(list(data["subfolders"]))
+        })
+    
+    # Sort folders by path
+    folders.sort(key=lambda x: (x["path"] != "root", x["path"]))
+    
+    return {
+        "folders": folders,
+        "total_folders": len(folders),
+        "total_voices": total_voices
+    }

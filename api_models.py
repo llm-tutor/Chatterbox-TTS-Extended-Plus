@@ -309,6 +309,30 @@ class GeneratedFileMetadata(BaseModel):
     folder_path: Optional[str] = None
 
 
+# VC Input Files Models
+class VCInputFileMetadata(BaseModel):
+    """Metadata for VC input audio files"""
+    filename: str
+    created_date: Optional[str] = None
+    file_size_bytes: Optional[int] = None
+    duration_seconds: Optional[float] = None
+    format: Optional[str] = None
+    text: Optional[str] = None  # Content description
+    folder_path: Optional[str] = None
+
+
+class VCInputFilesResponse(BaseModel):
+    """Response for VC input files listing"""
+    files: List[VCInputFileMetadata]
+    count: int
+    page: int = 1
+    page_size: int = 50
+    total_pages: int = 1
+    has_next: bool = False
+    has_previous: bool = False
+    total_files: int = 0
+
+
 class GeneratedFilesResponse(BaseModel):
     """Response for generated files listing"""
     files: List[GeneratedFileMetadata]

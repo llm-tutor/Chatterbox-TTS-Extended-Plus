@@ -1,6 +1,15 @@
 # File Operations Endpoints
 
-List, download, and manage generated audio files and outputs.
+## Overview
+
+This document covers all file operation endpoints for managing generated files, VC input files, and folder structures.
+
+### Endpoints in this document:
+- **GET** `/api/v1/outputs` - List generated audio files with metadata and filtering
+- **GET** `/api/v1/outputs/folders` - Get folder structure of outputs directory
+- **GET** `/api/v1/vc_inputs` - List VC input files with metadata and filtering  
+- **GET** `/api/v1/vc_inputs/folders` - Get folder structure of vc_inputs directory
+- **GET** `/outputs/{filename}` - Download individual files directly
 
 ## Overview
 
@@ -29,6 +38,8 @@ List generated audio files with metadata, pagination, and search capabilities.
 | `date_from` | string | - | Filter files created after date (ISO 8601) |
 | `date_to` | string | - | Filter files created before date (ISO 8601) |
 | `filenames` | string | - | Comma-separated list of specific filenames |
+| `folder` | string | - | Filter by folder path within outputs directory |
+| `project` | string | - | Alias for folder parameter |
 
 ### Example Requests
 
@@ -54,6 +65,13 @@ curl "http://localhost:7860/api/v1/outputs?date_from=2025-06-22T00:00:00Z&date_t
 
 ```bash
 curl "http://localhost:7860/api/v1/outputs?filenames=tts_output_123.wav,vc_output_456.wav"
+```
+
+#### Folder Filtering
+
+```bash
+curl "http://localhost:7860/api/v1/outputs?folder=project1"
+curl "http://localhost:7860/api/v1/outputs?project=chapter1"
 ```
 
 ### Response
@@ -183,6 +201,128 @@ Cache-Control: public, max-age=3600
 | WAV | `audio/wav` |
 | MP3 | `audio/mpeg` |
 | FLAC | `audio/flac` |
+
+## Get Outputs Folder Structure
+
+**GET** `/api/v1/outputs/folders`
+
+Get the folder structure of the outputs directory.
+
+### Example Requests
+
+```bash
+curl "http://localhost:7860/api/v1/outputs/folders"
+```
+
+### Response
+
+```json
+{
+  "folders": [
+    {
+      "path": "root",
+      "voice_count": 15,
+      "subfolders": ["project1", "chapter1"]
+    },
+    {
+      "path": "project1",
+      "voice_count": 8,
+      "subfolders": []
+    }
+  ],
+  "total_folders": 2,
+  "total_voices": 23
+}
+```
+
+## List VC Input Files
+
+**GET** `/api/v1/vc_inputs`
+
+List VC input audio files with metadata, pagination, and search capabilities.
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | integer | 1 | Page number for pagination |
+| `page_size` | integer | 50 | Number of files per page (max 100) |
+| `search` | string | - | Search term for filenames |
+| `filenames` | string | - | Comma-separated list of specific filenames |
+| `folder` | string | - | Filter by folder path within vc_inputs directory |
+| `project` | string | - | Alias for folder parameter |
+
+### Example Requests
+
+```bash
+# Basic list
+curl "http://localhost:7860/api/v1/vc_inputs?page=1&page_size=20"
+
+# With folder filtering
+curl "http://localhost:7860/api/v1/vc_inputs?folder=recordings"
+curl "http://localhost:7860/api/v1/vc_inputs?project=audiobook"
+
+# Search
+curl "http://localhost:7860/api/v1/vc_inputs?search=interview"
+```
+
+### Response
+
+```json
+{
+  "files": [
+    {
+      "filename": "interview_01.wav",
+      "created_date": "2025-06-22T14:30:22Z",
+      "file_size_bytes": 1048576,
+      "duration_seconds": 45.2,
+      "format": "wav",
+      "text": "Interview recording",
+      "folder_path": "recordings"
+    }
+  ],
+  "count": 1,
+  "page": 1,
+  "page_size": 20,
+  "total_pages": 1,
+  "has_next": false,
+  "has_previous": false,
+  "total_files": 1
+}
+```
+
+## Get VC Inputs Folder Structure
+
+**GET** `/api/v1/vc_inputs/folders`
+
+Get the folder structure of the vc_inputs directory.
+
+### Example Requests
+
+```bash
+curl "http://localhost:7860/api/v1/vc_inputs/folders"
+```
+
+### Response
+
+```json
+{
+  "folders": [
+    {
+      "path": "root",
+      "voice_count": 5,
+      "subfolders": ["recordings", "podcasts"]
+    },
+    {
+      "path": "recordings",
+      "voice_count": 12,
+      "subfolders": []
+    }
+  ],
+  "total_folders": 2,
+  "total_voices": 17
+}
+```
 
 ## Python Examples
 

@@ -220,6 +220,19 @@ class ResourceManager:
             "total_bytes_freed": 0
         }
         
+        # FIRST: Cleanup corrupted files (size 0) from all audio directories
+        from utils.cleanup import cleanup_corrupted_files
+        corrupted_cleanup_results = cleanup_corrupted_files(dry_run=False)
+        
+        total_corrupted_files = sum(len(result['deleted_files']) for result in corrupted_cleanup_results.values())
+        cleanup_summary["actions"]["corrupted_files_cleanup"] = {
+            "files_removed": total_corrupted_files,
+            "directories_cleaned": list(corrupted_cleanup_results.keys()),
+            "details": corrupted_cleanup_results
+        }
+        cleanup_summary["total_files_removed"] += total_corrupted_files
+        # Note: corrupted files are size 0, so no bytes freed
+        
         # Cleanup temp directory by age
         files_removed, bytes_freed = self.cleanup_old_files(self.temp_dir, self.temp_dir_max_age_days)
         cleanup_summary["actions"]["temp_age_cleanup"] = {

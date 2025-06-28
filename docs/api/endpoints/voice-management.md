@@ -251,6 +251,7 @@ List all available voices with metadata and pagination.
 | `page_size` | integer | 50 | Number of voices per page |
 | `search` | string | - | Search term for voice names/descriptions |
 | `folder` | string | - | Filter by folder path |
+| `project` | string | - | Alias for folder parameter |
 | `tag` | string | - | Filter by tag |
 | `sort_by` | string | `"name"` | Sort by: `"name"`, `"created_date"`, `"duration"`, `"usage_count"` |
 | `sort_order` | string | `"asc"` | Sort order: `"asc"` or `"desc"` |
@@ -267,6 +268,13 @@ curl "http://localhost:7860/api/v1/voices?page=1&page_size=10"
 
 ```bash
 curl "http://localhost:7860/api/v1/voices?search=professional&folder=business_voices&sort_by=usage_count&sort_order=desc"
+```
+
+#### Using Project Parameter
+
+```bash
+curl "http://localhost:7860/api/v1/voices?project=audiobook_project"
+curl "http://localhost:7860/api/v1/voices?project=chapter1&search=narrator"
 ```
 
 ### Response
