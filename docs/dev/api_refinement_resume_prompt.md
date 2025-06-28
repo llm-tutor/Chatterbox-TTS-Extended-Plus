@@ -18,12 +18,9 @@ Please read and analyze the following documents to understand the current projec
 3. **Change History**: `docs/changelog.md` - Complete implementation history and version tracking
 4. **Current API Docs**: `docs/api/README.md` - Navigation hub for modular documentation structure
 5. **Validation Scripts**: `scripts/README.md` - Complete testing and validation infrastructure
-6. **Concatenation Parameter Interactions**: 
-   `docs/dev/concat_parameter_interaction_design.md` - Comprehensive analysis of parameter interactions in `/api/v1/concat` endpoint (Task 11.3.1)
 
 ## Implementation Standards Reference
-> **📖 Complete protocols**: Read [`docs/dev/implementation-protocols.md`](implementation-protocols.md)
-
+> **📖 Complete protocols**: See [`docs/dev/implementation-protocols.md`](implementation-protocols.md)
 ### Development Environment (see complete protocols)
 
 ### Environment Guidelines & Testing (see complete protocols)
