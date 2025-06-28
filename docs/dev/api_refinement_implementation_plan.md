@@ -79,16 +79,38 @@
 - [x] Added project organization example in TTS documentation
 - [x] Updated OpenAPI specification with project/folder parameters
 
-#### **Task 11.9: Add new endpoint to upload vc_input files**
+#### **Task 11.9: New endpoints for complete file management**
 - [ ] Add the new endpoint **POST** `/api/v1/vc_input`. It will upload a new file to the 'vc_inputs' folder. It will be implemented similarly as how the endpoint **POST** `/api/v1/voice` was. As parameters: `vc_input_file` (the binary file, required), `text` (content of the audio file, optional), `project` or `folder_path` (optional), `overwrite` (boolean, default false). The response will be very similar to the POST v1/voice response, except for name, tags and description fields (instead the 'filename', 'folder_path', 'text' if present, etc).
-- [ ] Document new feature in `docs/api/endpoints/file-operations.md`, add a note and reference in `docs/api/endpoints/voice-conversion.md`
 - [ ] Mention new end point also in `api/docs/README.md` if appropriate, or where relevant.
+- [ ] Add end point **DELETE** `/api/v1/output/{filename}` - Delete a single outputs file, filename can include a path structure. Use **DELETE** `/api/v1/voice/{filename}` as reference
+- [ ] Add end point **DELETE** `/api/v1/vc_input/{filename}` - Delete a single vc_input file, filename can include a path structure. Use **DELETE** `/api/v1/voice/{filename}` as reference
+- [ ] Add end point **DELETE** `/api/v1/outputs/` - Delete multiple outputs based on criteria (folder, search, filenames). Use **DELETE** `/api/v1/voices` as reference
+- [ ] Add end point **DELETE** `/api/v1/vc_inputs/` - Delete multiple vc_inputs based on criteria (folder, search, filenames). Use **DELETE** `/api/v1/voices` as reference
+- [ ] Document new features in `docs/api/endpoints/file-operations.md`
+- [ ] Add a note and reference in `docs/api/endpoints/voice-conversion.md` mentioning new endpoints
+- [ ] Add a note and reference in `docs/api/endpoints/tts.md` mentioning new endpoints
+- [ ] Small, relevant update in `docs/api/README>md`
+
+#### **Task 11.10: Integrated test for file management**
+- [ ] Integrated test for: output (tts) generation in folders/projects, reading folders, finding files, deleting files and deleting output folders. Once successful, store it at 'scripts/', document it either in 'docs/api/guides' or 'docs/api/schemas/examples' or both
+- [ ] Integrated test for: vc_input (vc) upload in folders/projects, reading folders, finding files, deleting files and deleting vc_inputs/ sub-folders. Once successful, store it at 'scripts/', document it either in 'docs/api/guides' or 'docs/api/schemas/examples' or both. You can use generate files using tts, copy them to 'tests/media' and then start the integrated test uploading them
+- [ ] Integrated test for: voices, upload in folders, reading folders, finding voices, deleting voices and deleting voices sub-folders. Once successful, store it at 'scripts/', document it either in 'docs/api/guides' or 'docs/api/schemas/examples' or both. You can use generate files using tts, copy them to 'tests/media' with some appropriate names and then start the integrated test uploading them as voices
 
 
-#### **Task 11.20: Adjust TTS when speed_factor is specified (audiostretchy)**
+#### **Task 11.11: Adjust TTS when speed_factor is specified (audiostretchy)**
 - [ ] Review the documentation for audiostretchy, in particular how it is used in 'utils/audio/processing.py'. In this file the function 'apply_speed_factor' (lines 14-86, and then lines 89-158) uses audiostretchy as the first option for altering the tempo of a file. The problem we have, is that this library appears to generate wav files with 64 bits of sample size. For most operations of the system, we need the wav files to be of 32 bit sample size. Review if we can specify this when using audiostretchy, or if we need a further post-processing to convert the file before returning the response.
 
-#### **Task 11.21: Concat Processing Pipeline** 
+
+#### **Task 11.12: Integrated test for basic concatenation**
+
+
+#### **Task 11.13: Revision of concat mixed and basic testing**
+
+
+#### **Task 11.14: Revision of voices upload, managment and metadata**
+
+
+#### **Task 11.15: Concat Processing Pipeline** 
 - [ ] Enhance `utils.concatenate_audio_files()` function for new features
 - [ ] Add progress tracking for long operations (silence generation, trimming) check times to see if worth it
 - [ ] Implement temporary file management for trim operations
@@ -96,7 +118,7 @@
 - [ ] Include processing time estimates for complex operations
 - [ ] Test memory efficiency with large files and multiple processing steps. Do we need this?
 
-#### **Task 11.22: Integration & Testing** - Several here already done?
+#### **Task 11.16: Integration & Testing** - Several here already done?
 - [ ] Add concat results to output metadata system (include silence/trim info)
 - [ ] Include concat files in `/api/v1/outputs` listings with processing metadata
 - [ ] Test cleanup of temporary processing files (trimmed audio cache)
