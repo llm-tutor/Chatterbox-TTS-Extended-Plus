@@ -2,6 +2,14 @@
 
 Upload, organize, and manage voice reference files for TTS and voice conversion.
 
+## Endpoints in this document:
+- **POST** `/api/v1/voice` - Upload new voice reference files with metadata and organization
+- **PUT** `/api/v1/voice/{filename}/metadata` - Update voice metadata without changing the audio file
+- **DELETE** `/api/v1/voice/{filename}` - Delete a single voice file and its metadata
+- **DELETE** `/api/v1/voices` - Delete multiple voices based on criteria (folder, tag, search, filenames)
+- **GET** `/api/v1/voices/folders` - Get the voice library folder structure and organization
+- **GET** `/api/v1/voices` - List all available voices with metadata and pagination
+
 ## Overview
 
 Voice management endpoints allow you to:

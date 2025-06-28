@@ -423,18 +423,29 @@ class CoreEngineSynchronous:
             raise AudioProcessingError(f"Download failed after retries: {e}")
     
     def convert_audio_formats(self, wav_path: Path, formats: List[str]) -> List[Dict[str, str]]:
-        """Convert WAV to additional formats"""
+        """Convert WAV to additional formats with project folder support"""
         output_files = []
-        base_name = wav_path.stem
-        output_dir = wav_path.parent
+        base_name = Path(wav_path).stem
+        output_dir = Path(wav_path).parent
+        
+        # Determine relative path from outputs directory for URL generation
+        base_outputs_dir = Path(config_manager.get("paths.output_dir", "outputs"))
+        try:
+            relative_path = output_dir.relative_to(base_outputs_dir)
+            # Convert to forward slashes for URLs (works on all platforms)
+            relative_path_str = str(relative_path).replace('\\', '/')
+            url_prefix = f"/outputs/{relative_path_str}/" if relative_path != Path('.') else "/outputs/"
+        except ValueError:
+            # Fallback if output_dir is not under base_outputs_dir
+            url_prefix = "/outputs/"
         
         for fmt in formats:
             fmt_lower = fmt.lower()
             if fmt_lower == 'wav':
                 output_files.append({
                     'format': 'wav',
-                    'filename': wav_path.name,
-                    'url': f'/outputs/{wav_path.name}',
+                    'filename': Path(wav_path).name,
+                    'url': f'{url_prefix}{Path(wav_path).name}',
                     'path': str(wav_path)
                 })
             else:
@@ -452,7 +463,7 @@ class CoreEngineSynchronous:
                     output_files.append({
                         'format': fmt_lower,
                         'filename': output_path.name,
-                        'url': f'/outputs/{output_path.name}',
+                        'url': f'{url_prefix}{output_path.name}',
                         'path': str(output_path)
                     })
                     
@@ -667,9 +678,18 @@ class CoreEngineSynchronous:
         try:
             model = get_or_load_tts_model()
             
-            # Prepare output directory and temp directory
-            output_dir = Path(config_manager.get("paths.output_dir", "outputs"))
-            output_dir.mkdir(exist_ok=True)
+            # Prepare output directory with project folder support
+            base_output_dir = Path(config_manager.get("paths.output_dir", "outputs"))
+            
+            # Handle project folder parameter
+            project_folder = kwargs.get('project')
+            if project_folder:
+                output_dir = base_output_dir / project_folder
+                logger.info(f"Using project folder: {project_folder}")
+            else:
+                output_dir = base_output_dir
+                
+            output_dir.mkdir(parents=True, exist_ok=True)
             temp_dir = Path(config_manager.get("paths.temp_dir", "temp"))
             temp_dir.mkdir(exist_ok=True)
 
@@ -785,7 +805,13 @@ class CoreEngineSynchronous:
         This eliminates overhead for speed_factor=1.0 (most common case)
         """
         try:
-            output_dir = Path(config_manager.get("paths.output_dir", "outputs"))
+            # Use same output directory logic as main generation (with project folder support)
+            base_output_dir = Path(config_manager.get("paths.output_dir", "outputs"))
+            project_folder = generation_params.get('project')
+            if project_folder:
+                output_dir = base_output_dir / project_folder
+            else:
+                output_dir = base_output_dir
             
             # Use enhanced filename generation (excluding speed_factor for base file)
             params = generation_params or {}
@@ -859,7 +885,16 @@ class CoreEngineSynchronous:
             filename_params = {**params, "speed_factor": speed_factor}
             
             speed_filename = generate_enhanced_filename("tts", filename_params, "wav")
-            speed_output_path = Path(config_manager.get("paths.output_dir", "outputs")) / speed_filename
+            
+            # Use same output directory logic as main generation (with project folder support)
+            base_output_dir = Path(config_manager.get("paths.output_dir", "outputs"))
+            project_folder = generation_params.get('project')
+            if project_folder:
+                output_dir = base_output_dir / project_folder
+            else:
+                output_dir = base_output_dir
+                
+            speed_output_path = output_dir / speed_filename
             
             # Save speed-adjusted audio
             torchaudio.save(str(speed_output_path), processed_audio, sample_rate)
@@ -909,7 +944,16 @@ class CoreEngineSynchronous:
                 }
                 
                 trim_filename = generate_enhanced_filename("tts", filename_params, "wav")
-                trim_output_path = Path(config_manager.get("paths.output_dir", "outputs")) / trim_filename
+                
+                # Use same output directory logic as main generation (with project folder support)
+                base_output_dir = Path(config_manager.get("paths.output_dir", "outputs"))
+                project_folder = generation_params.get('project')
+                if project_folder:
+                    output_dir = base_output_dir / project_folder
+                else:
+                    output_dir = base_output_dir
+                    
+                trim_output_path = output_dir / trim_filename
                 
                 # Save trimmed audio
                 trim_result["audio_segment"].export(str(trim_output_path), format="wav")

@@ -62,12 +62,22 @@
 - [x] Update OpenAPI specification with all new endpoints and parameters
 - [x] Update comprehensive documentation for all new features
 
-#### **Task 11.7: Improve API documentation**
-- [ ] At the top of each document in `docs/api/endpoints`, create a list of all the end points documented in that document, as an index for that document, with general descriptions of each end point. Exception: When the document contains only a single end point we dont need such index, just make it clear it is the only one.
+#### **Task 11.7: Improve API documentation** ✅
+- [x] At the top of each document in `docs/api/endpoints`, create a list of all the end points documented in that document, as an index for that document, with general descriptions of each end point. Exception: When the document contains only a single end point we dont need such index, just make it clear it is the only one.
+- [x] Added endpoint indexes to `concatenation.md` (2 endpoints) and `voice-management.md` (6 endpoints)
+- [x] Single-endpoint documents (`health.md`, `tts.md`, `voice-conversion.md`) confirmed as not needing indexes
+- [x] `file-operations.md` already had proper endpoint index
 
-#### **Task 11.8: Add the project parameter for TTS generation**
-- [ ] Add the parameter "project" (with alias "folder") to `v1/tts` as a new Core Audio Parameter. When present, the generated files (wav and others requested), will be stored inside the folder or folder hierarchy, inside 'outputs/' indicated by its value. The value should be a valid path (example 'project1', 'myproject2/chapter1', 'book_title/chapter_title/section01', etc). The folder path is created if not existent previously. As before, the return value should contain the url to the formats requested. In JSON mode as defined, in Stream mode in the response header 'X-Alternative-Formats' (main_api.py:261). As a note, document this return value for Stream mode in `docs/api/endpoints/tts.md` if it is not documented already.
-- [ ] Add the project parameter to the documentation of the TTS end point.
+#### **Task 11.8: Add the project parameter for TTS generation** ✅
+- [x] Add the parameter "project" (with alias "folder") to `v1/tts` as a new Core Audio Parameter. When present, the generated files (wav and others requested), will be stored inside the folder or folder hierarchy, inside 'outputs/' indicated by its value. The value should be a valid path (example 'project1', 'myproject2/chapter1', 'book_title/chapter_title/section01', etc). The folder path is created if not existent previously. As before, the return value should contain the url to the formats requested. In JSON mode as defined, in Stream mode in the response header 'X-Alternative-Formats' (main_api.py:261). As a note, document this return value for Stream mode in `docs/api/endpoints/tts.md` if it is not documented already.
+- [x] Updated `api_models.py` TTSRequest with project/folder parameters and alias handling
+- [x] Modified `core_engine.py` to handle project folder in TTS generation pipeline
+- [x] Updated `convert_audio_formats` method to generate correct URLs with project path
+- [x] Updated speed factor and trimming post-processing to use project folders
+- [x] Added project parameter to `docs/api/endpoints/tts.md` documentation
+- [x] Documented X-Alternative-Formats header and project folder URL structure
+- [x] Added project organization example in TTS documentation
+- [x] Updated OpenAPI specification with project/folder parameters
 
 #### **Task 11.9: Add new endpoint to upload vc_input files**
 - [ ] Add the new endpoint **POST** `/api/v1/vc_input`. It will upload a new file to the 'vc_inputs' folder. It will be implemented similarly as how the endpoint **POST** `/api/v1/voice` was. As parameters: `vc_input_file` (the binary file, required), `text` (content of the audio file, optional), `project` or `folder_path` (optional), `overwrite` (boolean, default false). The response will be very similar to the POST v1/voice response, except for name, tags and description fields (instead the 'filename', 'folder_path', 'text' if present, etc).

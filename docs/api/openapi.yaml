@@ -698,6 +698,12 @@ components:
           minimum: 50
           maximum: 1000
           description: Silence threshold for trimming in milliseconds
+        project:
+          type: string
+          description: Project folder path for organizing generated files within outputs/ directory
+        folder:
+          type: string
+          description: Alias for project parameter - folder path for organizing generated files
         export_formats:
           type: array
           items:

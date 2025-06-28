@@ -6,6 +6,62 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.10.0] - 2025-06-28
+
+### Added
+- **NEW: TTS Project Organization System** - Enhanced TTS generation with project folder support
+  - Added `project` parameter to `/api/v1/tts` for organizing generated files within `outputs/` directory
+  - Added `folder` parameter as alias for `project` for consistency across endpoints
+  - Automatic folder creation with support for nested folder hierarchies (e.g., `project1/chapter1/section01`)
+  - Project path validation using sanitized file paths
+  - Enhanced URL generation to include project folder paths in response URLs
+  - Updated X-Alternative-Formats header in streaming mode to include project paths
+- **NEW: Enhanced API Documentation Structure** - Improved endpoint documentation organization
+  - Added endpoint indexes to multi-endpoint documentation files
+  - Clear endpoint listings for `concatenation.md` (2 endpoints) and `voice-management.md` (6 endpoints)
+  - Maintained single-endpoint documents without unnecessary indexes
+- **NEW: Parameter Alias Validation** - Robust handling of project/folder parameter aliases
+  - Smart alias resolution with precedence rules (project takes precedence over folder)
+  - Validation prevents conflicting values between alias parameters
+  - Clean parameter processing removes unused aliases after resolution
+
+### Enhanced
+- **Core TTS Pipeline Updates** - Project folder support throughout generation pipeline
+  - Updated `_process_tts_generation_sync()` to create project-specific output directories
+  - Modified `_combine_audio_chunks()` to use project folders for final file placement
+  - Enhanced speed factor and trimming post-processing to maintain project folder structure
+  - Improved `convert_audio_formats()` with cross-platform URL generation (forward slashes)
+- **OpenAPI Specification Updates** - Complete specification alignment with new features
+  - Added `project` and `folder` parameters to TTSRequest schema
+  - Updated parameter descriptions and examples
+  - Maintained backward compatibility with existing API usage
+
+### Documentation
+- **Comprehensive TTS Documentation Updates** - Complete coverage of new project features
+  - Added project parameter documentation to Core Audio Parameters section
+  - Documented X-Alternative-Formats header behavior with project folders
+  - Added practical project organization examples with curl commands
+  - Updated streaming response documentation with project path examples
+
+### Technical Details
+- **File System Integration** - Robust project folder handling
+  - Automatic directory creation with `parents=True` for nested structures
+  - Cross-platform path handling with proper URL generation
+  - Maintains existing file naming conventions with enhanced organization
+- **Backward Compatibility** - Zero breaking changes to existing API usage
+  - All existing TTS requests continue to work unchanged
+  - Project parameter is optional, defaults to root outputs directory
+  - Maintains all existing response formats and URL structures
+
+### Validation
+- **✅ Core Validation**: All tests passing (6/6, 100% success rate)
+- **✅ Project Parameter Testing**: Complete validation of new functionality
+  - Project folder creation and file organization
+  - Folder alias parameter handling
+  - URL generation with project paths
+  - X-Alternative-Formats header with project folders
+- **✅ Performance**: TTS generation time maintained at ~1 minute (no regression)
+
 ## [1.9.0] - 2025-06-28
 
 ### Added

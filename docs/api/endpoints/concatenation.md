@@ -2,6 +2,10 @@
 
 The concatenation API combines multiple audio files from the outputs directory into a single file with professional audio production features.
 
+## Endpoints in this document:
+- **POST** `/api/v1/concat` - Basic concatenation with server files, silence insertion, and audio processing
+- **POST** `/api/v1/concat/mixed` - Advanced concatenation supporting mixed server files and direct uploads
+
 ## Endpoint
 
 ```

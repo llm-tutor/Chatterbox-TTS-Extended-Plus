@@ -29,6 +29,8 @@ Convert text to speech with extensive customization options including voice clon
 |-----------|------|---------|-------------|
 | `reference_audio_filename` | string | null | Voice reference file from `reference_audio/` directory |
 | `export_formats` | array | `["wav","mp3"]` | Output formats: `"wav"`, `"mp3"`, `"flac"` |
+| `project` | string | null | Project folder path for organizing generated files within `outputs/` directory |
+| `folder` | string | null | Alias for `project` parameter - folder path for organizing generated files |
 
 ### Voice Generation Parameters
 
@@ -152,8 +154,20 @@ When `response_mode="stream"` (default), the API returns the audio file directly
 HTTP/1.1 200 OK
 Content-Type: audio/wav
 Content-Disposition: attachment; filename="tts_2025-06-22_143022_456_temp0.75_seed42.wav"
+X-Alternative-Formats: mp3:/outputs/tts_2025-06-22_143022_456_temp0.75_seed42.mp3
 
 [Binary audio data]
+```
+
+**Response Headers:**
+- `Content-Type`: MIME type of the streamed audio format
+- `Content-Disposition`: Contains the generated filename
+- `X-Alternative-Formats`: Pipe-separated list of alternative format URLs in format `format:url`
+
+**Project Folder Support:**
+When using the `project` parameter, generated files are organized in subfolders within `outputs/`, and URLs reflect the folder structure:
+```
+X-Alternative-Formats: mp3:/outputs/my_project/tts_2025-06-22_143022_456_temp0.75_seed42.mp3
 ```
 
 ### JSON Response
@@ -233,6 +247,22 @@ curl -X POST http://localhost:7860/api/v1/tts?response_mode=url \
     "export_formats": ["wav", "mp3"]
   }'
 ```
+
+#### Project Organization Example
+
+```bash
+curl -X POST http://localhost:7860/api/v1/tts \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "This will be saved in the specified project folder.",
+    "project": "my_audiobook/chapter_01",
+    "reference_audio_filename": "narrator_voice.wav",
+    "export_formats": ["wav", "mp3"]
+  }' \
+  --output chapter01_part1.wav
+```
+
+**Note:** Files are saved to `outputs/my_audiobook/chapter_01/` and alternative formats are available at URLs like `/outputs/my_audiobook/chapter_01/filename.mp3`.
 
 #### Speed Control Example
 

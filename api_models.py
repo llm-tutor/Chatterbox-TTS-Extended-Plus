@@ -67,6 +67,8 @@ class TTSRequest(BaseModel):
         "auto", 
         description="Library for speed adjustment: 'auto', 'audiostretchy', 'librosa', 'torchaudio'. 'auto' selects audiostretchy for speech quality, with clean fallback chain."
     )
+    project: Optional[str] = Field(None, description="Project folder path for organizing generated files within outputs/ directory")
+    folder: Optional[str] = Field(None, description="Alias for project parameter - folder path for organizing generated files")
     trim: bool = Field(False, description="Apply silence trimming to generated audio")
     trim_threshold_ms: int = Field(200, ge=50, le=1000, description="Silence threshold for trimming in milliseconds")
     export_formats: List[str] = Field(["wav", "mp3"], description="Export formats")
@@ -85,12 +87,43 @@ class TTSRequest(BaseModel):
         
         return values
 
+    @model_validator(mode='before')
+    @classmethod
+    def handle_project_folder_alias(cls, values):
+        """Handle project/folder parameter aliasing"""
+        if isinstance(values, dict):
+            project = values.get('project')
+            folder = values.get('folder')
+            
+            # If both are provided, project takes precedence
+            if project and folder and project != folder:
+                raise ValueError("Cannot specify both 'project' and 'folder' parameters with different values")
+            
+            # Use folder as alias for project if project is not specified
+            if not project and folder:
+                values['project'] = folder
+                values.pop('folder', None)  # Remove folder to avoid confusion
+            elif project and not folder:
+                # If project is specified, remove folder to avoid confusion
+                values.pop('folder', None)
+                
+        return values
+
     @validator('text')
     def validate_text_content(cls, v):
         is_valid, sanitized_text = validate_text_input(v)
         if not is_valid:
             raise ValueError("Text must be non-empty and under length limit")
         return sanitized_text
+
+    @validator('project')
+    def validate_project_path(cls, v):
+        if v is not None:
+            sanitized_path = sanitize_file_path(v)
+            if not sanitized_path:
+                raise ValueError("Invalid project path")
+            return sanitized_path
+        return v
 
     @validator('export_formats')
     def validate_formats(cls, v):
