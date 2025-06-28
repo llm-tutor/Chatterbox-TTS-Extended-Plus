@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.11.1] - 2025-06-28 - API Refinement Task 11.9.1: Small Fixes
+
+### Fixed
+- **ENHANCED: Bulk Delete Folder Cleanup** - Automatic empty folder removal for outputs and vc_inputs
+  - Modified `bulk_delete_outputs()` in `utils/outputs/management.py` to automatically remove empty folders after file deletion
+  - Modified `bulk_delete_vc_inputs()` in `utils/vc_inputs/management.py` to automatically remove empty folders after file deletion
+  - Added comprehensive tracking of folders with deletions for targeted cleanup
+  - Enhanced response messages to include folder cleanup statistics (e.g., "Deleted 5 files and cleaned up 2 empty folders")
+  - Graceful error handling - folder cleanup failures don't affect main deletion operation
+  - **Note**: This behavior is specific to outputs and vc_inputs directories, unlike voices where empty subfolders have semantic meaning
+
+- **IMPROVED: TTS Response Mode Documentation and Testing** - Clarified JSON vs Stream mode usage
+  - Fixed `scripts/test_core_examples.py` to use `?response_mode=url` for proper JSON responses in TTS testing
+  - Enhanced `docs/api/endpoints/tts.md` with prominent "Response Modes" section at the top
+  - Added visual indicators (🔄 Stream Mode, 📄 JSON Mode) and clear decision guide
+  - Enhanced Python examples with separate functions demonstrating both response modes clearly
+  - Added comprehensive documentation of `X-Alternative-Formats` header for Stream mode
+  - Clarified default behavior (Stream mode) vs JSON mode usage patterns
+
+### Technical Details
+- **Folder Cleanup Logic**: Only removes folders that are completely empty (no files, no subdirectories) after deletion operations
+- **Response Mode Clarity**: Stream mode (default) returns binary audio files directly; JSON mode (`?response_mode=url`) returns metadata with file URLs
+- **Test Script Compatibility**: Core validation tests now properly expect JSON responses when using URL mode
+- **Backward Compatibility**: All existing functionality preserved; enhancements are additive
+
 ## [1.11.0] - 2025-06-27 - Complete File Management System
 
 ### Added

@@ -79,7 +79,7 @@ def test_core_examples():
             "name": "Basic TTS",
             "description": "Text-to-speech without reference voice",
             "method": "POST",
-            "url": f"{api_base}/api/v1/tts",
+            "url": f"{api_base}/api/v1/tts?response_mode=url",
             "json": {
                 "text": "Hello, this is a core validation test for the Chatterbox TTS system.",
                 "export_formats": ["wav"]

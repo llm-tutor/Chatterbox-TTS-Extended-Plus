@@ -91,8 +91,8 @@
 - [x] Add a note and reference in `docs/api/endpoints/tts.md` mentioning new endpoints
 - [x] Small, relevant update in `docs/api/README>md`
 
-#### **Task 11.9.1: Small fixes**
-- [ ] Adjustment to DELETE bulk end points for outputs and vc_inputs: We 
+#### **Task 11.9.1: Small fixes** ✅
+- [x] Adjustment to DELETE bulk end points for outputs and vc_inputs: We 
   need to remove the top folder referenced. Example, if we request 
   to delete 'books/chapter1/section1', we should not only delete the files 
   inside 'section1', but also the folder itself 'section1'. This applies 
@@ -100,7 +100,7 @@
   since in voices/, empty subfolders can mean empty voice categories. 
   Outputs and vc_inputs sub-folders have no such meaning, so the behavior 
   should be to delete not only the files, but the folder itself. 
-- [ ] Often we have problems making the right request for v1/tts, when it 
+- [x] Often we have problems making the right request for v1/tts, when it 
   comes of JSON mode vs Stream mode. Probably because of incomplete, 
   inconsistent documentation. Let's find out what are the right ways to 
   define each of those modes and document it. The file 
@@ -110,9 +110,9 @@
   
 
 #### **Task 11.10: Integrated test for file management**
-- [ ] Integrated test for: output (tts) generation in folders/projects, reading folders, finding files, deleting files and deleting output folders. Once successful, store it at 'scripts/', document it either in 'docs/api/guides' or 'docs/api/schemas/examples' or both
-- [ ] Integrated test for: vc_input (vc) upload in folders/projects, reading folders, finding files, deleting files and deleting vc_inputs/ sub-folders. Once successful, store it at 'scripts/', document it either in 'docs/api/guides' or 'docs/api/schemas/examples' or both. You can use generate files using tts, copy them to 'tests/media' and then start the integrated test uploading them
-- [ ] Integrated test for: voices, upload in folders, reading folders, finding voices, deleting voices and deleting voices sub-folders. Once successful, store it at 'scripts/', document it either in 'docs/api/guides' or 'docs/api/schemas/examples' or both. You can use generate files using tts, copy them to 'tests/media' with some appropriate names and then start the integrated test uploading them as voices
+- [ ] Integrated test for: output (tts) generation in folders/projects, reading folders, finding files, deleting files and deleting output folders. Once successful, store the test at 'scripts/', document it either in 'docs/api/guides' or 'docs/api/schemas/examples' or both. Look at the files at scripts/ and the README in that folder. The point is to use API methods for the complete flow. Look at the documentation at `docs/api/endpoints/tts.md` and `docs/api/endpoints/file-operations.md` to see the methods available. For other methods and features, you can always check `api/docs/README.md`
+- [ ] Integrated test for: vc_input (vc) upload in folders/projects, reading folders, finding files, deleting files and deleting vc_inputs/ sub-folders. Once successful, store the test at 'scripts/', document it either in 'docs/api/guides' or 'docs/api/schemas/examples' or both. Look at the files at scripts/ and the README in that folder. The point is to use API methods for the complete flow. Look at the documentation at `docs/api/endpoints/voice-conversion.md` and `docs/api/endpoints/file-operations.md` to see the methods available. For other methods and features, you can always check `api/docs/README.md` You can generate files using tts, then copy them to 'tests/media' and then start the integrated test uploading them (for this there is no API method, is a 'manual' hack to obtain the required files). 
+- [ ] Integrated test for: voices, upload in folders, reading folders, finding voices, deleting voices and deleting voices sub-folders. Once successful, store the test at 'scripts/', document it either in 'docs/api/guides' or 'docs/api/schemas/examples' or both. Look at the documentation at `docs/api/endpoints/voice-management.md`. You can generate files using tts, copy them to 'tests/media' with some appropriate names and then start the integrated test uploading them as voices. At the end of course, the idea is to search for them, look at the folders, and then delete them. Unlike outputs/ and vc_input folder deletion (that delete the empty folder too), delete voices do NOT delete the folder, so we might need to clean up the folders created directly (not via API calls, because there is no method for that).
 
 
 #### **Task 11.11: Adjust TTS when speed_factor is specified (audiostretchy)**

@@ -231,7 +231,7 @@ def bulk_delete_outputs(folder: Optional[str] = None,
                        search: Optional[str] = None,
                        filenames: Optional[List[str]] = None) -> Tuple[bool, str, List[str]]:
     """
-    Bulk delete outputs based on criteria
+    Bulk delete outputs based on criteria with automatic folder cleanup
     
     Args:
         folder: Delete outputs in specific folder
@@ -267,6 +267,9 @@ def bulk_delete_outputs(folder: Optional[str] = None,
     if not all_files:
         return False, "No output files found matching criteria", []
     
+    # Track which folders had files deleted (for cleanup)
+    folders_with_deletions = set()
+    
     # Delete each file
     total_deleted = 0
     for file_info in all_files:
@@ -274,6 +277,31 @@ def bulk_delete_outputs(folder: Optional[str] = None,
         if success:
             deleted_files.extend(file_deleted_list)
             total_deleted += 1
+            
+            # Track the folder for potential cleanup
+            if file_info.get('folder_path'):
+                folders_with_deletions.add(file_info['folder_path'])
     
+    # Clean up empty folders (outputs-specific behavior)
+    # Note: This differs from voices where empty subfolders have semantic meaning
+    cleaned_folders = []
+    for folder_path in folders_with_deletions:
+        try:
+            target_folder = outputs_dir / folder_path
+            # Only remove if folder exists and is empty
+            if target_folder.exists() and target_folder.is_dir():
+                # Check if folder is empty (no files, no subdirectories)
+                if not any(target_folder.iterdir()):
+                    target_folder.rmdir()
+                    cleaned_folders.append(folder_path)
+                    logger.info(f"Cleaned up empty output folder: {folder_path}")
+        except OSError as e:
+            # Log but don't fail the operation if folder cleanup fails
+            logger.warning(f"Could not clean up output folder {folder_path}: {e}")
+    
+    # Update message to include folder cleanup info
     message = f"Deleted {total_deleted} output file(s)"
+    if cleaned_folders:
+        message += f" and cleaned up {len(cleaned_folders)} empty folder(s)"
+    
     return True, message, deleted_files

@@ -8,6 +8,26 @@ Generate speech from text using advanced TTS with optional voice cloning and str
 
 Convert text to speech with extensive customization options including voice cloning, quality validation, and output format control.
 
+## Response Modes
+
+The TTS endpoint supports two response modes controlled by the `response_mode` query parameter:
+
+### 🔄 Stream Mode (Default)
+- **Usage**: `POST /api/v1/tts` or `POST /api/v1/tts?response_mode=stream`
+- **Response**: Direct binary audio file download
+- **Benefits**: Single-step workflow, immediate download
+- **Headers**: Contains alternative format URLs in `X-Alternative-Formats`
+
+### 📄 JSON Mode
+- **Usage**: `POST /api/v1/tts?response_mode=url`
+- **Response**: JSON object with file URLs and metadata
+- **Benefits**: Full metadata access, multiple format URLs
+- **Use Case**: When you need file information or want to choose formats programmatically
+
+**Quick Decision Guide:**
+- Want to **download audio directly**? Use **Stream Mode** (default)
+- Need **file metadata or multiple format URLs**? Use **JSON Mode** (`?response_mode=url`)
+
 ## Query Parameters
 
 | Parameter | Type | Default | Description |
@@ -280,12 +300,13 @@ curl -X POST http://localhost:7860/api/v1/tts \
 
 ### Python Examples
 
-#### Basic TTS Function
+#### JSON Mode: Get File URLs and Metadata
 
 ```python
 import requests
 
-def generate_tts(text, voice_file=None, formats=["wav", "mp3"]):
+def generate_tts_json(text, voice_file=None, formats=["wav", "mp3"]):
+    """Generate TTS and get JSON response with file URLs and metadata"""
     payload = {
         "text": text,
         "export_formats": formats
@@ -293,7 +314,7 @@ def generate_tts(text, voice_file=None, formats=["wav", "mp3"]):
     if voice_file:
         payload["reference_audio_filename"] = voice_file
     
-    # Get JSON response
+    # Use JSON mode to get file URLs and metadata
     response = requests.post(
         "http://localhost:7860/api/v1/tts?response_mode=url",
         json=payload,
@@ -310,16 +331,17 @@ def generate_tts(text, voice_file=None, formats=["wav", "mp3"]):
         print(f"Error {response.status_code}: {response.text}")
 
 # Usage
-generate_tts("Hello world!")
-generate_tts("Custom voice test", "my_voice.wav")
+generate_tts_json("Hello world!")
+generate_tts_json("Custom voice test", "my_voice.wav")
 ```
 
-#### Direct File Download
+#### Stream Mode: Direct File Download
 
 ```python
 import requests
 
-def download_tts(text, filename, voice_file=None):
+def download_tts_stream(text, filename, voice_file=None):
+    """Generate TTS and download file directly using stream mode"""
     payload = {
         "text": text,
         "export_formats": ["wav"]
@@ -327,9 +349,9 @@ def download_tts(text, filename, voice_file=None):
     if voice_file:
         payload["reference_audio_filename"] = voice_file
     
-    # Stream response (default behavior)
+    # Use stream mode (default) for direct download
     response = requests.post(
-        "http://localhost:7860/api/v1/tts",
+        "http://localhost:7860/api/v1/tts",  # No response_mode parameter = stream mode
         json=payload,
         headers={"Content-Type": "application/json"},
         stream=True
@@ -340,11 +362,16 @@ def download_tts(text, filename, voice_file=None):
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
         print(f"Downloaded: {filename}")
+        
+        # Check for alternative formats in headers
+        alt_formats = response.headers.get('X-Alternative-Formats', '')
+        if alt_formats:
+            print(f"Alternative formats available: {alt_formats}")
     else:
         print(f"Error {response.status_code}: {response.text}")
 
 # Usage
-download_tts("Hello world!", "output.wav", "speaker1.wav")
+download_tts_stream("Hello world!", "output.wav", "speaker1.wav")
 ```
 
 ### JavaScript Examples
