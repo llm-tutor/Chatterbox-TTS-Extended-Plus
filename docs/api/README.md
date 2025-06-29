@@ -36,6 +36,7 @@ Welcome to the comprehensive API documentation for Chatterbox TTS Extended Plus.
 ### Advanced Features
 - **[Streaming Responses](guides/streaming-responses.md)** - Direct file downloads
 - **[File Uploads](guides/file-uploads.md)** - Upload audio files for processing
+- **[File Management Workflows](guides/file-management-workflows.md)** - Complete file organization, search, and cleanup workflows
 - **[Advanced Features](guides/advanced-features.md)** - Speed control, concatenation, and more
 
 ### Code Examples

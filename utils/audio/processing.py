@@ -126,8 +126,9 @@ def _apply_speed_audiostretchy(audio_tensor: torch.Tensor, sample_rate: int, spe
             # Process with audiostretchy (TDHS)
             stretch_audio(temp_input_path, temp_output_path, ratio=ratio)
             
-            # Read processed result
-            processed_audio, _ = sf.read(temp_output_path)
+            # Read processed result and ensure 32-bit precision (Task 11.11.1)
+            # audiostretchy may output 64-bit audio, so we explicitly convert to float32
+            processed_audio, _ = sf.read(temp_output_path, dtype='float32')
             
             # Handle channel dimensions correctly
             if audio_np.ndim == 2 and processed_audio.ndim == 2:
@@ -136,6 +137,10 @@ def _apply_speed_audiostretchy(audio_tensor: torch.Tensor, sample_rate: int, spe
                 processed_audio = processed_audio[np.newaxis, :]  # Add channel dimension
             elif audio_np.ndim == 1 and processed_audio.ndim == 2:
                 processed_audio = processed_audio[:, 0]  # Take first channel
+            
+            # Ensure output is explicitly float32 (additional safety for Task 11.11.1)
+            processed_audio = processed_audio.astype(np.float32)
+            logger.debug(f"audiostretchy processing complete: {processed_audio.dtype}, shape: {processed_audio.shape}")
             
         finally:
             # Always cleanup temp files

@@ -58,6 +58,48 @@ def normalize_audio_format(audio_segment, source_path: Path):
         # If conversion fails, return original and hope for the best
         return audio_segment
 
+def normalize_audio_format_file(file_path: Path) -> Path:
+    """
+    Normalize audio file format to handle unusual bit depths (e.g., 64-bit from speed_factor processing)
+    
+    This function checks if the file has unusual bit depth and converts it to standard 32-bit float
+    if needed. Used specifically for fixing audiostretchy output precision issues (Task 11.11.1).
+    
+    Args:
+        file_path: Path to audio file to normalize
+    
+    Returns:
+        Path to normalized file (same path if no conversion needed)
+    """
+    import soundfile as sf
+    import numpy as np
+    
+    try:
+        # Check the file info to determine if normalization is needed
+        info = sf.info(str(file_path))
+        
+        # If subtype indicates 64-bit or other unusual format, normalize
+        if info.subtype in ['DOUBLE', 'PCM_64'] or 'DOUBLE' in str(info.subtype):
+            logger.debug(f"Normalizing {info.subtype} audio file to FLOAT32: {file_path.name}")
+            
+            # Read the audio data
+            data, samplerate = sf.read(str(file_path), dtype='float32')
+            
+            # Ensure data is in proper range for float32
+            if np.max(np.abs(data)) > 1.0:
+                data = data / np.max(np.abs(data))
+            
+            # Write back as 32-bit float
+            sf.write(str(file_path), data, samplerate, subtype='FLOAT')
+            logger.debug(f"Successfully normalized to 32-bit float: {file_path.name}")
+            
+        return file_path
+        
+    except Exception as e:
+        logger.warning(f"Could not normalize audio file format for {file_path.name}: {e}")
+        # If normalization fails, return original path
+        return file_path
+
 def detect_silence_boundaries(audio_path: Path, threshold_ms: int = 200, 
                             silence_thresh_db: float = -40.0) -> tuple:
     """

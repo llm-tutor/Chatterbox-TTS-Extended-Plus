@@ -898,6 +898,12 @@ class CoreEngineSynchronous:
             
             # Save speed-adjusted audio
             torchaudio.save(str(speed_output_path), processed_audio, sample_rate)
+            
+            # Check and fix precision issues if needed (Task 11.11.1)
+            # Some speed factor libraries may generate 64-bit files, normalize to 32-bit
+            from utils.audio.analysis import normalize_audio_format_file
+            speed_output_path = normalize_audio_format_file(Path(speed_output_path))
+            
             logger.info(f"Speed factor {speed_factor}x applied successfully: {speed_output_path}")
             
             return str(speed_output_path)

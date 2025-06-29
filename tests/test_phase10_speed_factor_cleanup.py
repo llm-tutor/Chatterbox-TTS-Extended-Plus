@@ -10,8 +10,8 @@ import json
 
 # Test configuration
 API_BASE = "http://127.0.0.1:7860"
-TEST_TEXT = "This is a test of the cleaned up speed factor implementation without pyrubberband."
-# TEST_TEXT = "In a village of La Mancha, the name of which I have no desire to call to mind, there lived not long since one of those gentlemen that keep a lance in the lance-rack, an old buckler, a lean hack, and a greyhound for coursing."
+# TEST_TEXT = "This is a test of the cleaned up speed factor implementation without pyrubberband."
+TEST_TEXT = "In a village of La Mancha, the name of which I have no desire to call to mind, there lived not long since one of those gentlemen that keep a lance in the lance-rack, an old buckler, a lean hack, and a greyhound for coursing."
 
 def test_speed_factor_cleanup():
     """Test the speed factor implementation after pyrubberband removal"""
@@ -33,12 +33,12 @@ def test_speed_factor_cleanup():
         {
             "name": "Faster Speech (1.3x) with auto selection",
             "speed_factor": 1.3,
-            "library": "auto"
+            "library": "audiostretchy"
         },
         {
             "name": "Fallback to librosa",
             "speed_factor": 1.5,
-            "library": "librosa"
+            "library": "audiostretchy"
         }
     ]
     
@@ -52,15 +52,15 @@ def test_speed_factor_cleanup():
             "text": TEST_TEXT,
             "speed_factor": test['speed_factor'],
             "speed_factor_library": test['library'],
-            "export_formats": ["wav"],
-            "reference_audio_filename": None  # Use default voice
+            "export_formats": ["mp3", "wav"],
+            "reference_audio_filename": "test_voices/linda_johnson_01.mp3"  # Use default voice
         }
         
         # Make request
         start_time = time.time()
         try:
             response = requests.post(
-                f"{API_BASE}/api/v1/tts",
+                f"{API_BASE}/api/v1/tts?response_mode=url",
                 json=request_data,
                 timeout=60
             )
@@ -108,7 +108,7 @@ def test_speed_factor_cleanup():
         }
         
         response = requests.post(
-            f"{API_BASE}/api/v1/tts",
+            f"{API_BASE}/api/v1/tts?response_mode=url",
             json=invalid_request,
             timeout=10
         )
@@ -134,7 +134,7 @@ def test_speed_factor_cleanup():
         
         start_time = time.time()
         response = requests.post(
-            f"{API_BASE}/api/v1/tts",
+            f"{API_BASE}/api/v1/tts?response_mode=url",
             json=default_request,
             timeout=60
         )

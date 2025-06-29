@@ -9,10 +9,14 @@ This directory contains automated validation and testing scripts for the API doc
 | **test_core_examples.py** | Core validation suite (implementation protocol) | `python scripts/test_core_examples.py` | ~2-3 minutes |
 | **test_working_examples.py** | Alternative core working examples validation | `python scripts/test_working_examples.py` | ~2-3 minutes |
 | **test_curl_examples.py** | Comprehensive cURL testing (all examples) | `python scripts/test_curl_examples.py --timeout 90` | ~8-15 minutes |
+| **test_integrated_tts_file_management.py** | Complete TTS file management workflow | `python scripts/test_integrated_tts_file_management.py` | ~3-5 minutes |
+| **test_integrated_vc_input_management.py** | Complete VC input file management workflow | `python scripts/test_integrated_vc_input_management.py` | ~3-5 minutes |
+| **test_integrated_voice_management.py** | Complete voice management workflow | `python scripts/test_integrated_voice_management.py` | ~3-5 minutes |
 | **check_links.py** | Validates internal documentation links | `python scripts/check_links.py` | ~30 seconds |
 | **sync_openapi.py** | Checks OpenAPI spec sync with live API | `python scripts/sync_openapi.py` | ~10 seconds |
 | **test_examples.py** | Tests Python code examples in docs | `python scripts/test_examples.py` | ~60 seconds |
 | **diagnose_curl_examples.py** | Analyzes cURL examples without requests | `python scripts/diagnose_curl_examples.py` | ~5 seconds |
+| **test_phase11_tts_reference_file_times_test.py** | Tests times with different voice references | `python scripts/test_phase11_tts_reference_file_times_test.py` | ~20 minutes |
 
 ## Usage by Scenario
 
@@ -43,6 +47,20 @@ python scripts/test_curl_examples.py --timeout 90
 python scripts/check_links.py
 python scripts/sync_openapi.py  
 python scripts/test_examples.py
+```
+
+### Tier 3: Integrated Workflow Testing (Phase 11+)
+**Target Time**: 3-5 minutes per test | **Usage**: Complete workflow validation, feature demonstration
+
+```bash
+# TTS file management workflow (generation, organization, cleanup)
+python scripts/test_integrated_tts_file_management.py
+
+# VC input management workflow (upload, organization, cleanup)  
+python scripts/test_integrated_vc_input_management.py
+
+# Voice management workflow (upload, metadata, organization, cleanup)
+python scripts/test_integrated_voice_management.py
 ```
 
 ### During Development
@@ -206,6 +224,60 @@ python scripts/test_curl_examples.py --api-base http://localhost:8000
 **Usage**:
 ```bash
 python scripts/test_working_examples.py
+```
+
+### test_phase11_tts_reference_file_times_test.py
+**Purpose**: Compare TTS generation times when using different reference voices  
+**Features**:
+- Tests TTS generation with multiple generations of the same text with same reference voice
+- Uses the speed_factor parameter, generating the same audio at three different speeds
+- Produces a written report in Markdown with configurable filename
+- The tester can define different voice reference files for speed generation comparison of identical audio 
+
+**Usage**:
+```bash
+python scripts/test_phase11_tts_reference_file_times_test.py
+```
+
+### test_integrated_tts_file_management.py
+**Purpose**: Complete TTS output file management workflow validation  
+**Features**:
+- Tests TTS generation in organized project folders
+- Validates file listing, searching, and folder structure operations
+- Demonstrates complete file lifecycle: create → organize → find → delete
+- Tests both individual file and bulk project folder deletion
+
+**Usage**:
+```bash
+python scripts/test_integrated_tts_file_management.py
+```
+
+### test_integrated_vc_input_management.py
+**Purpose**: Complete VC input file management workflow validation  
+**Features**:
+- Tests VC input file upload to organized project folders
+- Validates file listing, searching, and folder structure operations
+- Demonstrates complete upload lifecycle: upload → organize → find → delete
+- Tests both individual file and bulk project folder deletion
+- Auto-generates test files if insufficient media files available
+
+**Usage**:
+```bash
+python scripts/test_integrated_vc_input_management.py
+```
+
+### test_integrated_voice_management.py
+**Purpose**: Complete voice management workflow validation  
+**Features**:
+- Tests voice upload with metadata (name, description, tags, folders)
+- Validates voice listing, searching by name/tags, and folder operations
+- Demonstrates complete voice lifecycle: upload → organize → find → delete
+- Tests voice categorization and metadata management
+- Auto-generates voice samples if insufficient media files available
+
+**Usage**:
+```bash
+python scripts/test_integrated_voice_management.py
 ```
 
 ### diagnose_curl_examples.py

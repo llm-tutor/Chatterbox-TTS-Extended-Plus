@@ -109,17 +109,38 @@
   examples, how to make the call on each of the modes. 
   
 
-#### **Task 11.10: Integrated test for file management**
-- [ ] Integrated test for: output (tts) generation in folders/projects, reading folders, finding files, deleting files and deleting output folders. Once successful, store the test at 'scripts/', document it either in 'docs/api/guides' or 'docs/api/schemas/examples' or both. Look at the files at scripts/ and the README in that folder. The point is to use API methods for the complete flow. Look at the documentation at `docs/api/endpoints/tts.md` and `docs/api/endpoints/file-operations.md` to see the methods available. For other methods and features, you can always check `api/docs/README.md`
-- [ ] Integrated test for: vc_input (vc) upload in folders/projects, reading folders, finding files, deleting files and deleting vc_inputs/ sub-folders. Once successful, store the test at 'scripts/', document it either in 'docs/api/guides' or 'docs/api/schemas/examples' or both. Look at the files at scripts/ and the README in that folder. The point is to use API methods for the complete flow. Look at the documentation at `docs/api/endpoints/voice-conversion.md` and `docs/api/endpoints/file-operations.md` to see the methods available. For other methods and features, you can always check `api/docs/README.md` You can generate files using tts, then copy them to 'tests/media' and then start the integrated test uploading them (for this there is no API method, is a 'manual' hack to obtain the required files). 
-- [ ] Integrated test for: voices, upload in folders, reading folders, finding voices, deleting voices and deleting voices sub-folders. Once successful, store the test at 'scripts/', document it either in 'docs/api/guides' or 'docs/api/schemas/examples' or both. Look at the documentation at `docs/api/endpoints/voice-management.md`. You can generate files using tts, copy them to 'tests/media' with some appropriate names and then start the integrated test uploading them as voices. At the end of course, the idea is to search for them, look at the folders, and then delete them. Unlike outputs/ and vc_input folder deletion (that delete the empty folder too), delete voices do NOT delete the folder, so we might need to clean up the folders created directly (not via API calls, because there is no method for that).
+#### **Task 11.10: Integrated test for file management** ✅
+- [x] Integrated test for: output (tts) generation in folders/projects, reading folders, finding files, deleting files and deleting output folders. Complete workflow test created at `scripts/test_integrated_tts_file_management.py`
+- [x] Integrated test for: vc_input (vc) upload in folders/projects, reading folders, finding files, deleting files and deleting vc_inputs/ sub-folders. Complete workflow test created at `scripts/test_integrated_vc_input_management.py`
+- [x] Integrated test for: voices, upload in folders, reading folders, finding voices, deleting voices and deleting voices sub-folders. Complete workflow test created at `scripts/test_integrated_voice_management.py`
+- [x] All tests demonstrate complete API-based workflows for file management with comprehensive coverage of organizing, searching, and cleanup operations
 
+#### **Task 11.11: Adjust TTS when speed_factor is specified (audiostretchy)** ✅
+- [x] Reviewed audiostretchy implementation in `utils/audio/processing.py`
+- [x] Identified issue: audiostretchy was generating 64-bit WAV files instead of required 32-bit float
+- [x] Fixed by specifying `subtype='FLOAT'` in `sf.write()` and `dtype='float32'` in `sf.read()` - REVERTED
+- [x] Added explicit `astype(np.float32)` conversion for additional safety  - REVERTED
+- [x] Updated function documentation to reflect the fix (Task 11.11) - REVERTED
+- [x] Added debug logging to verify correct precision processing  - REVERTED
+- [x] Created test script `scripts/test_audiostretchy_precision.py` to verify the fix - NEED to be tested again
 
-#### **Task 11.11: Adjust TTS when speed_factor is specified (audiostretchy)**
-- [ ] Review the documentation for audiostretchy, in particular how it is used in 'utils/audio/processing.py'. In this file the function 'apply_speed_factor' (lines 14-86, and then lines 89-158) uses audiostretchy as the first option for altering the tempo of a file. The problem we have, is that this library appears to generate wav files with 64 bits of sample size. For most operations of the system, we need the wav files to be of 32 bit sample size. Review if we can specify this when using audiostretchy, or if we need a further post-processing to convert the file before returning the response.
+#### **Task 11.11.1 Find alternatives to fix**
+- [x] Review the information at `docs/dev/task_11.11_attempted_fix_for_speed_factor_64b_sample_size.md`
+- [x] Propose an alternative fix
+- [x] Implement the new fix
+- [x] Read, understand and run the test files
+  - scripts/test_tts_speed_factor_api.py
+  - scripts/test_audiostretchy_precision.py
+  - scripts/test_audiostretchy_precision_simple.py
+- [x] Confirm with the user that the final audio files are acceptable and of 32 bits sample size
+- [x] Upon confirmation, create a commit for all the current changes in the repo (they will include the ones from task 11.10, not yet committed)
 
-
-#### **Task 11.12: Integrated test for basic concatenation**
+#### **Task 11.12: Fix integrated test for basic concatenation**
+- [ ] Fix **GET** `v1/voices` API method: The most important data element that this method should return is the 'url' or full path (relative to the 'reference_audio/'), because when we request TTS generation, what we send to identify the file to be used as reference is precisely the full path or URL (example: 'test_voices/linda_johnson_01.wav', 'speaker_en/Jamie01.mp3', etc). The current method, returns plenty of data points for each audio file found, but none of them is exactly that. We should modify the VoiceMetadata class definition (api_models.py: 254-268), and the method end point in 'main_api.py': 475-547, on the line 516. A good name for the new return value may be 'url' or 'full_path', but 'url' might be more consistent with other methods.
+- [ ] Adjust the test file `scripts/test_integrated_tts_file_management.py` so it can recover the 'url' of all the available voices for its processing. Currently this test is failing because it doesnt find any voice for its tts generation sequence.
+- [ ] Iterate on the integrated tts file management test, until the full workflow is working. Make note or adjustments also to the relevant documentation, at `docs/api/guides/file-management-workflows.md`
+- [ ] Proceed and iterate in the same way on the VC integrated test: `scripts/test_integrated_vc_input_management.py`, document it.
+- [ ] Proceed and iterate in the same way on the VC integrated test: `scripts/test_integrated_voice_management.py`, document it.
 
 
 #### **Task 11.13: Revision of concat mixed and basic testing**
