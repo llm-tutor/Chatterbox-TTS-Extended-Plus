@@ -34,8 +34,7 @@ def save_uploaded_vc_input(file_content: bytes,
     
     # Create target directory path
     if folder_path:
-        # Sanitize folder path
-        folder_path = sanitize_filename(folder_path)
+        # Use folder path directly (like TTS does) - don't sanitize to preserve hierarchy
         target_dir = vc_inputs_dir / folder_path
     else:
         target_dir = vc_inputs_dir
@@ -241,10 +240,11 @@ def bulk_delete_vc_inputs(folder: Optional[str] = None,
     # Get all VC input files matching criteria
     all_files = scan_vc_input_files(vc_inputs_dir, folder=folder)
     
-    # Filter by search term
+    # Filter by search term (includes filename, folder path, and text content)
     if search:
         search_lower = search.lower()
         all_files = [f for f in all_files if search_lower in f['filename'].lower() or 
+                    (f.get('folder_path') and search_lower in f['folder_path'].lower()) or
                     (f.get('text') and search_lower in f['text'].lower())]
     
     # Filter by specific filenames
@@ -252,7 +252,7 @@ def bulk_delete_vc_inputs(folder: Optional[str] = None,
         all_files = [f for f in all_files if f['filename'] in filenames]
     
     if not all_files:
-        return False, "No VC input files found matching criteria", []
+        return True, "No VC input files found matching criteria (already clean)", []
     
     # Track which folders had files deleted (for cleanup)
     folders_with_deletions = set()
@@ -366,9 +366,13 @@ def scan_vc_input_files(vc_inputs_dir: Union[str, Path], folder: Optional[str] =
             except Exception as e:
                 logger.warning(f"Failed to calculate metadata for {audio_file}: {e}")
             
-            # Apply folder filter
-            if folder and metadata.get('folder_path') != folder:
-                continue
+            # Apply folder filter (supports hierarchical deletion)
+            if folder:
+                folder_path = metadata.get('folder_path')
+                # Include files in the exact folder and all subfolders
+                if not (folder_path == folder or 
+                       (folder_path and folder_path.startswith(folder + '/'))):
+                    continue
             
             files_metadata.append(metadata)
     

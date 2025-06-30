@@ -76,8 +76,7 @@ def save_uploaded_voice(file_content: bytes, filename: str, folder_path: Optiona
     
     # Create target directory path
     if folder_path:
-        # Sanitize folder path
-        folder_path = sanitize_filename(folder_path)
+        # Use folder path directly (like TTS does) - don't sanitize to preserve hierarchy
         target_dir = ref_audio_dir / folder_path
     else:
         target_dir = ref_audio_dir

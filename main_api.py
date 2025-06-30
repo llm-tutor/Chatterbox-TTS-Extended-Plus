@@ -500,16 +500,20 @@ async def list_voices(
                 # Calculate folder path with forward slashes for cross-platform consistency
                 folder_path = str(relative_path.parent).replace('\\', '/') if relative_path.parent != Path('.') else None
                 
-                # Apply folder filter (project is alias for folder)
+                # Apply folder filter (supports hierarchical filtering)
                 folder_filter = folder or project
-                if folder_filter and folder_path != folder_filter:
-                    continue
+                if folder_filter:
+                    # Include files in the exact folder and all subfolders
+                    if not (folder_path == folder_filter or 
+                           (folder_path and folder_path.startswith(folder_filter + '/'))):
+                        continue
                 
-                # Apply search filter
+                # Apply search filter (includes name, description, tags, and folder path)
                 if search:
                     search_lower = search.lower()
                     if not (search_lower in metadata.get('name', '').lower() or 
                            search_lower in metadata.get('description', '').lower() or
+                           (folder_path and search_lower in folder_path.lower()) or
                            any(search_lower in tag.lower() for tag in metadata.get('tags', []))):
                         continue
                 
@@ -1091,12 +1095,13 @@ async def list_vc_input_files(
             # Scan all files
             files_metadata = scan_vc_input_files(vc_inputs_dir, folder_filter)
             
-            # Apply search filter
+            # Apply search filter (includes filename and folder path)
             if search:
                 search_lower = search.lower()
                 files_metadata = [
                     file_meta for file_meta in files_metadata
-                    if search_lower in file_meta['filename'].lower()
+                    if search_lower in file_meta['filename'].lower() or
+                       (file_meta.get('folder_path') and search_lower in file_meta['folder_path'].lower())
                 ]
         
         # Calculate pagination

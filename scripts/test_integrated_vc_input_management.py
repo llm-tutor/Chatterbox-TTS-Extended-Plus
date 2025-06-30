@@ -45,7 +45,7 @@ class VcInputManagementTest:
     
     def get_test_audio_files(self) -> List[Path]:
         """Get available test audio files"""
-        print("\n🔍 Finding test audio files...")
+        print("\nFinding test audio files...")
         
         if not self.test_media_dir.exists():
             print(f"Test media directory not found: {self.test_media_dir}")
@@ -77,7 +77,7 @@ class VcInputManagementTest:
     
     def generate_test_audio_if_needed(self) -> List[Path]:
         """Generate test audio files using TTS if needed"""
-        print("\n🎵 Generating test audio files for VC input testing...")
+        print("\nGenerating test audio files for VC input testing...")
         
         test_texts = [
             "This is a test audio file for voice conversion input testing.",
@@ -178,10 +178,10 @@ class VcInputManagementTest:
     def list_vc_inputs_by_project(self, project: str = None) -> Dict[str, Any]:
         """List VC inputs, optionally filtered by project"""
         if project:
-            print(f"\n📁 Listing VC inputs in project '{project}'...")
+            print(f"\n Listing VC inputs in project '{project}'...")
             params = {"project": project}
         else:
-            print(f"\n📁 Listing all VC inputs...")
+            print(f"\n Listing all VC inputs...")
             params = {}
             
         try:
@@ -229,7 +229,7 @@ class VcInputManagementTest:
     
     def search_vc_inputs(self, search_term: str) -> List[Dict[str, Any]]:
         """Search for VC inputs by filename"""
-        print(f"\n🔍 Searching VC inputs for '{search_term}'...")
+        print(f"\n Searching VC inputs for '{search_term}'...")
         try:
             response = requests.get(f"{BASE_URL}/vc_inputs", params={"search": search_term})
             response.raise_for_status()

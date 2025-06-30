@@ -194,16 +194,16 @@ class VoiceManagementTest:
             response.raise_for_status()
             voices = response.json()
             
-            print(f"Found {len(voices['files'])} voices")
-            if voices['files']:
+            print(f"Found {len(voices['voices'])} voices")
+            if voices['voices']:
                 print("   Voices:")
-                for voice_info in voices['files']:
+                for voice_info in voices['voices']:
                     folder = voice_info.get('folder_path', 'root')
                     name = voice_info.get('name', 'Unnamed')
                     duration = voice_info.get('duration_seconds', 0)
                     tags = voice_info.get('tags', [])
                     tags_str = f" [tags: {', '.join(tags)}]" if tags else ""
-                    print(f"   - {voice_info['filename']} | {name} (folder: {folder}, {duration:.1f}s){tags_str}")
+                    print(f"   - {voice_info['url']} | {name} (folder: {folder}, {duration:.1f}s){tags_str}")
             
             return voices
             
@@ -243,14 +243,14 @@ class VoiceManagementTest:
             response.raise_for_status()
             results = response.json()
             
-            found_voices = results['files']
+            found_voices = results['voices']
             print(f"Found {len(found_voices)} matching voices:")
             for voice_info in found_voices:
                 folder = voice_info.get('folder_path', 'root')
                 name = voice_info.get('name', 'Unnamed')
                 tags = voice_info.get('tags', [])
                 tags_str = f" [tags: {', '.join(tags)}]" if tags else ""
-                print(f"   - {voice_info['filename']} | {name} (folder: {folder}){tags_str}")
+                print(f"   - {voice_info['url']} | {name} (folder: {folder}){tags_str}")
             
             return found_voices
             
@@ -304,7 +304,7 @@ class VoiceManagementTest:
     
     def cleanup_empty_folders(self):
         """Manual cleanup of empty folders (no API for this)"""
-        print(f"\n🧹 Note: Empty voice folders are preserved by design")
+        print(f"\nNote: Empty voice folders are preserved by design")
         print("   Voice folders represent categories and are not auto-deleted")
         print("   Created test folders: {0}".format(list(self.created_folders)))
     

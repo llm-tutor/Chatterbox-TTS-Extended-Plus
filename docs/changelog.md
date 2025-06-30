@@ -6,6 +6,56 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.12.1] - 2025-06-29 - API Refinement Task 11.12: Complete VC Inputs & Partial Voice Management Integration
+
+### Major Progress
+- **✅ VC INPUT MANAGEMENT - COMPLETE**: All file management workflows now fully functional
+- **⏳ VOICE MANAGEMENT - PARTIAL**: Core functionality working, upload/deletion debugging pending
+
+### Fixed - VC Input Management (100% Complete)
+- **Hierarchical Folder Filtering** - Parent folders now include all subfolders (e.g., `project=interview_project` finds files in `interview_project/raw_recordings`)
+- **Enhanced Search Functionality** - Search now includes folder paths in addition to filenames and content
+- **DELETE Endpoint Behavior** - Returns 200 success with "already clean" message instead of 404 when no files found
+- **Path Separator Consistency** - Preserved forward slashes in folder paths for cross-platform compatibility
+- **Folder Path Preservation** - Removed destructive `sanitize_filename()` from folder paths that was converting `/` to `_`
+- **Unicode Compatibility** - Removed emoji characters from test scripts for Windows cp932 encoding
+
+### Fixed - Voice Management (Partial)
+- **API Response Structure** - Fixed test scripts to use correct `voices` field instead of `files`
+- **Hierarchical Folder Filtering** - Applied same parent/subfolder logic as VC inputs
+- **Enhanced Search Functionality** - Added folder path inclusion in search operations
+- **Unicode Compatibility** - Removed emoji characters from test scripts
+
+### Technical Implementation
+- **Path Sanitization Fix**: Removed `sanitize_filename(folder_path)` calls in both VC inputs and voice upload functions
+- **Hierarchical Filtering Logic**: Changed exact match (`folder_path == folder`) to include subfolders (`folder_path.startswith(folder + '/')`)
+- **Search Enhancement**: Extended search filters to include `folder_path` field across all file management systems
+- **Cross-Platform Paths**: Ensured consistent forward slash usage in folder structures
+
+### Files Modified
+- `utils/vc_inputs/management.py` - Hierarchical filtering, enhanced search, folder path preservation
+- `utils/voice/management.py` - Folder path preservation (removed sanitization)
+- `main_api.py` - Voice hierarchical filtering and enhanced search
+- `scripts/test_integrated_vc_input_management.py` - Unicode fixes and validation
+- `scripts/test_integrated_voice_management.py` - API response structure and Unicode fixes
+
+### Validation Results
+- **VC Inputs Integrated Test**: ✅ 100% pass rate - Upload, list, search, delete all working
+- **Voice Management Test**: ⏳ ~80% functional - Listing and search working, uploads (422 errors) and deletion (500 errors) pending
+- **Cross-Platform Compatibility**: ✅ Path handling unified across Windows/Linux
+- **Folder Hierarchy Operations**: ✅ Parent/subfolder relationships working correctly
+
+### Remaining Work (Task 11.12.1)
+- **Voice Upload Issues**: Debug 422 validation errors in voice upload endpoint
+- **Voice Deletion Issues**: Debug 500 server errors in voice bulk deletion
+- **Path Separator Normalization**: Fix voice URLs showing backslashes instead of forward slashes
+- **Complete Voice Integration**: Achieve 100% pass rate like VC inputs
+
+### Next Phase Ready
+- VC input file management system fully operational and validated
+- Foundation laid for completing voice management system debugging
+- All cross-platform and hierarchical operation patterns established
+
 ## [1.12.0] - 2025-06-29 - API Refinement Task 11.12: Integrated File Management Fixes
 
 ### Fixed

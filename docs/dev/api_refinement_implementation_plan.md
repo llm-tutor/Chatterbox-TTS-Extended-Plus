@@ -148,14 +148,56 @@
   - **DELETE endpoint improvement**: Returns 200 success instead of 404 when no files found to delete
   - **Unicode/emoji compatibility**: Removed emoji characters from test scripts for Windows cp932 encoding compatibility
 - [x] **VALIDATION**: TTS integrated test now passes completely - all file management workflows working correctly
-- [ ] **TODO**: Apply same fixes to VC and Voice integrated tests - check for similar issues:
-  - Path separator consistency in folder structures and filtering
-  - Hierarchical folder filtering (parent folder should find subfolders)
-  - Search functionality including folder paths
-  - DELETE endpoint behavior when no files match criteria
-  - Unicode/emoji encoding issues in test scripts
-- [ ] Proceed and iterate in the same way on the VC integrated test: `scripts/test_integrated_vc_input_management.py`, document it.
-- [ ] Proceed and iterate in the same way on the Voice integrated test: `scripts/test_integrated_voice_management.py`, document it.
+- [x] **TODO**: Apply same fixes to VC and Voice integrated tests - check for similar issues:
+  - [x] Path separator consistency in folder structures and filtering  
+  - [x] Hierarchical folder filtering (parent folder should find subfolders)
+  - [x] Search functionality including folder paths
+  - [x] DELETE endpoint behavior when no files match criteria
+  - [x] Unicode/emoji encoding issues in test scripts
+- [x] Proceed and iterate in the same way on the VC integrated test: `scripts/test_integrated_vc_input_management.py`, document it.
+- [x] Proceed and iterate in the same way on the Voice integrated test: `scripts/test_integrated_voice_management.py`, document it.
+
+#### **Progress Summary:**
+- **VC Inputs**: ✅ COMPLETE - All file management workflows working correctly including uploads, hierarchical filtering, search, and deletion
+- **Voice Management**: ⏳ PARTIAL - Fixed API filtering/search and test structure, but upload (422 errors) and deletion (500 errors) issues remain
+- **Applied Fixes**: Hierarchical folder filtering, enhanced search including folder paths, proper DELETE responses, Unicode compatibility, folder path preservation (removed sanitization), API response structure alignment
+
+#### **Task 11.12.1: Complete Voice Management Integration Test Fixes**
+- [ ] **Voice Upload 422 Validation Errors**: Debug and fix voice upload endpoint validation issues
+  - Check voice upload request format and multipart form data handling
+  - Verify voice file validation logic and error messages
+  - Test voice upload with proper folder path handling
+- [ ] **Voice Deletion 500 Server Errors**: Debug and fix voice bulk deletion endpoint
+  - Check voice deletion logic and error handling
+  - Verify folder filtering in deletion operations
+  - Test hierarchical deletion with existing voice folders
+- [ ] **Path Separator Consistency**: Fix Windows/Linux compatibility in voice URLs
+  - Voice URLs currently show backslashes (`speaker_en\Jamie01.mp3`) instead of forward slashes
+  - Update voice metadata loading to normalize path separators to forward slashes
+  - Ensure cross-platform consistency like in VC inputs and outputs
+- [ ] **Voice Upload Integration**: Test complete upload workflow with folder organization
+  - Verify new voice uploads create proper folder hierarchy
+  - Test voice upload to existing and new folder structures
+  - Validate voice metadata creation and storage
+- [ ] **Voice Deletion Integration**: Test complete deletion workflow
+  - Verify single voice deletion by filename
+  - Test bulk voice deletion by folder (hierarchical)
+  - Test bulk voice deletion by search criteria
+  - Validate folder cleanup behavior (voices preserve empty folders by design)
+- [ ] **Complete Voice Integration Test**: Ensure 100% pass rate like VC inputs
+  - All voice management workflows functional
+  - Upload, list, search, delete operations working
+  - Cross-platform path handling verified
+  - Unicode compatibility confirmed
+
+#### **Task 11.12.2: Validate that all changes performed in the Integration Test Fixes are documented**
+- [ ] Look at the entries in the 'docs/changelog.md' file to see the details of 
+  what was done
+- [ ] Review the API models implementation and review the corresponding 
+  documentation. Look at 'docs/README.md' and 'docs/how-to-update-api-docs.
+  md' to find the places where to check for potential undocumented changes
+- [ ] Not only look at 'docs/api/endpoints' documents, but also the guides 
+  and the schemas/ and schemas/examples/ folders
 
 
 #### **Task 11.13: Revision of concat mixed and basic testing**
