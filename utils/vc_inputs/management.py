@@ -96,7 +96,7 @@ def create_vc_input_metadata_from_upload(file_path: Path, upload_metadata: Dict[
         # Calculate folder path
         vc_inputs_dir = Path(config_manager.get("paths.vc_input_dir", "vc_inputs"))
         relative_path = file_path.relative_to(vc_inputs_dir)
-        folder_path = str(relative_path.parent) if relative_path.parent != Path('.') else None
+        folder_path = str(relative_path.parent).replace('\\', '/') if relative_path.parent != Path('.') else None
         
         metadata = {
             'filename': file_path.name,
@@ -360,7 +360,8 @@ def scan_vc_input_files(vc_inputs_dir: Union[str, Path], folder: Optional[str] =
                 # Calculate folder path relative to vc_inputs directory
                 relative_path = audio_file.relative_to(vc_inputs_path)
                 if relative_path.parent != Path('.'):
-                    metadata['folder_path'] = str(relative_path.parent)
+                    # Use forward slashes for cross-platform consistency
+                    metadata['folder_path'] = str(relative_path.parent).replace('\\', '/')
                 
             except Exception as e:
                 logger.warning(f"Failed to calculate metadata for {audio_file}: {e}")

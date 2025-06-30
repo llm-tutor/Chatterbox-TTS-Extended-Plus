@@ -6,6 +6,48 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.12.0] - 2025-06-29 - API Refinement Task 11.12: Integrated File Management Fixes
+
+### Fixed
+- **CRITICAL: Voice API Integration** - Added missing `url` field to VoiceMetadata for seamless TTS integration
+- **Cross-Platform Path Handling** - Unified all path separators to forward slashes for Windows/Linux compatibility
+- **Hierarchical Folder Operations** - Fixed filtering and deletion to work with subfolder structures
+- **Enhanced Search Functionality** - Search now includes folder paths, not just filenames
+- **DELETE Endpoint Behavior** - Returns 200 success instead of 404 when no files match deletion criteria
+
+### Enhanced
+- **VoiceMetadata API Model** - Added `url` field containing path relative to reference_audio/ directory
+- **File Management Workflows** - Complete end-to-end testing and validation of TTS file management
+- **Folder Filtering Logic** - Parent folder filters now include all subfolders (e.g., `project=test_book` finds `test_book/chapter1` files)
+- **Search Capabilities** - Users can now search by project names and folder structures
+- **Error Handling** - More user-friendly responses for edge cases
+
+### Technical Details
+- **Empty Project Handling**: Fixed `project=""` parameter to correctly place files in root folder instead of creating "unnamed" folder
+- **Path Separator Consistency**: Updated 8 utility files to ensure forward slash usage across all platforms
+- **Hierarchical Operations**: Enhanced filtering logic in both API endpoints and bulk operations
+- **Unicode Compatibility**: Removed emoji characters from test scripts for Windows cp932 encoding support
+
+### Files Modified
+- `api_models.py` - Added url field to VoiceMetadata, fixed empty project validation
+- `main_api.py` - Enhanced folder filtering and search functionality
+- `utils/outputs/management.py` - Improved hierarchical deletion and error handling
+- `utils/vc_inputs/management.py` - Path separator consistency fixes
+- `utils/*/folders.py` - Cross-platform folder structure generation
+- `docs/api/schemas/response-models.md` - Updated VoiceMetadata documentation
+- `scripts/test_integrated_*.py` - Unicode compatibility improvements
+
+### Validation
+- **✅ TTS File Management**: Complete workflow validation from generation to deletion
+- **✅ Cross-Platform Compatibility**: Windows and Linux path handling unified
+- **✅ API Integration**: Voice URL retrieval and TTS generation working seamlessly
+- **✅ Edge Case Handling**: Proper responses for empty folders and missing files
+- **✅ Search and Filter**: All folder-based operations working correctly
+
+### Next Steps
+- Apply similar fixes to VC input and voice management integrated tests
+- Validate same cross-platform and hierarchical operation improvements
+
 ## [1.11.1] - 2025-06-28 - API Refinement Task 11.9.1: Small Fixes
 
 ### Fixed

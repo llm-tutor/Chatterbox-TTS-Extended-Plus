@@ -32,23 +32,23 @@ class VoiceManagementTest:
         
     def test_health(self) -> bool:
         """Test basic server connectivity"""
-        print("🔍 Testing server connectivity...")
+        print("Testing server connectivity...")
         try:
             response = requests.get(f"{BASE_URL}/health")
             response.raise_for_status()
             health = response.json()
-            print(f"✅ Server status: {health['status']}")
+            print(f"Server status: {health['status']}")
             return True
         except Exception as e:
-            print(f"❌ Connection failed: {e}")
+            print(f"Connection failed: {e}")
             return False
     
     def get_test_audio_files(self) -> List[Path]:
         """Get available test audio files for voice upload"""
-        print("\n🔍 Finding test audio files for voice upload...")
+        print("\nFinding test audio files for voice upload...")
         
         if not self.test_media_dir.exists():
-            print(f"❌ Test media directory not found: {self.test_media_dir}")
+            print(f"Test media directory not found: {self.test_media_dir}")
             return []
         
         # Look for clean audio files suitable as voices
@@ -69,7 +69,7 @@ class VoiceManagementTest:
         # Take diverse samples
         sample_files = voice_files[:6]  # Take up to 6 files
         
-        print(f"✅ Found {len(audio_files)} total audio files, {len(voice_files)} suitable for voices")
+        print(f"Found {len(audio_files)} total audio files, {len(voice_files)} suitable for voices")
         print(f"   Using {len(sample_files)} for testing:")
         for file in sample_files:
             print(f"   - {file.name}")
@@ -104,7 +104,7 @@ class VoiceManagementTest:
                 if result['output_files']:
                     wav_file = result['output_files'][0]
                     filename = wav_file['filename']
-                    print(f"✅ Generated: {filename}")
+                    print(f"Generated: {filename}")
                     
                     # Copy to test media directory for voice upload
                     source_path = Path("outputs") / filename
@@ -117,7 +117,7 @@ class VoiceManagementTest:
                         print(f"   Copied to: {target_path.name}")
                 
             except Exception as e:
-                print(f"⚠️  Could not generate voice sample {i+1}: {e}")
+                print(f"Could not generate voice sample {i+1}: {e}")
         
         return generated_files
     
@@ -125,10 +125,10 @@ class VoiceManagementTest:
                     folder_path: str = None, tags: List[str] = None) -> str:
         """Upload a voice file with metadata"""
         folder_info = f" to folder '{folder_path}'" if folder_path else " to root"
-        print(f"\n📤 Uploading voice '{name}'{folder_info}...")
+        print(f"\nUploading voice '{name}'{folder_info}...")
         
         if not file_path.exists():
-            print(f"❌ File not found: {file_path}")
+            print(f"File not found: {file_path}")
             return None
         
         # Prepare upload data
@@ -166,7 +166,7 @@ class VoiceManagementTest:
                 if folder_path:
                     self.created_folders.add(folder_path)
                 
-                print(f"✅ Upload successful: {uploaded_filename}")
+                print(f"Upload successful: {uploaded_filename}")
                 print(f"   Name: {result['metadata']['name']}")
                 print(f"   Duration: {result['metadata']['duration_seconds']:.2f}s")
                 if 'folder_path' in result['metadata']:
@@ -175,7 +175,7 @@ class VoiceManagementTest:
                 return uploaded_filename
                 
         except Exception as e:
-            print(f"❌ Voice upload failed: {e}")
+            print(f"Voice upload failed: {e}")
             if hasattr(e, 'response') and e.response:
                 print(f"   Response: {e.response.text}")
             return None
@@ -183,10 +183,10 @@ class VoiceManagementTest:
     def list_voices_by_folder(self, folder: str = None) -> Dict[str, Any]:
         """List voices, optionally filtered by folder"""
         if folder:
-            print(f"\n📁 Listing voices in folder '{folder}'...")
+            print(f"\nListing voices in folder '{folder}'...")
             params = {"folder": folder}
         else:
-            print(f"\n📁 Listing all voices...")
+            print(f"\nListing all voices...")
             params = {}
             
         try:
@@ -194,7 +194,7 @@ class VoiceManagementTest:
             response.raise_for_status()
             voices = response.json()
             
-            print(f"✅ Found {len(voices['files'])} voices")
+            print(f"Found {len(voices['files'])} voices")
             if voices['files']:
                 print("   Voices:")
                 for voice_info in voices['files']:
@@ -208,43 +208,43 @@ class VoiceManagementTest:
             return voices
             
         except Exception as e:
-            print(f"❌ Listing voices failed: {e}")
+            print(f"Listing voices failed: {e}")
             return {"files": []}
     
     def get_voice_folder_structure(self) -> Dict[str, Any]:
         """Get folder structure of reference_audio directory"""
-        print(f"\n🌳 Getting voice folder structure...")
+        print(f"\nGetting voice folder structure...")
         try:
             response = requests.get(f"{BASE_URL}/voices/folders")
             response.raise_for_status()
             structure = response.json()
             
-            print(f"✅ Voice folder structure:")
+            print(f"Voice folder structure:")
             self._print_folder_structure(structure.get('structure', {}), indent=1)
             
             return structure
             
         except Exception as e:
-            print(f"❌ Getting folder structure failed: {e}")
+            print(f"Getting folder structure failed: {e}")
             return {}
     
     def _print_folder_structure(self, structure: Dict, indent: int = 0):
         """Recursively print folder structure"""
         for folder, contents in structure.items():
-            print("  " * indent + f"📁 {folder}/")
+            print("  " * indent + f" {folder}/")
             if isinstance(contents, dict):
                 self._print_folder_structure(contents, indent + 1)
     
     def search_voices(self, search_term: str) -> List[Dict[str, Any]]:
         """Search for voices by name, filename, or tags"""
-        print(f"\n🔍 Searching voices for '{search_term}'...")
+        print(f"\nSearching voices for '{search_term}'...")
         try:
             response = requests.get(f"{BASE_URL}/voices", params={"search": search_term})
             response.raise_for_status()
             results = response.json()
             
             found_voices = results['files']
-            print(f"✅ Found {len(found_voices)} matching voices:")
+            print(f"Found {len(found_voices)} matching voices:")
             for voice_info in found_voices:
                 folder = voice_info.get('folder_path', 'root')
                 name = voice_info.get('name', 'Unnamed')
@@ -255,22 +255,22 @@ class VoiceManagementTest:
             return found_voices
             
         except Exception as e:
-            print(f"❌ Search failed: {e}")
+            print(f"Search failed: {e}")
             return []
     
     def delete_single_voice(self, filename: str) -> bool:
         """Delete a single voice file"""
-        print(f"\n🗑️  Deleting single voice '{filename}'...")
+        print(f"\nDeleting single voice '{filename}'...")
         try:
             response = requests.delete(f"{BASE_URL}/voice/{filename}?confirm=true")
             response.raise_for_status()
             result = response.json()
             
-            print(f"✅ {result['message']}")
+            print(f"{result['message']}")
             return True
             
         except Exception as e:
-            print(f"❌ Deletion failed: {e}")
+            print(f"Deletion failed: {e}")
             return False
     
     def delete_voices_bulk(self, folder: str = None, search: str = None) -> bool:
@@ -282,7 +282,7 @@ class VoiceManagementTest:
             criteria.append(f"search '{search}'")
         
         criteria_str = " and ".join(criteria) if criteria else "all voices"
-        print(f"\n🗑️  Deleting voices matching: {criteria_str}...")
+        print(f"\nDeleting voices matching: {criteria_str}...")
         
         params = {"confirm": "true"}
         if folder:
@@ -295,11 +295,11 @@ class VoiceManagementTest:
             response.raise_for_status()
             result = response.json()
             
-            print(f"✅ {result['message']}")
+            print(f"{result['message']}")
             return True
             
         except Exception as e:
-            print(f"❌ Bulk deletion failed: {e}")
+            print(f"Bulk deletion failed: {e}")
             return False
     
     def cleanup_empty_folders(self):
@@ -310,7 +310,7 @@ class VoiceManagementTest:
     
     def run_comprehensive_test(self):
         """Run the complete voice management workflow test"""
-        print("🚀 Voice Management - Integrated Test")
+        print("Voice Management - Integrated Test")
         print("=" * 60)
         
         # 1. Basic connectivity
@@ -322,16 +322,16 @@ class VoiceManagementTest:
         
         # If no test files, generate some
         if len(test_files) < 2:
-            print("\n⚠️  Insufficient test files found, generating voice samples...")
+            print("\nInsufficient test files found, generating voice samples...")
             generated_files = self.generate_voice_samples_if_needed()
             test_files.extend(generated_files)
         
         if len(test_files) < 2:
-            print("❌ Could not obtain sufficient test files for testing")
+            print("Could not obtain sufficient test files for testing")
             return False
         
         # 3. Upload voices in organized folder structure
-        print(f"\n📋 Phase 1: Uploading voices to organized folders")
+        print(f"\nPhase 1: Uploading voices to organized folders")
         print("-" * 50)
         
         # Upload to character voices folder
@@ -384,7 +384,7 @@ class VoiceManagementTest:
             )
         
         # 4. Browse and list voices
-        print(f"\n📋 Phase 2: Browsing and listing voices")
+        print(f"\nPhase 2: Browsing and listing voices")
         print("-" * 50)
         
         # List all voices
@@ -398,7 +398,7 @@ class VoiceManagementTest:
         self.get_voice_folder_structure()
         
         # 5. Search functionality
-        print(f"\n📋 Phase 3: Search and find functionality")
+        print(f"\nPhase 3: Search and find functionality")
         print("-" * 50)
         
         # Search by name
@@ -410,7 +410,7 @@ class VoiceManagementTest:
         self.search_voices("casual")
         
         # 6. Voice deletion
-        print(f"\n📋 Phase 4: Voice deletion and cleanup")
+        print(f"\nPhase 4: Voice deletion and cleanup")
         print("-" * 50)
         
         # Delete a single voice (if we have any)
@@ -426,7 +426,7 @@ class VoiceManagementTest:
         self.delete_voices_bulk(search="test")
         
         # 7. Verify cleanup
-        print(f"\n📋 Phase 5: Verification after cleanup")
+        print(f"\nPhase 5: Verification after cleanup")
         print("-" * 50)
         
         # List remaining voices
@@ -438,7 +438,7 @@ class VoiceManagementTest:
         # Note about folder cleanup
         self.cleanup_empty_folders()
         
-        print(f"\n🎉 Voice Management Test Complete!")
+        print(f"\nVoice Management Test Complete!")
         print(f"Uploaded voices: {len(self.uploaded_voices)}")
         print(f"Created folders: {list(self.created_folders)}")
         
@@ -450,10 +450,10 @@ def main():
     success = test.run_comprehensive_test()
     
     if success:
-        print(f"\n✅ All tests completed successfully!")
+        print(f"\nAll tests completed successfully!")
         exit(0)
     else:
-        print(f"\n❌ Some tests failed!")
+        print(f"\nSome tests failed!")
         exit(1)
 
 if __name__ == "__main__":

@@ -113,7 +113,8 @@ def scan_generated_files(outputs_dir: Union[str, Path], generation_type: Optiona
                 # Calculate folder path relative to outputs directory
                 relative_path = audio_file.relative_to(outputs_path)
                 if relative_path.parent != Path('.'):
-                    metadata['folder_path'] = str(relative_path.parent)
+                    # Use forward slashes for cross-platform consistency
+                    metadata['folder_path'] = str(relative_path.parent).replace('\\', '/')
                 
                 # Infer generation type from filename pattern if not set
                 if metadata['generation_type'] == 'unknown':
@@ -251,9 +252,12 @@ def bulk_delete_outputs(folder: Optional[str] = None,
     # Get all output files matching criteria
     all_files = scan_generated_files(outputs_dir, generation_type=generation_type)
     
-    # Filter by folder
+    # Filter by folder (supports hierarchical deletion)
     if folder:
-        all_files = [f for f in all_files if f.get('folder_path') == folder]
+        # Include files in the exact folder and all subfolders
+        all_files = [f for f in all_files 
+                    if f.get('folder_path') == folder or 
+                       (f.get('folder_path') and f.get('folder_path', '').startswith(folder + '/'))]
     
     # Filter by search term
     if search:
@@ -265,7 +269,7 @@ def bulk_delete_outputs(folder: Optional[str] = None,
         all_files = [f for f in all_files if f['filename'] in filenames]
     
     if not all_files:
-        return False, "No output files found matching criteria", []
+        return True, "No output files found matching criteria (already clean)", []
     
     # Track which folders had files deleted (for cleanup)
     folders_with_deletions = set()

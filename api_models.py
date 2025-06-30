@@ -119,8 +119,11 @@ class TTSRequest(BaseModel):
     @validator('project')
     def validate_project_path(cls, v):
         if v is not None:
+            # Empty string means root level (no project folder)
+            if v == "":
+                return ""
             sanitized_path = sanitize_file_path(v)
-            if not sanitized_path:
+            if not sanitized_path or sanitized_path == "unnamed":
                 raise ValueError("Invalid project path")
             return sanitized_path
         return v
@@ -254,6 +257,7 @@ class VoiceInfo(BaseModel):
 class VoiceMetadata(BaseModel):
     """Enhanced voice metadata"""
     name: str
+    url: str  # Path relative to reference_audio/ for TTS generation (e.g., 'speaker1.wav' or 'voices/speaker1.wav')
     description: Optional[str] = None
     duration_seconds: Optional[float] = None
     sample_rate: Optional[int] = None

@@ -31,31 +31,32 @@ class TtsFileManagementTest:
         
     def test_health(self) -> bool:
         """Test basic server connectivity"""
-        print("🔍 Testing server connectivity...")
+        print("Testing server connectivity...")
         try:
             response = requests.get(f"{BASE_URL}/health")
             response.raise_for_status()
             health = response.json()
-            print(f"✅ Server status: {health['status']}")
+            print(f"Server status: {health['status']}")
             return True
         except Exception as e:
-            print(f"❌ Connection failed: {e}")
+            print(f"Connection failed: {e}")
             return False
     
     def check_reference_audio(self) -> List[str]:
         """Check available reference audio files"""
-        print("\n🔍 Checking available reference audio...")
+        print("\nChecking available reference audio...")
         try:
             response = requests.get(f"{BASE_URL}/voices")
             response.raise_for_status()
             voices = response.json()
-            available_voices = [v['filename'] for v in voices['files'][:3]]  # Take first 3
-            print(f"✅ Found {len(voices['files'])} reference voices")
+            # Fix path separators for cross-platform compatibility
+            available_voices = [v['url'].replace('\\', '/') for v in voices['voices'][:3]]  # Take first 3, use 'url' field
+            print(f"Found {voices['count']} reference voices")
             for voice in available_voices:
                 print(f"   - {voice}")
             return available_voices
         except Exception as e:
-            print(f"⚠️  Could not check voices: {e}, will use default")
+            print(f"Could not check voices: {e}, will use default")
             return ["default_voice.wav"]
     
     def generate_tts_in_project(self, project: str, text: str, 
@@ -64,7 +65,7 @@ class TtsFileManagementTest:
         if formats is None:
             formats = ["wav", "mp3"]
             
-        print(f"\n🎵 Generating TTS in project '{project}'...")
+        print(f"\nGenerating TTS in project '{project}'...")
         
         tts_data = {
             "text": text,
@@ -78,7 +79,7 @@ class TtsFileManagementTest:
             tts_data["reference_audio_filename"] = reference_voice
         
         try:
-            response = requests.post(f"{BASE_URL}/tts", json=tts_data)
+            response = requests.post(f"{BASE_URL}/tts?response_mode=url", json=tts_data)
             response.raise_for_status()
             result = response.json()
             
@@ -86,14 +87,14 @@ class TtsFileManagementTest:
             self.generated_files.extend(generated)
             self.created_projects.add(project)
             
-            print(f"✅ Generated {len(generated)} files:")
+            print(f" Generated {len(generated)} files:")
             for filename in generated:
                 print(f"   - {filename}")
             
             return generated
             
         except Exception as e:
-            print(f"❌ TTS generation failed: {e}")
+            print(f" TTS generation failed: {e}")
             if hasattr(e, 'response') and e.response:
                 print(f"   Response: {e.response.text}")
             return []
@@ -101,10 +102,10 @@ class TtsFileManagementTest:
     def list_outputs_by_project(self, project: str = None) -> Dict[str, Any]:
         """List outputs, optionally filtered by project"""
         if project:
-            print(f"\n📁 Listing outputs in project '{project}'...")
+            print(f"\n Listing outputs in project '{project}'...")
             params = {"project": project}
         else:
-            print(f"\n📁 Listing all outputs...")
+            print(f"\n Listing all outputs...")
             params = {}
             
         try:
@@ -112,7 +113,7 @@ class TtsFileManagementTest:
             response.raise_for_status()
             outputs = response.json()
             
-            print(f"✅ Found {len(outputs['files'])} files")
+            print(f" Found {len(outputs['files'])} files")
             if outputs['files']:
                 print("   Recent files:")
                 for file_info in outputs['files'][:5]:  # Show first 5
@@ -122,43 +123,43 @@ class TtsFileManagementTest:
             return outputs
             
         except Exception as e:
-            print(f"❌ Listing outputs failed: {e}")
+            print(f" Listing outputs failed: {e}")
             return {"files": []}
     
     def get_output_folder_structure(self) -> Dict[str, Any]:
         """Get folder structure of outputs directory"""
-        print(f"\n🌳 Getting output folder structure...")
+        print(f"\n Getting output folder structure...")
         try:
             response = requests.get(f"{BASE_URL}/outputs/folders")
             response.raise_for_status()
             structure = response.json()
             
-            print(f"✅ Output folder structure:")
+            print(f" Output folder structure:")
             self._print_folder_structure(structure.get('structure', {}), indent=1)
             
             return structure
             
         except Exception as e:
-            print(f"❌ Getting folder structure failed: {e}")
+            print(f" Getting folder structure failed: {e}")
             return {}
     
     def _print_folder_structure(self, structure: Dict, indent: int = 0):
         """Recursively print folder structure"""
         for folder, contents in structure.items():
-            print("  " * indent + f"📁 {folder}/")
+            print("  " * indent + f" {folder}/")
             if isinstance(contents, dict):
                 self._print_folder_structure(contents, indent + 1)
     
     def search_outputs(self, search_term: str) -> List[Dict[str, Any]]:
         """Search for outputs by filename"""
-        print(f"\n🔍 Searching outputs for '{search_term}'...")
+        print(f"\n Searching outputs for '{search_term}'...")
         try:
             response = requests.get(f"{BASE_URL}/outputs", params={"search": search_term})
             response.raise_for_status()
             results = response.json()
             
             found_files = results['files']
-            print(f"✅ Found {len(found_files)} matching files:")
+            print(f" Found {len(found_files)} matching files:")
             for file_info in found_files:
                 folder = file_info.get('folder_path', 'root')
                 print(f"   - {file_info['filename']} (folder: {folder})")
@@ -166,44 +167,44 @@ class TtsFileManagementTest:
             return found_files
             
         except Exception as e:
-            print(f"❌ Search failed: {e}")
+            print(f" Search failed: {e}")
             return []
     
     def delete_single_output(self, filename: str) -> bool:
         """Delete a single output file"""
-        print(f"\n🗑️  Deleting single file '{filename}'...")
+        print(f"\n  Deleting single file '{filename}'...")
         try:
             response = requests.delete(f"{BASE_URL}/output/{filename}?confirm=true")
             response.raise_for_status()
             result = response.json()
             
-            print(f"✅ {result['message']}")
+            print(f" {result['message']}")
             return True
             
         except Exception as e:
-            print(f"❌ Deletion failed: {e}")
+            print(f" Deletion failed: {e}")
             return False
     
     def delete_project_outputs(self, project: str) -> bool:
         """Delete all outputs in a project folder"""
-        print(f"\n🗑️  Deleting project folder '{project}' and all contents...")
+        print(f"\n  Deleting project folder '{project}' and all contents...")
         try:
             response = requests.delete(f"{BASE_URL}/outputs?project={project}&confirm=true")
             response.raise_for_status()
             result = response.json()
             
-            print(f"✅ {result['message']}")
+            print(f" {result['message']}")
             if project in self.created_projects:
                 self.created_projects.remove(project)
             return True
             
         except Exception as e:
-            print(f"❌ Project deletion failed: {e}")
+            print(f" Project deletion failed: {e}")
             return False
     
     def run_comprehensive_test(self):
         """Run the complete TTS file management workflow test"""
-        print("🚀 TTS Output File Management - Integrated Test")
+        print("TTS Output File Management - Integrated Test")
         print("=" * 60)
         
         # 1. Basic connectivity
@@ -215,7 +216,7 @@ class TtsFileManagementTest:
         reference_voice = available_voices[0] if available_voices else None
         
         # 3. Generate TTS outputs in organized project structure
-        print(f"\n📋 Phase 1: Generating TTS outputs in project folders")
+        print(f"\n Phase 1: Generating TTS outputs in project folders")
         print("-" * 50)
         
         # Generate in main project
@@ -242,7 +243,7 @@ class TtsFileManagementTest:
         )
         
         # Generate in root (no project)
-        print(f"\n🎵 Generating TTS in root folder...")
+        print(f"\n Generating TTS in root folder...")
         self.generate_tts_in_project(
             "", 
             "This file will be generated in the root outputs folder.",
@@ -250,7 +251,7 @@ class TtsFileManagementTest:
         )
         
         # 4. Browse and list generated files
-        print(f"\n📋 Phase 2: Browsing and listing generated files")
+        print(f"\n Phase 2: Browsing and listing generated files")
         print("-" * 50)
         
         # List all outputs
@@ -264,7 +265,7 @@ class TtsFileManagementTest:
         self.get_output_folder_structure()
         
         # 5. Search functionality
-        print(f"\n📋 Phase 3: Search and find functionality")
+        print(f"\n Phase 3: Search and find functionality")
         print("-" * 50)
         
         # Search for files
@@ -273,7 +274,7 @@ class TtsFileManagementTest:
         self.search_outputs("test_book")
         
         # 6. File deletion
-        print(f"\n📋 Phase 4: File deletion and cleanup")
+        print(f"\n Phase 4: File deletion and cleanup")
         print("-" * 50)
         
         # Delete a single file (if we have any)
@@ -286,7 +287,7 @@ class TtsFileManagementTest:
         self.delete_project_outputs("podcast_series")
         
         # 7. Verify cleanup
-        print(f"\n📋 Phase 5: Verification after cleanup")
+        print(f"\n Phase 5: Verification after cleanup")
         print("-" * 50)
         
         # List remaining files
@@ -295,7 +296,7 @@ class TtsFileManagementTest:
         # Check folder structure after cleanup
         self.get_output_folder_structure()
         
-        print(f"\n🎉 TTS File Management Test Complete!")
+        print(f"\n TTS File Management Test Complete!")
         print(f"Generated files: {len(self.generated_files)}")
         print(f"Created projects: {list(self.created_projects)}")
         
@@ -307,10 +308,10 @@ def main():
     success = test.run_comprehensive_test()
     
     if success:
-        print(f"\n✅ All tests completed successfully!")
+        print(f"\n All tests completed successfully!")
         exit(0)
     else:
-        print(f"\n❌ Some tests failed!")
+        print(f"\n Some tests failed!")
         exit(1)
 
 if __name__ == "__main__":

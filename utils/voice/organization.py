@@ -108,7 +108,8 @@ def get_voice_folder_structure() -> Dict[str, Any]:
     for path in ref_audio_dir.rglob("*"):
         if path.is_dir():
             relative_path = path.relative_to(ref_audio_dir)
-            folder_path = str(relative_path) if relative_path != Path('.') else "root"
+            # Use forward slashes for cross-platform consistency
+            folder_path = str(relative_path).replace('\\', '/') if relative_path != Path('.') else "root"
             
             if folder_path not in folder_data:
                 folder_data[folder_path] = {
@@ -126,8 +127,8 @@ def get_voice_folder_structure() -> Dict[str, Any]:
                 # Root level file
                 folder_path = "root"
             else:
-                # File in subfolder
-                folder_path = str(relative_path.parent)
+                # File in subfolder - use forward slashes for consistency
+                folder_path = str(relative_path.parent).replace('\\', '/')
             
             # Ensure folder exists in data
             if folder_path not in folder_data:

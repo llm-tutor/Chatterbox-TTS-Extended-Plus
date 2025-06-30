@@ -201,6 +201,7 @@ All successful API responses inherit from this base structure.
 ```json
 {
   "name": "Professional Speaker",
+  "url": "corporate/executives/professional_speaker.wav",
   "description": "Clear, authoritative business voice",
   "duration_seconds": 12.5,
   "sample_rate": 22050,
@@ -218,6 +219,11 @@ All successful API responses inherit from this base structure.
 }
 ```
 
+**Key Fields:**
+- `url`: Path relative to reference_audio/ that can be used as `reference_audio_filename` in TTS requests
+- `folder_path`: Directory path within reference_audio/ (null for root level)
+- `usage_count`: Number of times this voice has been used for TTS generation
+
 ### VoicesResponse
 
 ```json
@@ -225,6 +231,7 @@ All successful API responses inherit from this base structure.
   "voices": [
     {
       "name": "Speaker 1",
+      "url": "narrators/speaker_1.wav",
       "description": "Friendly narrator voice",
       "duration_seconds": 8.2,
       "sample_rate": 22050,

@@ -497,8 +497,8 @@ async def list_voices(
                 # Load enhanced metadata
                 metadata = load_voice_metadata(audio_file)
                 
-                # Calculate folder path
-                folder_path = str(relative_path.parent) if relative_path.parent != Path('.') else None
+                # Calculate folder path with forward slashes for cross-platform consistency
+                folder_path = str(relative_path.parent).replace('\\', '/') if relative_path.parent != Path('.') else None
                 
                 # Apply folder filter (project is alias for folder)
                 folder_filter = folder or project
@@ -515,6 +515,7 @@ async def list_voices(
                 
                 voice_metadata = VoiceMetadata(
                     name=metadata.get('name', audio_file.stem),
+                    url=str(relative_path),  # Path relative to reference_audio/ for TTS generation
                     description=metadata.get('description'),
                     duration_seconds=metadata.get('duration_seconds'),
                     sample_rate=metadata.get('sample_rate'),
@@ -919,19 +920,21 @@ async def list_generated_files(
             # Scan all files
             files_metadata = scan_generated_files(outputs_dir, generation_type)
             
-            # Apply search filter
+            # Apply search filter (search in filename and folder path)
             if search:
                 search_lower = search.lower()
                 files_metadata = [
                     file_meta for file_meta in files_metadata
-                    if search_lower in file_meta['filename'].lower()
+                    if search_lower in file_meta['filename'].lower() or
+                       search_lower in (file_meta.get('folder_path') or '').lower()
                 ]
             
-            # Apply folder filter
+            # Apply folder filter (supports hierarchical filtering)
             if folder_filter:
                 files_metadata = [
                     file_meta for file_meta in files_metadata
-                    if file_meta.get('folder_path') == folder_filter
+                    if file_meta.get('folder_path') == folder_filter or
+                       (file_meta.get('folder_path') and file_meta.get('folder_path', '').startswith(folder_filter + '/'))
                 ]
         
         # Calculate pagination

@@ -32,15 +32,15 @@ class VcInputManagementTest:
         
     def test_health(self) -> bool:
         """Test basic server connectivity"""
-        print("🔍 Testing server connectivity...")
+        print("Testing server connectivity...")
         try:
             response = requests.get(f"{BASE_URL}/health")
             response.raise_for_status()
             health = response.json()
-            print(f"✅ Server status: {health['status']}")
+            print(f"Server status: {health['status']}")
             return True
         except Exception as e:
-            print(f"❌ Connection failed: {e}")
+            print(f"Connection failed: {e}")
             return False
     
     def get_test_audio_files(self) -> List[Path]:
@@ -48,7 +48,7 @@ class VcInputManagementTest:
         print("\n🔍 Finding test audio files...")
         
         if not self.test_media_dir.exists():
-            print(f"❌ Test media directory not found: {self.test_media_dir}")
+            print(f"Test media directory not found: {self.test_media_dir}")
             return []
         
         # Look for audio files
@@ -69,7 +69,7 @@ class VcInputManagementTest:
         if len(sample_files) < 3:
             sample_files = audio_files[:4]
         
-        print(f"✅ Found {len(audio_files)} total audio files, using {len(sample_files)} for testing:")
+        print(f"Found {len(audio_files)} total audio files, using {len(sample_files)} for testing:")
         for file in sample_files:
             print(f"   - {file.name}")
         
@@ -104,7 +104,7 @@ class VcInputManagementTest:
                 if result['output_files']:
                     wav_file = result['output_files'][0]
                     filename = wav_file['filename']
-                    print(f"✅ Generated: {filename}")
+                    print(f"Generated: {filename}")
                     
                     # Copy to test media directory for use
                     source_path = Path("outputs") / filename
@@ -117,7 +117,7 @@ class VcInputManagementTest:
                         print(f"   Copied to: {target_path.name}")
                 
             except Exception as e:
-                print(f"⚠️  Could not generate test file {i+1}: {e}")
+                print(f"Could not generate test file {i+1}: {e}")
         
         return generated_files
     
@@ -125,10 +125,10 @@ class VcInputManagementTest:
                        description: str = None) -> str:
         """Upload a VC input file to specified project"""
         project_info = f" to project '{project}'" if project else " to root"
-        print(f"\n📤 Uploading '{file_path.name}'{project_info}...")
+        print(f"\nUploading '{file_path.name}'{project_info}...")
         
         if not file_path.exists():
-            print(f"❌ File not found: {file_path}")
+            print(f"File not found: {file_path}")
             return None
         
         # Prepare upload data
@@ -162,7 +162,7 @@ class VcInputManagementTest:
                 if project:
                     self.created_projects.add(project)
                 
-                print(f"✅ Upload successful: {uploaded_filename}")
+                print(f"Upload successful: {uploaded_filename}")
                 print(f"   Duration: {result['metadata']['duration_seconds']:.2f}s")
                 if 'folder_path' in result['metadata']:
                     print(f"   Project: {result['metadata']['folder_path']}")
@@ -170,7 +170,7 @@ class VcInputManagementTest:
                 return uploaded_filename
                 
         except Exception as e:
-            print(f"❌ Upload failed: {e}")
+            print(f"Upload failed: {e}")
             if hasattr(e, 'response') and e.response:
                 print(f"   Response: {e.response.text}")
             return None
@@ -189,7 +189,7 @@ class VcInputManagementTest:
             response.raise_for_status()
             vc_inputs = response.json()
             
-            print(f"✅ Found {len(vc_inputs['files'])} files")
+            print(f"Found {len(vc_inputs['files'])} files")
             if vc_inputs['files']:
                 print("   Files:")
                 for file_info in vc_inputs['files']:
@@ -200,30 +200,30 @@ class VcInputManagementTest:
             return vc_inputs
             
         except Exception as e:
-            print(f"❌ Listing VC inputs failed: {e}")
+            print(f"Listing VC inputs failed: {e}")
             return {"files": []}
     
     def get_vc_inputs_folder_structure(self) -> Dict[str, Any]:
         """Get folder structure of vc_inputs directory"""
-        print(f"\n🌳 Getting VC inputs folder structure...")
+        print(f"\nGetting VC inputs folder structure...")
         try:
             response = requests.get(f"{BASE_URL}/vc_inputs/folders")
             response.raise_for_status()
             structure = response.json()
             
-            print(f"✅ VC inputs folder structure:")
+            print(f"VC inputs folder structure:")
             self._print_folder_structure(structure.get('structure', {}), indent=1)
             
             return structure
             
         except Exception as e:
-            print(f"❌ Getting folder structure failed: {e}")
+            print(f"Getting folder structure failed: {e}")
             return {}
     
     def _print_folder_structure(self, structure: Dict, indent: int = 0):
         """Recursively print folder structure"""
         for folder, contents in structure.items():
-            print("  " * indent + f"📁 {folder}/")
+            print("  " * indent + f"{folder}/")
             if isinstance(contents, dict):
                 self._print_folder_structure(contents, indent + 1)
     
@@ -236,7 +236,7 @@ class VcInputManagementTest:
             results = response.json()
             
             found_files = results['files']
-            print(f"✅ Found {len(found_files)} matching files:")
+            print(f"Found {len(found_files)} matching files:")
             for file_info in found_files:
                 folder = file_info.get('folder_path', 'root')
                 duration = file_info.get('duration_seconds', 0)
@@ -245,44 +245,44 @@ class VcInputManagementTest:
             return found_files
             
         except Exception as e:
-            print(f"❌ Search failed: {e}")
+            print(f"Search failed: {e}")
             return []
     
     def delete_single_vc_input(self, filename: str) -> bool:
         """Delete a single VC input file"""
-        print(f"\n🗑️  Deleting single VC input '{filename}'...")
+        print(f"\nDeleting single VC input '{filename}'...")
         try:
             response = requests.delete(f"{BASE_URL}/vc_input/{filename}?confirm=true")
             response.raise_for_status()
             result = response.json()
             
-            print(f"✅ {result['message']}")
+            print(f" {result['message']}")
             return True
             
         except Exception as e:
-            print(f"❌ Deletion failed: {e}")
+            print(f"Deletion failed: {e}")
             return False
     
     def delete_project_vc_inputs(self, project: str) -> bool:
         """Delete all VC inputs in a project folder"""
-        print(f"\n🗑️  Deleting VC inputs project folder '{project}' and all contents...")
+        print(f"\nDeleting VC inputs project folder '{project}' and all contents...")
         try:
             response = requests.delete(f"{BASE_URL}/vc_inputs?project={project}&confirm=true")
             response.raise_for_status()
             result = response.json()
             
-            print(f"✅ {result['message']}")
+            print(f"{result['message']}")
             if project in self.created_projects:
                 self.created_projects.remove(project)
             return True
             
         except Exception as e:
-            print(f"❌ Project deletion failed: {e}")
+            print(f"Project deletion failed: {e}")
             return False
     
     def run_comprehensive_test(self):
         """Run the complete VC input file management workflow test"""
-        print("🚀 VC Input File Management - Integrated Test")
+        print("VC Input File Management - Integrated Test")
         print("=" * 60)
         
         # 1. Basic connectivity
@@ -294,16 +294,16 @@ class VcInputManagementTest:
         
         # If no test files, generate some
         if len(test_files) < 2:
-            print("\n⚠️  Insufficient test files found, generating some...")
+            print("\nInsufficient test files found, generating some...")
             generated_files = self.generate_test_audio_if_needed()
             test_files.extend(generated_files)
         
         if len(test_files) < 2:
-            print("❌ Could not obtain sufficient test files for testing")
+            print("Could not obtain sufficient test files for testing")
             return False
         
         # 3. Upload VC inputs in organized project structure
-        print(f"\n📋 Phase 1: Uploading VC inputs to project folders")
+        print(f"\nPhase 1: Uploading VC inputs to project folders")
         print("-" * 50)
         
         # Upload to different projects
@@ -344,7 +344,7 @@ class VcInputManagementTest:
             )
         
         # 4. Browse and list uploaded files
-        print(f"\n📋 Phase 2: Browsing and listing uploaded files")
+        print(f"\nPhase 2: Browsing and listing uploaded files")
         print("-" * 50)
         
         # List all VC inputs
@@ -358,7 +358,7 @@ class VcInputManagementTest:
         self.get_vc_inputs_folder_structure()
         
         # 5. Search functionality
-        print(f"\n📋 Phase 3: Search and find functionality")
+        print(f"\nPhase 3: Search and find functionality")
         print("-" * 50)
         
         # Search for files
@@ -367,7 +367,7 @@ class VcInputManagementTest:
         self.search_vc_inputs("upload")
         
         # 6. File deletion
-        print(f"\n📋 Phase 4: File deletion and cleanup")
+        print(f"\nPhase 4: File deletion and cleanup")
         print("-" * 50)
         
         # Delete a single file (if we have any)
@@ -380,7 +380,7 @@ class VcInputManagementTest:
         self.delete_project_vc_inputs("podcast_project")
         
         # 7. Verify cleanup
-        print(f"\n📋 Phase 5: Verification after cleanup")
+        print(f"\nPhase 5: Verification after cleanup")
         print("-" * 50)
         
         # List remaining files
@@ -389,7 +389,7 @@ class VcInputManagementTest:
         # Check folder structure after cleanup
         self.get_vc_inputs_folder_structure()
         
-        print(f"\n🎉 VC Input File Management Test Complete!")
+        print(f"\nVC Input File Management Test Complete!")
         print(f"Uploaded files: {len(self.uploaded_files)}")
         print(f"Created projects: {list(self.created_projects)}")
         
@@ -401,10 +401,10 @@ def main():
     success = test.run_comprehensive_test()
     
     if success:
-        print(f"\n✅ All tests completed successfully!")
+        print(f"\nAll tests completed successfully!")
         exit(0)
     else:
-        print(f"\n❌ Some tests failed!")
+        print(f"\nSome tests failed!")
         exit(1)
 
 if __name__ == "__main__":
