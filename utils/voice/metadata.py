@@ -70,6 +70,17 @@ def load_voice_metadata(voice_file_path: Union[str, Path]) -> Dict[str, Any]:
     metadata.setdefault('usage_count', 0)
     metadata.setdefault('default_parameters', {})
     
+    # Calculate relative URL path for TTS generation
+    from config import config_manager
+    reference_audio_dir = Path(config_manager.get("paths.reference_audio_dir"))
+    try:
+        # Get relative path from reference_audio dir using forward slashes
+        relative_path = voice_path.relative_to(reference_audio_dir)
+        metadata['url'] = str(relative_path).replace('\\', '/')
+    except ValueError:
+        # File is not in reference_audio dir, use filename only
+        metadata['url'] = voice_path.name
+    
     return metadata
 
 

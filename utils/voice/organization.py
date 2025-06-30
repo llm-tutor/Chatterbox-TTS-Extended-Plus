@@ -56,7 +56,19 @@ def bulk_delete_voices(folder: Optional[str] = None, tag: Optional[str] = None,
             if folder:
                 relative_path = audio_file.relative_to(ref_audio_dir)
                 file_folder = str(relative_path.parent) if relative_path.parent != Path('.') else None
-                if file_folder != folder:
+                # Hierarchical folder filtering: folder should match or be a parent
+                folder_match = False
+                if file_folder:
+                    # Normalize paths to use forward slashes for comparison
+                    file_folder_normalized = file_folder.replace('\\', '/')
+                    folder_normalized = folder.replace('\\', '/')
+                    # Check if folder matches exactly or is a parent folder
+                    folder_match = (file_folder_normalized == folder_normalized or 
+                                  file_folder_normalized.startswith(folder_normalized + '/'))
+                elif not folder:  # Both are None/empty (root folder)
+                    folder_match = True
+                
+                if not folder_match:
                     should_delete = False
             
             if tag and should_delete:

@@ -149,7 +149,7 @@ class VoiceManagementTest:
         try:
             with open(file_path, 'rb') as f:
                 files = {
-                    'audio_file': (
+                    'voice_file': (
                         f"voice_{file_path.name}", 
                         f, 
                         'audio/wav' if file_path.suffix == '.wav' else 'audio/mpeg'
@@ -167,10 +167,10 @@ class VoiceManagementTest:
                     self.created_folders.add(folder_path)
                 
                 print(f"Upload successful: {uploaded_filename}")
-                print(f"   Name: {result['metadata']['name']}")
-                print(f"   Duration: {result['metadata']['duration_seconds']:.2f}s")
-                if 'folder_path' in result['metadata']:
-                    print(f"   Folder: {result['metadata']['folder_path']}")
+                print(f"   Name: {result['voice_metadata']['name']}")
+                print(f"   Duration: {result['voice_metadata']['duration_seconds']:.2f}s")
+                if 'folder_path' in result['voice_metadata']:
+                    print(f"   Folder: {result['voice_metadata']['folder_path']}")
                 
                 return uploaded_filename
                 
@@ -220,20 +220,28 @@ class VoiceManagementTest:
             structure = response.json()
             
             print(f"Voice folder structure:")
-            self._print_folder_structure(structure.get('structure', {}), indent=1)
+            folders = structure.get('folders', [])
+            if folders:
+                for folder in folders:
+                    path = folder['path']
+                    voice_count = folder['voice_count']
+                    subfolders = folder.get('subfolders', [])
+                    
+                    if path == 'root':
+                        print(f"   Root: {voice_count} voices")
+                    else:
+                        print(f"   {path}/: {voice_count} voices")
+                        
+                    for subfolder in subfolders:
+                        print(f"     -> {subfolder}/")
+            else:
+                print("   No folders found")
             
             return structure
             
         except Exception as e:
             print(f"Getting folder structure failed: {e}")
             return {}
-    
-    def _print_folder_structure(self, structure: Dict, indent: int = 0):
-        """Recursively print folder structure"""
-        for folder, contents in structure.items():
-            print("  " * indent + f" {folder}/")
-            if isinstance(contents, dict):
-                self._print_folder_structure(contents, indent + 1)
     
     def search_voices(self, search_term: str) -> List[Dict[str, Any]]:
         """Search for voices by name, filename, or tags"""

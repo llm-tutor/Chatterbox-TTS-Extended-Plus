@@ -661,7 +661,7 @@ async def delete_voice(
 
 
 @app.delete("/api/v1/voices", response_model=VoiceDeletionResponse)
-async def bulk_delete_voices(
+async def delete_voices_bulk(
     confirm: bool = Query(False, description="Confirmation required to delete voices"),
     folder: Optional[str] = Query(None, description="Delete voices in specific folder"),
     tag: Optional[str] = Query(None, description="Delete voices with specific tag"),
