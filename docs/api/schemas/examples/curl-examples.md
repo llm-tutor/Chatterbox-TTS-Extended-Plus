@@ -276,6 +276,35 @@ curl -X POST http://localhost:7860/api/v1/voice \
 curl "http://localhost:7860/api/v1/voices?page=1&page_size=50&search=professional"
 ```
 
+### Integration Workflow: List Voices and Use URL for TTS
+```bash
+# Step 1: List available voices to get their URLs
+curl "http://localhost:7860/api/v1/voices" | jq '.voices[] | {name: .name, url: .url}'
+
+# Step 2: Use the URL from voice listing directly in TTS generation
+# (Replace the url value with actual URL from voice listing response)
+curl -X POST http://localhost:7860/api/v1/tts \
+-H "Content-Type: application/json" \
+-d '{
+  "text": "This demonstrates using voice URL from the listing API.",
+  "reference_audio_filename": "test_voices/linda_johnson_01.mp3",
+  "export_formats": ["wav", "mp3"]
+}'
+
+# Step 3: Hierarchical folder filtering - find voices in subfolders
+curl "http://localhost:7860/api/v1/voices?folder=test_voices"
+curl "http://localhost:7860/api/v1/voices?project=audiobook_characters"
+```
+
+### Enhanced Search Features
+```bash
+# Search by folder path (searches both name and folder_path)
+curl "http://localhost:7860/api/v1/voices?search=test_voices"
+
+# Hierarchical folder filtering - parent includes subfolders
+curl "http://localhost:7860/api/v1/voices?folder=characters"  # Finds characters/casual, characters/formal, etc.
+```
+
 ### Get Voice Details (Note: Endpoint may not be implemented)
 ```bash
 curl http://localhost:7860/api/v1/voices/test_voices/linda_johnson_01.mp3

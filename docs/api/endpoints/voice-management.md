@@ -278,6 +278,30 @@ curl "http://localhost:7860/api/v1/voices?page=1&page_size=10"
 curl "http://localhost:7860/api/v1/voices?search=professional&folder=business_voices&sort_by=usage_count&sort_order=desc"
 ```
 
+#### Hierarchical Folder Filtering
+
+The `folder` and `project` parameters support **hierarchical filtering**, where specifying a parent folder automatically includes all subfolders:
+
+```bash
+# Find voices in "characters" folder and ALL subfolders
+curl "http://localhost:7860/api/v1/voices?folder=characters"
+# This finds voices in: characters/, characters/casual/, characters/formal/, characters/narrators/, etc.
+
+# Find voices in specific project and subprojects
+curl "http://localhost:7860/api/v1/voices?project=interview_project" 
+# This finds voices in: interview_project/, interview_project/raw_recordings/, etc.
+```
+
+#### Enhanced Search Functionality
+
+The `search` parameter now searches across **multiple fields** including folder paths:
+
+```bash
+# Search by voice name, description, or folder path
+curl "http://localhost:7860/api/v1/voices?search=test_voices"  # Finds voices with "test_voices" in name OR folder path
+curl "http://localhost:7860/api/v1/voices?search=professional"  # Searches name, description, tags, and folder paths
+```
+
 #### Using Project Parameter
 
 ```bash
@@ -292,14 +316,15 @@ curl "http://localhost:7860/api/v1/voices?project=chapter1&search=narrator"
   "success": true,
   "voices": [
     {
-      "filename": "speaker1.wav",
       "name": "Professional Speaker 1",
+      "url": "business_voices/speaker1.wav",
       "description": "Clear, authoritative business voice",
       "folder_path": "business_voices",
       "tags": ["professional", "clear", "business"],
       "duration_seconds": 15.2,
       "file_size_bytes": 334080,
       "sample_rate": 22050,
+      "format": "wav",
       "created_date": "2025-06-20T10:00:00Z",
       "last_used": "2025-06-22T14:30:00Z",
       "usage_count": 25,

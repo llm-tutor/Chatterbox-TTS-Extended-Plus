@@ -1092,24 +1092,67 @@ components:
     VoiceInfo:
       type: object
       properties:
-        filename:
-          type: string
         name:
           type: string
+          description: Voice name
+        url:
+          type: string
+          description: Path relative to reference_audio/ for TTS generation (e.g., 'speaker1.wav' or 'voices/speaker1.wav')
         description:
           type: string
+          description: Voice description
         duration_seconds:
           type: number
+          description: Audio duration in seconds
+        sample_rate:
+          type: integer
+          description: Audio sample rate
+        file_size_bytes:
+          type: integer
+          description: File size in bytes
+        format:
+          type: string
+          description: Audio format (wav, mp3, etc.)
+        tags:
+          type: array
+          items:
+            type: string
+          description: Voice tags for categorization
+        created_date:
+          type: string
+          format: date-time
+          description: Voice creation timestamp
+        last_used:
+          type: string
+          format: date-time
+          description: Last usage timestamp
+        usage_count:
+          type: integer
+          description: Number of times used for TTS generation
+        folder_path:
+          type: string
+          description: Directory path within reference_audio/ (null for root level)
+        default_parameters:
+          type: object
+          description: Default TTS parameters for this voice
 
     VoiceUploadResponse:
       type: object
       properties:
-        status:
-          type: string
-        filename:
-          type: string
+        success:
+          type: boolean
+          default: true
+          description: Operation success status
         message:
           type: string
+          default: "Voice uploaded successfully"
+          description: Success message
+        voice_metadata:
+          $ref: '#/components/schemas/VoiceInfo'
+          description: Complete voice metadata
+        filename:
+          type: string
+          description: Uploaded filename
 
     VoiceDeletionResponse:
       type: object

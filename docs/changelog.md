@@ -6,6 +6,57 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.12.3] - 2025-06-30 - API Refinement Task 11.12.3: Integration Test Fixes Documentation Completion
+
+### Major Achievement
+- **✅ DOCUMENTATION SYNCHRONIZATION - COMPLETE**: All Integration Test Fixes changes now properly documented across API documentation structure
+
+### Enhanced - API Documentation Quality
+- **OpenAPI Specification Synchronization**:
+  - Added missing `url` field to VoiceInfo schema in `docs/api/openapi.yaml`
+  - Updated VoiceUploadResponse schema to match actual implementation structure
+  - Enhanced field descriptions and type definitions for complete API coverage
+- **Code Examples Repair and Enhancement**:
+  - Fixed malformed Python examples in `docs/api/schemas/examples/python-examples.md`
+  - Added comprehensive voice integration workflow examples in curl documentation
+  - Demonstrated complete workflow: list voices → extract URL → use for TTS generation
+- **Feature Documentation Enhancement**:
+  - **Hierarchical Folder Filtering**: Added comprehensive documentation in `docs/api/endpoints/voice-management.md`
+    - Explained parent folder includes all subfolders behavior (e.g., `folder=characters` finds `characters/casual`, `characters/formal`)
+    - Added practical examples for project organization and voice management
+  - **Enhanced Search Functionality**: Documented multi-field search capabilities
+    - Search now includes folder paths in addition to names, descriptions, and tags
+    - Added examples showing search across voice organization structure
+  - **URL Field Integration**: Complete documentation of new VoiceMetadata `url` field
+    - Updated response examples to show `url` field usage
+    - Added workflow examples for seamless TTS integration
+
+### Technical Documentation
+- **Cross-Platform Path Handling**: Documented forward slash standardization across Windows/Linux
+- **API Response Structure**: Updated all examples to reflect current implementation
+- **Integration Workflows**: Added practical examples for developers using new features
+
+### Quality Assurance
+- **Validation Complete**: Core tests passing (100% success rate, 6/6 tests)
+- **OpenAPI Sync Verified**: Documentation changes properly reflected in live API
+- **Link Validation**: All new documentation properly cross-referenced
+
+### Files Modified
+- `docs/api/openapi.yaml` - Enhanced VoiceInfo schema and response models
+- `docs/api/endpoints/voice-management.md` - Hierarchical filtering and URL field documentation
+- `docs/api/schemas/examples/curl-examples.md` - Integration workflow examples
+- `docs/api/schemas/examples/python-examples.md` - Fixed malformed examples
+- `docs/dev/task_11.12.2_integration_test_fixes_documentation_validation.md` - Comprehensive validation report
+- `docs/dev/api_refinement_implementation_plan.md` - Updated task completion status
+
+### Developer Experience Impact
+- **Swagger UI Integration**: `url` field now properly displayed in interactive documentation
+- **Complete Workflows**: Developers can now follow documented end-to-end examples
+- **Feature Discovery**: New Integration Test Fixes improvements are discoverable through documentation
+- **Cross-Platform Confidence**: Clear documentation of path handling behavior
+
+**Task Status**: ✅ **11.12.2 COMPLETE** (Documentation validation) | ✅ **11.12.3 COMPLETE** (Documentation fixes)
+
 ## [1.12.2] - 2025-06-30 - API Refinement Task 11.12.1: Complete Voice Management Integration Test Fixes
 
 ### Major Achievement

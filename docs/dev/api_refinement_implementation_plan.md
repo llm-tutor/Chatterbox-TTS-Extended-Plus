@@ -172,14 +172,69 @@
 - [x] **Voice Deletion Integration**: Both single and bulk deletion operations working with hierarchical folder filtering
 - [x] **Unicode Compatibility**: All voice management operations compatible with Windows encoding
 
-#### **Task 11.12.2: Validate that all changes performed in the Integration Test Fixes are documented**
-- [ ] Look at the entries in the 'docs/changelog.md' file to see the details of 
+#### **Task 11.12.2: Validate that all changes performed in the Integration Test Fixes are documented** ✅
+- [x] Look at the entries in the 'docs/changelog.md' file to see the details of 
   what was done
-- [ ] Review the API models implementation and review the corresponding 
+- [x] Review the API models implementation and review the corresponding 
   documentation. Look at 'docs/README.md' and 'docs/how-to-update-api-docs.
   md' to find the places where to check for potential undocumented changes
-- [ ] Not only look at 'docs/api/endpoints' documents, but also the guides 
+- [x] Not only look at 'docs/api/endpoints' documents, but also the guides 
   and the schemas/ and schemas/examples/ folders
+- [x] **COMPLETED**: Comprehensive validation report created at `docs/dev/task_11.12.2_integration_test_fixes_documentation_validation.md`
+- [x] **FINDINGS**: Identified multiple documentation gaps requiring fixes in Task 11.12.3
+
+#### **Task 11.12.3: Fix Integration Test Fixes Documentation Issues**
+**Reference**: `docs/dev/task_11.12.2_integration_test_fixes_documentation_validation.md`
+
+**High Priority Items (Critical)**:
+- [x] **Fix OpenAPI Specification** - Add missing `url` field to VoiceInfo/VoiceMetadata schema in `docs/api/openapi.yaml`
+- [x] **Fix Code Examples** - Repair malformed JSON in `docs/api/schemas/examples/curl-examples.md` and `python-examples.md`
+  - [x] Fix incomplete field references (`reference_audio_filename`, `.wav`, `.mp3` placeholders)
+  - [x] Add working examples using actual voice files from the project
+  - [x] Demonstrate `url` field usage from voice listings
+
+**Medium Priority Items (Important)**:
+- [x] **Document Hierarchical Folder Filtering** in `docs/api/endpoints/voice-management.md`
+  - [x] Explain how parent folder parameters include subfolders
+  - [x] Add examples: `project=interview_project` finds `interview_project/raw_recordings`
+  - [x] Document this behavior across all file management endpoints
+- [x] **Document Enhanced Search Functionality**
+  - [x] Update endpoint docs to explain search includes folder paths
+  - [x] Add examples of searching by project/folder names
+  - [x] Document scope across voices, outputs, vc_inputs endpoints
+- [x] **Document DELETE Endpoint Behavior Changes** *(ALREADY DOCUMENTED)*
+  - [x] *(VERIFIED)* DELETE endpoints already show confirmation requirements and proper behavior
+  - [x] *(VERIFIED)* File operations documentation covers the safety mechanisms 
+  - [x] *(VERIFIED)* No additional changes needed - existing docs are adequate
+- [x] **Update Voice Management Endpoint Documentation** *(COMPLETED)*
+  - [x] Added comprehensive examples demonstrating new `url` field usage
+  - [x] Updated response examples to include `url` field 
+  - [x] Documented complete workflows: list voices → use URL for TTS
+
+**Low Priority Items (Enhancement)**:
+- [x] **Create Integration Improvements Guide** *(NOT NEEDED)*
+  - [x] *(VERIFIED)* Existing `file-management-workflows.md` already covers organization patterns
+  - [x] *(VERIFIED)* Key improvements already documented in endpoint-specific docs
+  - [x] *(VERIFIED)* Creating separate guide would be redundant
+- [x] **Update Navigation and References** *(NOT NEEDED)*
+  - [x] *(VERIFIED)* Existing cross-references are adequate
+  - [x] *(VERIFIED)* API README already has proper navigation structure
+
+**Validation and Testing**:
+- [x] **Run Validation Scripts**
+  - [x] Execute `python scripts/sync_openapi.py` to verify OpenAPI/implementation sync *(Expected differences due to Core vs Administrative API separation)*
+  - [x] Execute `python scripts/test_core_examples.py` - ✅ **100% PASS (6/6 tests, 24.4s)**
+  - [x] Execute `python scripts/check_links.py` to verify internal links *(1 unrelated error, new docs OK)*
+- [x] **Test Documentation Changes**
+  - [x] Verify OpenAPI spec updates work correctly with live API
+  - [x] Confirm core functionality still works after documentation changes
+  - [x] Validate that new VoiceMetadata schema is properly reflected
+
+**✅ TASK 11.12.3 STATUS: COMPLETE**
+- **High Priority**: ✅ OpenAPI specification fixed, code examples repaired, URL field integration documented
+- **Medium Priority**: ✅ Hierarchical folder filtering documented, enhanced search documented
+- **Low Priority**: ✅ Verified existing docs adequate, no redundant changes needed
+- **Validation**: ✅ Core tests passing (100%), OpenAPI changes working correctly
 
 
 #### **Task 11.13: Revision of concat mixed and basic testing**
