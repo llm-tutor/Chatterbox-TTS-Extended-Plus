@@ -22,106 +22,174 @@ Most parameters posses default values, configured via yaml and a config file:
 
 The goal is to create a definitive "feature map" that will guide our implementation. **No code changes in this phase.**
 
-### Task 1.1: Deconstruct Chatter.py TTS Pipeline
-- [ ] **Input Handling Flow Analysis**
-  - [ ] Map how `generate_batch_tts` differentiates between text input vs single/multiple file uploads
-  - [ ] Document the `separate_files_checkbox` logic for generating individual vs combined audio files
-  - [ ] Trace the `input_basename` generation and file handling patterns
+### Task 1.1: Deconstruct Chatter.py TTS Pipeline ✅ COMPLETED
+- [x] **Input Handling Flow Analysis** ✅
+  - [x] Map how `generate_batch_tts` differentiates between text input vs single/multiple file uploads
+  - [x] Document the `separate_files_checkbox` logic for generating individual vs combined audio files
+  - [x] Trace the `input_basename` generation and file handling patterns
 
-- [ ] **Text Preprocessing Pipeline Documentation**
-  - [ ] Map execution order of preprocessing steps:
-    - [ ] `smart_remove_sound_words` (sound word replacement/removal)
-    - [ ] `to_lowercase`, `normalize_whitespace`, `fix_dot_letters`, `remove_reference_numbers`
-  - [ ] Document the `parse_sound_word_field` and `smart_remove_sound_words` logic
+- [x] **Text Preprocessing Pipeline Documentation** ✅
+  - [x] Map execution order of preprocessing steps:
+    - [x] `smart_remove_sound_words` (sound word replacement/removal)
+    - [x] `to_lowercase`, `normalize_whitespace`, `fix_dot_letters`, `remove_reference_numbers`
+  - [x] Document the `parse_sound_word_field` and `smart_remove_sound_words` logic
 
-- [ ] **Sentence Processing & Chunking Strategy**
-  - [ ] Document `split_into_sentences` using NLTK punkt tokenizer
-  - [ ] Map the three chunking strategies:
-    - [ ] `enable_batching=True`: `group_sentences(max_chars=400)`
-    - [ ] `smart_batch_short_sentences=True`: `smart_append_short_sentences`
-    - [ ] Default: Individual sentences
-  - [ ] Analyze the chunking decision logic and parameters
+- [x] **Sentence Processing & Chunking Strategy** ✅
+  - [x] Document `split_into_sentences` using NLTK punkt tokenizer
+  - [x] Map the three chunking strategies:
+    - [x] `enable_batching=True`: `group_sentences(max_chars=400)`
+    - [x] `smart_batch_short_sentences=True`: `smart_append_short_sentences`
+    - [x] Default: Individual sentences
+  - [x] Analyze the chunking decision logic and parameters
 
-- [ ] **Core Generation Loop & Parallel Processing**
-  - [ ] Document the `num_generations` outer loop structure
-  - [ ] **Critical: Map ThreadPoolExecutor implementation**
-    - [ ] Arguments passed to `process_one_chunk`
-    - [ ] Parallel vs sequential processing paths (`enable_parallel` flag)
-    - [ ] Worker management (`num_parallel_workers_slider`)
-    - [ ] Progress tracking and completion handling
-  - [ ] Document candidate generation logic per chunk (`num_candidates_per_chunk`, `max_attempts_per_candidate`)
+- [x] **Core Generation Loop & Parallel Processing** ✅
+  - [x] Document the `num_generations` outer loop structure
+  - [x] **Critical: Map ThreadPoolExecutor implementation**
+    - [x] Arguments passed to `process_one_chunk`
+    - [x] Parallel vs sequential processing paths (`enable_parallel` flag)
+    - [x] Worker management (`num_parallel_workers_slider`)
+    - [x] Progress tracking and completion handling
+  - [x] Document candidate generation logic per chunk (`num_candidates_per_chunk`, `max_attempts_per_candidate`)
 
-- [ ] **Whisper Validation System Architecture**
-  - [ ] **Model Loading Strategy**
-    - [ ] OpenAI Whisper vs faster-whisper backend selection
-    - [ ] Model size selection and VRAM considerations
-    - [ ] Memory management and cleanup patterns
-  - [ ] **Validation Pipeline**
-    - [ ] `chunk_candidate_map` population and structure
-    - [ ] Sequential validation of initial candidates via `whisper_check_mp`
-    - [ ] Fuzzy matching logic and scoring (`difflib.SequenceMatcher`)
-  - [ ] **Retry Mechanism**
-    - [ ] Failed chunk identification and queueing
-    - [ ] `while retry_queue` loop logic
-    - [ ] Re-generation with new seeds for failed chunks
-  - [ ] **Candidate Selection Strategies**
-    - [ ] Best score selection for passed validation
-    - [ ] Fallback strategies for failed validation:
-      - [ ] `use_longest_transcript_on_fail` logic
-      - [ ] Highest score fallback
-    - [ ] Bypass mode: shortest duration selection
+- [x] **Whisper Validation System Architecture** ✅
+  - [x] **Model Loading Strategy**
+    - [x] OpenAI Whisper vs faster-whisper backend selection
+    - [x] Model size selection and VRAM considerations
+    - [x] Memory management and cleanup patterns
+  - [x] **Validation Pipeline**
+    - [x] `chunk_candidate_map` population and structure
+    - [x] Sequential validation of initial candidates via `whisper_check_mp`
+    - [x] Fuzzy matching logic and scoring (`difflib.SequenceMatcher`)
+  - [x] **Retry Mechanism**
+    - [x] Failed chunk identification and queueing
+    - [x] `while retry_queue` loop logic
+    - [x] Re-generation with new seeds for failed chunks
+  - [x] **Candidate Selection Strategies**
+    - [x] Best score selection for passed validation
+    - [x] Fallback strategies for failed validation:
+      - [x] `use_longest_transcript_on_fail` logic
+      - [x] Highest score fallback
+    - [x] Bypass mode: shortest duration selection
 
-- [ ] **Audio Assembly & Post-Processing**
-  - [ ] Document `torch.cat` concatenation of selected chunks
-  - [ ] Map existing post-processing in Chatter.py:
-    - [ ] Auto-editor integration (`use_auto_editor`, threshold, margin)
-    - [ ] FFmpeg normalization (`normalize_audio`, EBU/peak methods)
-  - [ ] Document format conversion and export logic
+- [x] **Audio Assembly & Post-Processing** ✅
+  - [x] Document `torch.cat` concatenation of selected chunks
+  - [x] Map existing post-processing in Chatter.py:
+    - [x] Auto-editor integration (`use_auto_editor`, threshold, margin)
+    - [x] FFmpeg normalization (`normalize_audio`, EBU/peak methods)
+  - [x] Document format conversion and export logic
 
-### Task 1.2: Analyze Chatter.py Voice Conversion
-- [ ] **Chunking Logic**
-  - [ ] Document `chunk_sec` threshold decision (≤60s = direct processing)
-  - [ ] Map chunking parameters (`chunk_sec`, `overlap_sec`)
-  - [ ] Analyze chunk processing loop and temporary file handling
+### Task 1.2: Analyze Chatter.py Voice Conversion ✅ COMPLETED
+- [x] **Chunking Logic** ✅
+  - [x] Document `chunk_sec` threshold decision (≤60s = direct processing)
+  - [x] Map chunking parameters (`chunk_sec`, `overlap_sec`)
+  - [x] Analyze chunk processing loop and temporary file handling
 
-- [ ] **Cross-fade Implementation**
-  - [ ] Document the crossfading algorithm for chunk stitching
-  - [ ] Map fade-in/fade-out calculations (`np.linspace`)
-  - [ ] Analyze overlap handling and concatenation logic
+- [x] **Cross-fade Implementation** ✅
+  - [x] Document the crossfading algorithm for chunk stitching
+  - [x] Map fade-in/fade-out calculations (`np.linspace`)
+  - [x] Analyze overlap handling and concatenation logic
 
-### Task 1.3: Current core_engine_fixed.py Analysis
-- [ ] **Document Current TTS Flow**
-  - [ ] Map `generate_tts` → `_process_tts_generation_sync` → `_combine_audio_chunks`
-  - [ ] Identify current simplifications vs original (first candidate selection, no Whisper)
-  - [ ] Document current chunk processing approach
+### Task 1.3: Current core_engine.py Analysis ✅ COMPLETED
+- [x] **Document Current TTS Flow** ✅
+  - [x] Map `generate_tts` → `_process_tts_generation_sync` → `_combine_audio_chunks`
+  - [x] Identify current simplifications vs original (first candidate selection, no Whisper)
+  - [x] Document current chunk processing approach
 
-- [ ] **Document Current VC Flow**
-  - [ ] Map `generate_vc` → `_process_vc_generation_sync`
-  - [ ] Compare chunking implementation with Chatter.py
+- [x] **Document Current VC Flow** ✅
+  - [x] Map `generate_vc` → `_process_vc_generation_sync`
+  - [x] Compare chunking implementation with Chatter.py
 
-- [ ] **Document New Features Implementation**
-  - [ ] Speed factor processing optimization (`apply_speed_factor_post_processing`)
-  - [ ] Audio trimming pipeline (`_apply_trimming_post_processing`)
-  - [ ] Project folder organization
-  - [ ] Metadata generation and CSV/JSON export
-  - [ ] Enhanced filename generation
+- [x] **Document New Features Implementation** ✅
+  - [x] Speed factor processing optimization (`apply_speed_factor_post_processing`)
+  - [x] Audio trimming pipeline (`_apply_trimming_post_processing`)
+  - [x] Project folder organization
+  - [x] Metadata generation and CSV/JSON export
+  - [x] Enhanced filename generation
 
-### Task 1.4: Create Comprehensive Feature Gap Report
-Create a detailed comparison matrix:
+### Task 1.4: Create Comprehensive Feature Gap Report ✅ COMPLETED
+**Analysis Document**: `docs/dev/phase1_analysis_report.md` ✅
 
-| Feature Category | Chatter.py Implementation | core_engine_fixed.py Status | Priority | Notes |
-|------------------|---------------------------|------------------------------|----------|-------|
-| **Parallel Processing** | ThreadPoolExecutor with configurable workers | Missing | Critical | Core performance feature |
-| **Whisper Validation** | Full pipeline with retries | Missing | Critical | Quality assurance |
-| **Candidate Selection** | Sophisticated scoring + fallbacks | Simplified (first only) | Critical | Affects output quality |
-| **Text Preprocessing** | Complete pipeline | Partial | High | Affects input handling |
-| **Chunking Strategies** | 3 modes with smart batching | Basic | High | Affects processing efficiency |
-| **Batch File Processing** | Multiple files + separate outputs | Missing | High | User workflow feature |
-| **Sound Word Replacement** | Full find/replace system | Missing | Medium | Text customization |
-| **Speed Factor** | Not available | **Enhanced** | - | New feature to preserve |
-| **Audio Trimming** | Not available | **Enhanced** | - | New feature to preserve |
-| **Project Folders** | Not available | **Enhanced** | - | New feature to preserve |
-| **Metadata Generation** | Basic settings export | **Enhanced** | - | New feature to preserve |
+| Feature Category | Chatter.py Implementation | core_engine.py Status | Priority | Migration Effort |
+|------------------|---------------------------|----------------------|----------|------------------|
+| **Parallel Processing** | ThreadPoolExecutor with configurable workers | ❌ Missing | 🔴 Critical | High |
+| **Whisper Validation** | Full pipeline with retries | ❌ Missing | 🔴 Critical | High |
+| **Candidate Selection** | Sophisticated scoring + fallbacks | ❌ Simplified (first only) | 🔴 Critical | Medium |
+| **Text Preprocessing** | Complete 5-step pipeline | ❌ Partial | 🟡 High | Medium |
+| **Chunking Strategies** | 3 modes with smart batching | ❌ Basic | 🟡 High | Medium |
+| **Batch File Processing** | Multiple files + separate outputs | ❌ Missing | 🟡 High | Medium |
+| **Sound Word Replacement** | Full find/replace system | ❌ Missing | 🟢 Medium | Low |
+| **Speed Factor** | Not available | ✅ **Enhanced** | - | - |
+| **Audio Trimming** | Not available | ✅ **Enhanced** | - | - |
+| **Project Folders** | Not available | ✅ **Enhanced** | - | - |
+| **Metadata Generation** | Basic settings export | ✅ **Enhanced** | - | - |
+
+### Task 1.5: Analysis Validation & Implementation Plan Revision
+- [ ] **Validate Analysis Document**
+  - [ ] Review `docs/dev/phase1_analysis_report.md` for completeness and accuracy
+  - [ ] Cross-reference findings with actual Chatter.py implementation
+  - [ ] Identify any missing critical features or incorrect assessments
+  - [ ] Verify code location references and line numbers
+
+- [ ] **API Parameter Analysis & Validation**
+  **New TTS Parameters Required** (estimated ~15):
+  ```python
+  # Parallel Processing Parameters
+  enable_parallel: bool = True                    # Enable/disable parallel chunk processing
+  num_parallel_workers: int = 4                   # Number of ThreadPoolExecutor workers
+  
+  # Whisper Validation Parameters  
+  bypass_whisper_checking: bool = False           # Skip Whisper validation entirely
+  whisper_model_name: str = "medium"              # Whisper model size (tiny/base/small/medium/large)
+  use_faster_whisper: bool = True                 # Use faster-whisper vs openai-whisper backend
+  use_longest_transcript_on_fail: bool = True     # Fallback strategy for failed validation
+  
+  # Candidate Generation Parameters
+  num_candidates_per_chunk: int = 3               # Multiple candidates per text chunk
+  max_attempts_per_candidate: int = 3             # Retry attempts per candidate
+  
+  # Text Preprocessing Parameters
+  sound_words_field: str = ""                     # Sound word find/replace definitions
+  to_lowercase: bool = True                       # Convert text to lowercase
+  normalize_spacing: bool = True                  # Normalize whitespace
+  fix_dot_letters: bool = True                    # Fix "U.S.A." → "U S A" sequences
+  remove_reference_numbers: bool = True           # Remove academic citation numbers
+  
+  # Chunking Strategy Parameters
+  enable_batching: bool = False                   # Group sentences mode (max_chars=400)
+  smart_batch_short_sentences: bool = True        # Smart combination of short sentences (<20 chars)
+  
+  # Batch Processing Parameters
+  generate_separate_audio_files: bool = False     # Process multiple files separately vs combined
+  ```
+  - [ ] Validate each parameter necessity and default values
+  - [ ] Check for parameter conflicts or redundancies  
+  - [ ] Verify parameter names match Chatter.py conventions
+  - [ ] Assess impact on existing API backward compatibility
+
+- [ ] **Dependencies Validation**
+  - [ ] Confirm NLTK availability in requirements and venv
+  - [ ] Verify all Chatter.py imports are available in current environment
+  - [ ] Check for any missing dependencies for full feature migration
+
+- [ ] **Implementation Plan Revision**
+  - [ ] Review `docs/dev/revised_phase_plan.md` recommendations
+  - [ ] Incorporate validated analysis findings into phase structure
+  - [ ] **Rewrite `docs/dev/fastapi_migration_plan.md`** with:
+    - [ ] Updated phase definitions based on complexity analysis
+    - [ ] Refined task breakdowns with realistic effort estimates
+    - [ ] Clear success criteria for each phase
+    - [ ] Integration points between phases
+    - [ ] Risk mitigation strategies for complex features
+  - [ ] Ensure phase dependencies and sequencing are optimal
+  - [ ] Add specific validation criteria for each phase completion
+
+---
+
+## ⚠️ PHASE 1 STATUS: VALIDATION IN PROGRESS
+
+**Status**: Phase 1 analysis complete, validation and plan revision required (Task 1.5)
+**Next**: Complete Task 1.5 validation before proceeding to Phase 2
+**Documentation**: Analysis available but requires validation before finalization
 
 ---
 
