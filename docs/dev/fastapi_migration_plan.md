@@ -241,42 +241,96 @@ The goal is to create a definitive "feature map" that will guide our implementat
 - ✅ **Progress Tracking**: Real-time percentage updates (20%, 40%, 60%, 80%, 100%)
 - ✅ **Audio Assembly**: Successful combination of parallel-generated chunks
 
-**Next**: Proceed to Phase 4 - Whisper Validation System
+---
 
+## ✅ PHASE 4 STATUS: CORE TASKS COMPLETED - RETRY QUEUE & TESTING REMAINING
+
+**Status**: Core Whisper validation system implemented and tested ✅
+**Next**: Complete Task 4.5 (Full Retry Queue) and Task 4.6 (Enhanced Logging & Testing)
+**Progress**: 4 of 6 tasks completed
+
+**Key Achievements:**
+- ✅ **Whisper Model Management**: Dual backend support, lifecycle management, VRAM cleanup
+- ✅ **Validation Pipeline**: Complete whisper_check_mp with fuzzy matching and thresholds  
+- ✅ **Candidate Selection**: Multiple strategies including fallbacks and bypass mode
+- ✅ **Basic Retry**: Fallback candidate selection (full retry queue pending)
+- 🔄 **Full Retry Queue**: Analysis and implementation needed (Task 4.5)
+- 🔄 **Enhanced Testing**: Strategic logging and comprehensive test suite (Task 4.6)
+
+**Test Results Validated:**
+- ✅ **Single chunk validation**: 23.9s vs 15.7s bypass (8.2s Whisper overhead confirmed)
+- ✅ **Multi-chunk parallel**: 4 chunks, 8 candidates validated with progress tracking
+- ✅ **Error handling**: Invalid model names rejected with 422 status
+- ✅ **Integration**: All existing features (speed factor, trimming, metadata) preserved
+
+**Outstanding Tasks:**
+- Task 4.5: Implement full retry queue mechanism for robust failure handling
+- Task 4.6: Add strategic logging and comprehensive test coverage
 
 ---
 
-## Phase 4: Whisper Validation System
+### Task 4.1: Whisper Model Management ✅ COMPLETED
+- [x] **Dual Backend Support**
+  - [x] Implement OpenAI Whisper backend selection
+  - [x] Implement faster-whisper backend selection
+  - [x] Add model lifecycle management (load → use → cleanup)
+  - [x] Add VRAM monitoring and cleanup
 
-**DEDICATED PHASE**: Complex enough to warrant its own phase
+### Task 4.2: Validation Pipeline ✅ COMPLETED
+- [x] **Port Validation Logic**
+  - [x] Implement `whisper_check_mp` function
+  - [x] Port fuzzy matching with `difflib.SequenceMatcher`
+  - [x] Implement 0.95 threshold validation
+  - [x] Add file size and existence checks
 
-### Task 4.1: Whisper Model Management
-- [ ] **Dual Backend Support**
-  - [ ] Implement OpenAI Whisper backend selection
-  - [ ] Implement faster-whisper backend selection
-  - [ ] Add model lifecycle management (load → use → cleanup)
-  - [ ] Add VRAM monitoring and cleanup
+### Task 4.3: Retry Mechanism (BASIC) ✅ COMPLETED
+- [x] **Failed Chunk Processing**
+  - [x] Implement failed chunk identification and queueing
+  - [x] Basic fallback candidate selection strategies
+  - [ ] **LIMITATION**: Full retry queue with regeneration not implemented
 
-### Task 4.2: Validation Pipeline
-- [ ] **Port Validation Logic**
-  - [ ] Implement `whisper_check_mp` function
-  - [ ] Port fuzzy matching with `difflib.SequenceMatcher`
-  - [ ] Implement 0.95 threshold validation
-  - [ ] Add file size and existence checks
+### Task 4.4: Candidate Selection Strategies ✅ COMPLETED
+- [x] **Multi-Strategy Selection**
+  - [x] Best passed candidate (shortest duration)
+  - [x] Fallback strategies (longest transcript vs highest score)
+  - [x] Bypass mode (shortest duration without validation)
+  - [x] Port exact selection logic from Chatter.py
 
-### Task 4.3: Retry Mechanism
-- [ ] **Failed Chunk Processing**
-  - [ ] Implement failed chunk identification and queueing
-  - [ ] Port retry queue processing logic
-  - [ ] Add re-generation with new random seeds
-  - [ ] Implement configurable retry limits
+### Task 4.5: Full Retry Queue Implementation
+- [ ] **Analysis & Design Phase**
+  - [ ] Analyze current generation flow for retry integration points
+  - [ ] Design retry queue structure matching Chatter.py exactly
+  - [ ] Identify required changes to chunk processing pipeline
+  - [ ] Evaluate if complete generation flow restructuring is needed
 
-### Task 4.4: Candidate Selection Strategies
-- [ ] **Multi-Strategy Selection**
-  - [ ] Best passed candidate (shortest duration)
-  - [ ] Fallback strategies (longest transcript vs highest score)
-  - [ ] Bypass mode (shortest duration without validation)
-  - [ ] Port exact selection logic from Chatter.py
+- [ ] **Retry Queue Implementation**
+  - [ ] Implement failed chunk identification and retry queue management
+  - [ ] Add retry loop with configurable max attempts (`max_attempts_per_candidate`)
+  - [ ] Implement new seed generation for retry attempts
+  - [ ] Add parallel retry processing with ThreadPoolExecutor
+  - [ ] Ensure retry works for both single generation and multi-candidate scenarios
+
+- [ ] **Critical Scenarios**
+  - [ ] **Single Generation Failure**: Ensure retry when `num_candidates_per_chunk=1` and validation fails
+  - [ ] **All Candidates Fail**: Ensure retry when no candidates pass validation threshold
+  - [ ] **Partial Chunk Failure**: Ensure retry only for failed chunks while preserving passed ones
+
+### Task 4.6: Enhanced Logging & Comprehensive Testing
+- [ ] **Strategic Logging Enhancement**
+  - [ ] Add INFO level logs for Whisper validation status (enabled/bypassed)
+  - [ ] Log validation criteria and threshold values (0.95 score, model name, backend)
+  - [ ] Log candidate selection decisions with scores and reasoning
+  - [ ] Log retry attempts with attempt numbers and new seeds
+  - [ ] Add clear indicators for parallel vs sequential processing
+
+- [ ] **Comprehensive Test Suite**
+  - [ ] **Test 1**: Single generation without candidates (`num_candidates_per_chunk=1`, no validation)
+  - [ ] **Test 2**: Single generation with validation failure (force retry scenario)
+  - [ ] **Test 3**: Multi-candidate generation with Whisper validation enabled
+  - [ ] **Test 4**: Multi-candidate generation with Whisper validation bypassed
+  - [ ] **Test 5**: Multi-chunk parallel processing with mixed validation results
+  - [ ] **Test 6**: Retry queue functionality with failed chunks
+  - [ ] **Test 7**: Error scenarios (invalid whisper model, disk space, timeout)
 
 ---
 

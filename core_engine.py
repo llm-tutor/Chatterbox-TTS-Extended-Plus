@@ -51,6 +51,7 @@ logger = get_logger(__name__)
 # This matches the original Chatter.py approach for better performance
 _tts_model: Optional[ChatterboxTTS] = None
 _vc_model: Optional[ChatterboxVC] = None
+_whisper_model: Optional[Union[whisper.Whisper, FasterWhisperModel]] = None
 _device: Optional[str] = None
 
 def _get_device() -> str:
@@ -194,6 +195,150 @@ def get_or_load_vc_model() -> ChatterboxVC:
                 raise ModelLoadError(f"VC model loading failed: {e}")
                 
     return _vc_model
+
+def load_whisper_backend(model_name: str, use_faster_whisper: bool) -> Union[whisper.Whisper, FasterWhisperModel]:
+    """Load Whisper model with specified backend (matching Chatter.py exactly)"""
+    device = _get_device()
+    
+    if use_faster_whisper:
+        logger.info(f"Loading faster-whisper model: {model_name}")
+        return FasterWhisperModel(
+            model_name, 
+            device=device, 
+            compute_type="float16" if device == "cuda" else "float32"
+        )
+    else:
+        logger.info(f"Loading openai-whisper model: {model_name}")
+        return whisper.load_model(model_name, device=device)
+
+def get_or_load_whisper_model() -> Union[whisper.Whisper, FasterWhisperModel]:
+    """Load Whisper model with enhanced error handling"""
+    global _whisper_model
+    if _whisper_model is None:
+        from resilience import error_tracker, ErrorCategory, ErrorSeverity
+        
+        logger.info("Whisper Model not loaded, initializing...")
+        
+        try:
+            # Get whisper configuration
+            model_name = config_manager.get("tts.whisper_model_name", "medium")
+            use_faster_whisper = config_manager.get("tts.use_faster_whisper", True)
+            
+            # Model loading with timeout
+            loading_timeout = config_manager.get("error_handling.model_loading.loading_timeout_seconds", 300)
+            
+            if loading_timeout > 0:
+                logger.info(f"Loading Whisper model '{model_name}' (faster_whisper={use_faster_whisper}) with {loading_timeout}s timeout...")
+                
+                start_time = time.time()
+                _whisper_model = load_whisper_backend(model_name, use_faster_whisper)
+                load_time = time.time() - start_time
+                
+                logger.info(f"Whisper model loaded in {load_time:.1f}s")
+                
+                if load_time > loading_timeout:
+                    logger.warning(f"Whisper model loading took {load_time:.1f}s (timeout: {loading_timeout}s)")
+            else:
+                _whisper_model = load_whisper_backend(model_name, use_faster_whisper)
+                logger.info("Whisper model loaded (no timeout)")
+            
+        except Exception as e:
+            # Record the error
+            error_tracker.record_error(
+                operation="whisper_model_loading",
+                error=e,
+                context={
+                    'model_name': config_manager.get("tts.whisper_model_name", "medium"),
+                    'use_faster_whisper': config_manager.get("tts.use_faster_whisper", True),
+                    'loading_timeout': loading_timeout,
+                    'device': _get_device()
+                },
+                category=ErrorCategory.CONFIGURATION,
+                severity=ErrorSeverity.CRITICAL
+            )
+            
+            logger.critical(f"Failed to load Whisper model: {e}")
+            
+            # Check if we should shutdown on model failure
+            shutdown_on_failure = config_manager.get("error_handling.model_loading.shutdown_on_failure", True)
+            if shutdown_on_failure:
+                logger.critical("Shutting down application due to Whisper model loading failure")
+                import sys
+                sys.exit(1)
+            else:
+                raise ModelLoadError(f"Whisper model loading failed: {e}")
+                
+    return _whisper_model
+
+def cleanup_whisper_model():
+    """Clean up Whisper model to free VRAM"""
+    global _whisper_model
+    if _whisper_model is not None:
+        logger.info("Cleaning up Whisper model...")
+        try:
+            # For faster-whisper, explicitly clean up
+            if hasattr(_whisper_model, 'model'):
+                del _whisper_model.model
+            del _whisper_model
+            _whisper_model = None
+            
+            # Force garbage collection and CUDA cleanup
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()
+            
+            logger.info("Whisper model cleanup completed")
+        except Exception as e:
+            logger.warning(f"Error during Whisper model cleanup: {e}")
+
+def normalize_for_compare_all_punct(text: str) -> str:
+    """Normalize text for comparison by removing punctuation and standardizing whitespace (matching Chatter.py)"""
+    # Replace dashes with spaces
+    text = re.sub(r'[–—-]', ' ', text)
+    # Remove all punctuation
+    text = re.sub(rf"[{re.escape(string.punctuation)}]", '', text)
+    # Normalize whitespace
+    text = re.sub(r'\s+', ' ', text)
+    return text.lower().strip()
+
+def whisper_check_mp(candidate_path: str, target_text: str, whisper_model: Union[whisper.Whisper, FasterWhisperModel], 
+                    use_faster_whisper: bool) -> Tuple[str, float, str]:
+    """
+    Whisper validation function (matching Chatter.py exactly)
+    Returns: (candidate_path, score, transcribed_text)
+    """
+    try:
+        logger.debug(f"Whisper checking: {candidate_path}")
+        
+        # Check if file exists and is not too small
+        if not os.path.exists(candidate_path) or os.path.getsize(candidate_path) < 1024:
+            logger.error(f"Candidate file missing or too small: {candidate_path}")
+            return (candidate_path, 0.0, "ERROR: File missing or too small")
+        
+        # Transcribe using appropriate backend
+        if use_faster_whisper:
+            segments, info = whisper_model.transcribe(candidate_path)
+            transcribed = "".join([seg.text for seg in segments]).strip().lower()
+        else:
+            result = whisper_model.transcribe(candidate_path)
+            transcribed = result['text'].strip().lower()
+        
+        logger.debug(f"Whisper transcription: '{transcribed}' for candidate '{os.path.basename(candidate_path)}'")
+        
+        # Calculate similarity score using difflib
+        score = difflib.SequenceMatcher(
+            None,
+            normalize_for_compare_all_punct(transcribed),
+            normalize_for_compare_all_punct(target_text.strip().lower())
+        ).ratio()
+        
+        logger.debug(f"Score: {score:.3f} (target: '{target_text}')")
+        return (candidate_path, score, transcribed)
+        
+    except Exception as e:
+        logger.error(f"Whisper transcription failed for {candidate_path}: {e}")
+        return (candidate_path, 0.0, f"ERROR: {e}")
 
 def set_seed(seed: int) -> int:
     """Set random seed for reproducibility, returns actual seed used (matching Chatter.py)"""
@@ -867,30 +1012,56 @@ class CoreEngine:
             if not all_candidates:
                 raise GenerationError("No audio candidates were generated successfully")
             
-            # Select best candidates and combine (simplified for performance)
-            logger.info("Selecting best candidates and combining...")
+            # Select best candidates and combine - WITH WHISPER VALIDATION
+            logger.info("Validating candidates with Whisper and selecting best...")
             
-            # Simple strategy: take first candidate from each chunk
+            # Load Whisper model for validation if not bypassed
+            whisper_model = None
+            if not bypass_whisper_checking:
+                whisper_model = get_or_load_whisper_model()
+            
+            # Process each generation with full validation pipeline
             final_chunks = []
             for gen_index in range(num_generations):
-                gen_chunks = []
+                logger.info(f"Processing generation {gen_index + 1}/{num_generations}")
+                
+                # Create chunk candidate map
+                chunk_candidate_map = {}
                 for group_idx in range(len(sentence_groups)):
                     key = f"gen_{gen_index}_chunk_{group_idx}"
                     if key in all_candidates and all_candidates[key]:
-                        gen_chunks.append(all_candidates[key][0])  # Take first candidate
+                        chunk_candidate_map[group_idx] = []
+                        for candidate_path in all_candidates[key]:
+                            try:
+                                duration = librosa.get_duration(filename=candidate_path)
+                                chunk_candidate_map[group_idx].append({
+                                    'path': candidate_path,
+                                    'duration': duration,
+                                    'sentence_group': ' '.join(sentence_groups[group_idx])
+                                })
+                            except Exception as e:
+                                logger.warning(f"Could not get duration for {candidate_path}: {e}")
                 
-                if gen_chunks:
+                if not chunk_candidate_map:
+                    continue
+                
+                # Get selected candidates using validation
+                selected_candidates = self._validate_and_select_candidates(
+                    chunk_candidate_map, sentence_groups, whisper_model, use_faster_whisper,
+                    bypass_whisper_checking, use_longest_transcript_on_fail
+                )
+                
+                if selected_candidates:
                     # Phase 10.1.2 Optimization: Separate speed factor processing
                     # Step 1: Combine chunks (always at 1.0x speed)
-                    combined_path = self._combine_audio_chunks(gen_chunks, gen_index, kwargs)
+                    combined_path = self._combine_audio_chunks(selected_candidates, gen_index, kwargs)
                     
                     # Step 2: Apply speed factor as post-processing if needed
                     speed_factor = kwargs.get('speed_factor', 1.0)
                     if abs(speed_factor - 1.0) >= 1e-6:
-                        # Only apply speed factor processing if actually needed
                         combined_path = self.apply_speed_factor_post_processing(combined_path, speed_factor, kwargs)
                     
-                    # Step 3: Apply trimming as post-processing if requested (Task 11.4)
+                    # Step 3: Apply trimming as post-processing if requested
                     trim_enabled = kwargs.get('trim', False)
                     if trim_enabled:
                         combined_path = self._apply_trimming_post_processing(combined_path, kwargs)
@@ -906,6 +1077,73 @@ class CoreEngine:
         except Exception as e:
             logger.error(f"TTS generation failed: {e}")
             raise GenerationError(f"TTS generation failed: {e}")
+
+    def _validate_and_select_candidates(self, chunk_candidate_map: Dict, sentence_groups: List, 
+                                      whisper_model, use_faster_whisper: bool, bypass_whisper_checking: bool,
+                                      use_longest_transcript_on_fail: bool) -> List[str]:
+        """
+        Validate candidates with Whisper and select best ones (matching Chatter.py logic)
+        Returns list of selected candidate paths in chunk order
+        """
+        # Initialize validation tracking
+        chunk_validations = {chunk_idx: [] for chunk_idx in chunk_candidate_map.keys()}
+        chunk_failed_candidates = {chunk_idx: [] for chunk_idx in chunk_candidate_map.keys()}
+        
+        if bypass_whisper_checking:
+            logger.info("Bypassing Whisper validation - selecting shortest duration candidates")
+            selected_candidates = []
+            for chunk_idx in sorted(chunk_candidate_map.keys()):
+                candidates = chunk_candidate_map[chunk_idx]
+                if candidates:
+                    shortest = min(candidates, key=lambda c: c['duration'])
+                    selected_candidates.append(shortest['path'])
+            return selected_candidates
+        
+        # Full Whisper validation
+        logger.info(f"Running Whisper validation on {sum(len(candidates) for candidates in chunk_candidate_map.values())} candidates")
+        
+        for chunk_idx, candidates in chunk_candidate_map.items():
+            sentence_group = candidates[0]['sentence_group'] if candidates else ""
+            
+            for cand in candidates:
+                candidate_path = cand['path']
+                try:
+                    path, score, transcribed = whisper_check_mp(candidate_path, sentence_group, whisper_model, use_faster_whisper)
+                    logger.debug(f"[Chunk {chunk_idx}] {os.path.basename(candidate_path)}: score={score:.3f}")
+                    
+                    if score >= 0.95:
+                        chunk_validations[chunk_idx].append((cand['duration'], cand['path']))
+                    else:
+                        chunk_failed_candidates[chunk_idx].append((score, cand['path'], transcribed))
+                        
+                except Exception as e:
+                    logger.error(f"Whisper validation failed for {candidate_path}: {e}")
+                    chunk_failed_candidates[chunk_idx].append((0.0, candidate_path, ""))
+        
+        # Select best candidates
+        selected_candidates = []
+        for chunk_idx in sorted(chunk_candidate_map.keys()):
+            if chunk_validations[chunk_idx]:
+                # Best passed candidate (shortest duration)
+                best = min(chunk_validations[chunk_idx], key=lambda x: x[0])
+                selected_candidates.append(best[1])
+                logger.debug(f"[Chunk {chunk_idx}] Selected validated candidate: {os.path.basename(best[1])}")
+            elif chunk_failed_candidates[chunk_idx]:
+                # Fallback strategies
+                failed = chunk_failed_candidates[chunk_idx]
+                if use_longest_transcript_on_fail:
+                    # Select candidate with longest transcript
+                    best = max(failed, key=lambda x: len(x[2]))
+                else:
+                    # Select candidate with highest score
+                    best = max(failed, key=lambda x: x[0])
+                selected_candidates.append(best[1])
+                logger.warning(f"[Chunk {chunk_idx}] No validated candidates, using fallback: {os.path.basename(best[1])}")
+            else:
+                logger.error(f"[Chunk {chunk_idx}] No candidates available")
+                return []
+        
+        return selected_candidates
 
     def _combine_audio_chunks(self, chunk_paths: List[str], gen_index: int, generation_params: Dict[str, Any] = None) -> str:
         """
