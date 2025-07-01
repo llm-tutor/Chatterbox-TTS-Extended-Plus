@@ -38,6 +38,7 @@ from utils.voice.metadata import update_voice_usage
 from utils.outputs.management import save_generation_metadata
 from utils.audio.processing import apply_speed_factor
 from utils.audio.trimming import apply_audio_trimming
+from utils.audio.post_processing import apply_complete_post_processing_pipeline
 
 # Whisper imports
 import whisper
@@ -1073,12 +1074,13 @@ class CoreEngine:
             if not final_chunks:
                 raise GenerationError("No final audio chunks were created")
 
-            # TODO: Probably here we should apply the last post-processing steps (use_auto_editor and normalize_audio)
-            # For reference look at Chatter.py lines 968-1008
-            # From the return value we should only process final_chunks[0] ? Check if it is possible to return multiple chunks here
+            # Apply post-processing pipeline to the final output (auto-editor + ffmpeg normalization)
+            # Process final_chunks[0] which contains the complete generated audio
+            logger.info("🎨 Applying post-processing pipeline...")
+            final_audio_path = apply_complete_post_processing_pipeline(final_chunks[0], kwargs)
             
-            # Return the first (and typically only) generation
-            return Path(final_chunks[0])
+            # Return the final processed audio
+            return Path(final_audio_path)
             
         except Exception as e:
             logger.error(f"TTS generation failed: {e}")

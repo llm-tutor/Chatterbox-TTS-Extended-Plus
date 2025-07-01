@@ -6,11 +6,13 @@ Modules:
 - processing: Speed factor application, duration calculations
 - analysis: Format normalization, silence detection  
 - trimming: Audio trimming and silence removal
+- post_processing: Auto-editor and ffmpeg normalization post-processing
 
 Usage:
     from utils.audio.processing import apply_speed_factor
     from utils.audio.analysis import normalize_audio_format
     from utils.audio.trimming import apply_audio_trimming
+    from utils.audio.post_processing import apply_complete_post_processing_pipeline
 """
 
 from .processing import (
@@ -30,6 +32,12 @@ from .trimming import (
     trim_audio_file
 )
 
+from .post_processing import (
+    apply_auto_editor_post_processing,
+    apply_ffmpeg_normalization_post_processing,
+    apply_complete_post_processing_pipeline
+)
+
 __all__ = [
     # Processing functions
     'apply_speed_factor',
@@ -43,5 +51,10 @@ __all__ = [
     
     # Trimming functions
     'apply_audio_trimming',
-    'trim_audio_file'
+    'trim_audio_file',
+    
+    # Post-processing functions
+    'apply_auto_editor_post_processing',
+    'apply_ffmpeg_normalization_post_processing',
+    'apply_complete_post_processing_pipeline'
 ]

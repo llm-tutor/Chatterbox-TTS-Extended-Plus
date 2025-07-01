@@ -159,6 +159,41 @@ python tests/test_parallel_processing_phases2_3.py
 python tests/test_phase4_comprehensive.py
 ```
 
+#### `test_phase4_task7_post_processing.py`
+**Purpose**: Validate Task 4.7 post-processing integration (auto-editor and ffmpeg normalization)
+
+**Tests**:
+- **Basic TTS Baseline**: Generation without post-processing for comparison
+- **Auto-Editor Integration**: Complete auto-editor post-processing with all parameters
+- **FFmpeg EBU Normalization**: EBU R128 loudness normalization testing
+- **FFmpeg Peak Normalization**: Peak normalization with dynaudnorm filter
+- **Complete Pipeline**: Both auto-editor and ffmpeg normalization together
+- **Integration Testing**: Post-processing with existing features (speed factor, trimming)
+
+**Key Validations**:
+- Post-processing parameters correctly applied
+- Auto-editor --no-open flag prevents file opening
+- FFmpeg cross-drive compatibility with shutil.move()
+- Complete post-processing pipeline order (Speed → Trimming → Auto-Editor → FFmpeg)
+- Error handling when tools are not available
+
+**Expected Log Evidence**:
+```
+"🎨 Applying post-processing pipeline..."
+"🎬 Applying auto-editor post-processing to: ..."
+"   🔧 Running command: auto-editor --edit audio:threshold=0.06 --margin 0.2s --export audio --no-open ..."
+"   ✅ Auto-editor post-processing completed: ..."
+"🔊 Applying ffmpeg normalization to: ..."
+"   🔧 EBU normalization filter: loudnorm=I=-24.0:TP=-2.0:LRA=7.0"
+"   ✅ FFmpeg normalization completed: ..."
+```
+
+**Usage**:
+```bash
+# Test post-processing integration
+python tests/test_phase4_task7_post_processing.py
+```
+
 ## Features Successfully Migrated ✅
 
 ### Text Processing Pipeline
