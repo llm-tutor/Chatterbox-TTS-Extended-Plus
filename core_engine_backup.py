@@ -1,3 +1,6 @@
+# Performance-optimized core_engine.py - synchronous version matching Chatter.py patterns
+# This version removes async overhead that was causing 10x performance degradation
+
 import os
 import time
 import random
@@ -310,7 +313,7 @@ def smart_append_short_sentences(sentences: List[str], min_chars: int = 100) -> 
 
 # ===== SYNCHRONOUS CORE ENGINE CLASS =====
 
-class CoreEngine:
+class CoreEngineSynchronous:
     """Synchronous core engine matching Chatter.py performance patterns"""
     
     def __init__(self):
@@ -1189,4 +1192,4 @@ class CoreEngine:
 
 
 # Global synchronous engine instance
-engine = CoreEngine()
+engine_sync = CoreEngineSynchronous()

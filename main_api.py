@@ -24,7 +24,7 @@ from api_models import (
     VCInputFileMetadata, VCInputFilesResponse, VCInputUploadResponse, VCInputMetadata, 
     VCInputDeletionResponse, OutputDeletionResponse
 )
-from core_engine import engine_sync, get_or_load_tts_model, get_or_load_vc_model
+from core_engine import engine, get_or_load_tts_model, get_or_load_vc_model
 from config import config_manager
 from exceptions import (
     ChatterboxAPIError, ValidationError, ResourceError, 
@@ -90,7 +90,7 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down application")
     cleanup_scheduler.stop()
-    engine_sync.cleanup_temp_files()
+    engine.cleanup_temp_files()
 
 
 # ===== STREAMING RESPONSE UTILITIES =====
@@ -222,7 +222,7 @@ async def generate_tts(
         
         # Run the synchronous TTS generation in thread pool for FastAPI compatibility
         def run_tts():
-            return engine_sync.generate_tts(**request_dict)
+            return engine.generate_tts(**request_dict)
         
         # Use run_in_executor for non-blocking FastAPI operation
         loop = asyncio.get_event_loop()
@@ -350,7 +350,7 @@ async def generate_vc(
         
         # Run the synchronous VC generation
         def run_vc():
-            return engine_sync.generate_vc(**request_dict)
+            return engine.generate_vc(**request_dict)
         
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(None, run_vc)
@@ -1211,7 +1211,6 @@ async def concatenate_audio(
         }
         
         # Include pause parameters only if not using manual silence
-        # TODO: We want to  use pause duration between two files without manual silence
         if not has_manual_silence:
             concat_params.update({
                 "pause_duration_ms": request.pause_duration_ms,
@@ -1308,7 +1307,6 @@ async def concatenate_audio(
             }
             
             # Add pause parameters only if not using manual silence
-            # TODO: We want to  use pause duration between two files without manual silence
             if not has_manual_silence:
                 metadata_to_save["parameters"].update({
                     "pause_duration_ms": request.pause_duration_ms,
@@ -1485,7 +1483,6 @@ async def concatenate_mixed_audio(
         }
         
         # Include pause parameters only if not using manual silence
-        # TODO: We want to  use pause duration between two files without manual silence
         if not has_manual_silence:
             filename_metadata.update({
                 "pause_duration_ms": request.pause_duration_ms,

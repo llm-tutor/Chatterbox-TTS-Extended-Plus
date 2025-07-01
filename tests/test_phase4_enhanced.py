@@ -11,7 +11,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from core_engine import CoreEngineSynchronous
+from core_engine import CoreEngine
 from api_models import TTSRequest, VCRequest, ErrorResponse
 # Direct utils imports for better code visibility (Phase 4)
 from utils.validation.network import validate_url

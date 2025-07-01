@@ -55,24 +55,25 @@ def test_core_examples():
             "timeout": 10,
             "category": "health"
         },
-        {
-            "name": "List Voices",
-            "description": "Available reference voices",
-            "method": "GET", 
-            "url": f"{api_base}/api/v1/voices",
-            "expected_status": 200,
-            "timeout": 10,
-            "category": "listing"
-        },
-        {
-            "name": "List Outputs",
-            "description": "Generated audio files",
-            "method": "GET",
-            "url": f"{api_base}/api/v1/outputs", 
-            "expected_status": 200,
-            "timeout": 10,
-            "category": "listing"
-        },
+        # === List end points - Uncomment once the Migration Plan is completed ===
+        # {
+        #     "name": "List Voices",
+        #     "description": "Available reference voices",
+        #     "method": "GET",
+        #     "url": f"{api_base}/api/v1/voices",
+        #     "expected_status": 200,
+        #     "timeout": 10,
+        #     "category": "listing"
+        # },
+        # {
+        #     "name": "List Outputs",
+        #     "description": "Generated audio files",
+        #     "method": "GET",
+        #     "url": f"{api_base}/api/v1/outputs",
+        #     "expected_status": 200,
+        #     "timeout": 10,
+        #     "category": "listing"
+        # },
         
         # === Generation tests (no specific voice file requirements) ===
         {

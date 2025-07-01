@@ -10,9 +10,13 @@ Documents for ongoing projects and foundational standards:
 | Document | Purpose | Status |
 |----------|---------|---------|
 | **[implementation-protocols.md](implementation-protocols.md)** | Common protocols, guidelines, and testing procedures for all development projects | **Foundation** |
-| **[api_refinement_implementation_plan.md](api_refinement_implementation_plan.md)** | API refinement project progress tracking and task checklists | **Active** |
-| **[api_refinement_resume_prompt.md](api_refinement_resume_prompt.md)** | API refinement project guidelines and protocols | **Active** |
-| **phase10_*.*** | API refinement research files and performance data | **Active** |
+| **[fastapi_migration_plan.md](fastapi_migration_plan.md)** | Migration project progress tracking and task checklists | **Active** |
+| **[fastapi_migration_resume_prompt.md](fastapi_migration_resume_prompt.md)** | Migration project guidelines and protocols | **Active** |
+| **[api_refinement_implementation_plan.md](refinement_plan/api_refinement_implementation_plan.md)** | API refinement project progress tracking and task checklists | **Active** |
+| **[api_refinement_resume_prompt.md](refinement_plan/api_refinement_resume_prompt.md)** | API refinement project guidelines and protocols | **Active** |
+| **refinement_plan/phase10_*.*** | API refinement research files and performance data | **Active** |
+
+In general, the documents for the refinement plan are inside the folder `docs/dev/refinement_plan/`, as the number of documents has grown lately.
 
 ### **Project Archives**
 Completed projects organized by category:
