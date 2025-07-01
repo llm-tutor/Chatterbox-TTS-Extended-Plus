@@ -47,8 +47,7 @@ from nltk.tokenize import sent_tokenize
 
 logger = get_logger(__name__)
 
-# ===== GLOBAL VARIABLES (MATCHING CHATTER.PY PATTERNS) =====
-# This matches the original Chatter.py approach for better performance
+# ===== GLOBAL VARIABLES =====
 _tts_model: Optional[ChatterboxTTS] = None
 _vc_model: Optional[ChatterboxVC] = None
 _whisper_model: Optional[Union[whisper.Whisper, FasterWhisperModel]] = None
@@ -197,7 +196,7 @@ def get_or_load_vc_model() -> ChatterboxVC:
     return _vc_model
 
 def load_whisper_backend(model_name: str, use_faster_whisper: bool) -> Union[whisper.Whisper, FasterWhisperModel]:
-    """Load Whisper model with specified backend (matching Chatter.py exactly)"""
+    """Load Whisper model with specified backend"""
     device = _get_device()
     
     if use_faster_whisper:
@@ -293,7 +292,7 @@ def cleanup_whisper_model():
             logger.warning(f"Error during Whisper model cleanup: {e}")
 
 def normalize_for_compare_all_punct(text: str) -> str:
-    """Normalize text for comparison by removing punctuation and standardizing whitespace (matching Chatter.py)"""
+    """Normalize text for comparison by removing punctuation and standardizing whitespace"""
     # Replace dashes with spaces
     text = re.sub(r'[–—-]', ' ', text)
     # Remove all punctuation
@@ -305,7 +304,7 @@ def normalize_for_compare_all_punct(text: str) -> str:
 def whisper_check_mp(candidate_path: str, target_text: str, whisper_model: Union[whisper.Whisper, FasterWhisperModel], 
                     use_faster_whisper: bool) -> Tuple[str, float, str]:
     """
-    Whisper validation function (matching Chatter.py exactly)
+    Whisper validation function
     Returns: (candidate_path, score, transcribed_text)
     """
     try:
@@ -341,7 +340,7 @@ def whisper_check_mp(candidate_path: str, target_text: str, whisper_model: Union
         return (candidate_path, 0.0, f"ERROR: {e}")
 
 def set_seed(seed: int) -> int:
-    """Set random seed for reproducibility, returns actual seed used (matching Chatter.py)"""
+    """Set random seed for reproducibility, returns actual seed used"""
     if seed <= 0:
         seed = random.randint(1, 2**32 - 1)
     
@@ -356,7 +355,7 @@ def set_seed(seed: int) -> int:
     logger.debug(f"Seed set to: {seed}")
     return seed
 
-# ===== HELPER FUNCTIONS (extracted from Chatter.py) =====
+# ===== HELPER FUNCTIONS =====
 
 def normalize_whitespace(text: str) -> str:
     """Normalize whitespace in text"""
@@ -456,7 +455,7 @@ def smart_append_short_sentences(sentences: List[str], min_chars: int = 100) -> 
 # ===== SYNCHRONOUS CORE ENGINE CLASS =====
 
 class CoreEngine:
-    """Synchronous core engine matching Chatter.py performance patterns"""
+    """Core engine matching Chatter.py performance patterns"""
     
     def __init__(self):
         self._temp_files = []  # Track temp files for cleanup
@@ -619,7 +618,7 @@ class CoreEngine:
         return output_files
     
     def process_text_preprocessing(self, text: str, **kwargs) -> str:
-        """Preprocess text with the same logic as Chatter.py"""
+        """Preprocess text applying all text parameters"""
         
         # 1. Sound word replacement/removal (NEW feature)
         sound_words_field = kwargs.get('sound_words_field', '')
@@ -647,7 +646,7 @@ class CoreEngine:
         return text
 
     def parse_sound_word_field(self, user_input: str) -> List[Tuple[str, str]]:
-        """Parse sound word field from user input - ported from Chatter.py"""
+        """Parse sound word field from user input"""
         lines = [l.strip() for l in user_input.replace(',', '\n').split('\n') if l.strip()]
         result = []
         for line in lines:
@@ -659,7 +658,7 @@ class CoreEngine:
         return result
 
     def smart_remove_sound_words(self, text: str, sound_words: List[Tuple[str, str]]) -> str:
-        """Smart sound word replacement - ported from Chatter.py"""
+        """Smart sound word replacement"""
         for pattern, replacement in sound_words:
             if replacement:
                 # 1. Handle possessive: "Baggins’" or "Baggins'" (optionally with s or S after apostrophe)
@@ -711,8 +710,7 @@ class CoreEngine:
                          num_candidates_per_chunk: int, max_attempts_per_candidate: int,
                          bypass_whisper_checking: bool, retry_attempt_number: int = 1) -> Tuple[int, List[str]]:
         """
-        Process one chunk of text - SYNCHRONOUS VERSION matching Chatter.py exactly
-        This is the critical method that was causing the performance issue
+        Process one chunk of text
         """
         candidates = []
         try:
@@ -735,7 +733,7 @@ class CoreEngine:
                     try:
                         logger.debug(f"Generating candidate {cand_idx+1} attempt {attempt+1} for chunk {idx}...")
                         
-                        # This is the critical call - SYNCHRONOUS like original
+                        # This is the critical call to chatterbox model
                         wav = model.generate(
                             sentence_group,
                             audio_prompt_path=audio_prompt_path_input,
@@ -745,7 +743,7 @@ class CoreEngine:
                             apply_watermark=not disable_watermark
                         )
                         
-                        # Save candidate exactly like Chatter.py
+                        # Save candidate
                         temp_dir = Path(config_manager.get("paths.temp_dir", "temp"))
                         candidate_path = temp_dir / f"gen{gen_index+1}_chunk_{idx:03d}_cand_{cand_idx+1}_try{retry_attempt_number}_seed{candidate_seed}.wav"
                         torchaudio.save(str(candidate_path), wav, model.sr)
@@ -760,6 +758,7 @@ class CoreEngine:
                             continue
                         
                         logger.debug(f"Saved candidate {cand_idx+1}, attempt {attempt+1}, duration={librosa.get_duration(filename=str(candidate_path)):.3f}s: {candidate_path}")
+                        # TO-FIX: Consider if we are losing useful information here (Chatter.py:537)
                         candidates.append(str(candidate_path))
                         break  # Success, move to next candidate
                         
@@ -767,22 +766,22 @@ class CoreEngine:
                         logger.error(f"Failed to generate candidate {cand_idx+1} attempt {attempt+1} for chunk {idx}: {e}")
                         continue
             
-            return (idx, candidates)
+            return idx, candidates
             
         except Exception as e:
             logger.error(f"Error processing chunk {idx}: {e}")
-            return (idx, [])
+            return idx, []
 
     def generate_tts(self, **kwargs) -> Dict:
         """
-        Generate TTS audio - SYNCHRONOUS VERSION for performance
+        Generate TTS audio
         Returns dictionary with output_files, seed_used, processing_time, etc.
         """
         start_time = time.time()
         
         with logger.operation_timer("tts_generation", record_metrics=True):
             try:
-                # Load model synchronously like original Chatter.py
+                # Load model
                 model = get_or_load_tts_model()
                 
                 # Extract and validate parameters
@@ -823,6 +822,7 @@ class CoreEngine:
                 
                 # Call the TTS generation logic (exclude 'text' from kwargs)
                 generation_kwargs = {k: v for k, v in kwargs.items() if k != 'text'}
+                # We generate the final wav file, including post-processing
                 wav_output_path = self._process_tts_generation_sync(processed_text, ref_audio_path, **generation_kwargs)
                 
                 # Convert to requested formats
@@ -883,8 +883,8 @@ class CoreEngine:
 
     def _process_tts_generation_sync(self, text: str, ref_audio_path: Optional[Path], **kwargs) -> Path:
         """
-        SYNCHRONOUS TTS generation with chunking, retry, and Whisper validation
-        This is the performance-critical method - matches Chatter.py patterns exactly
+        TTS generation with chunking, retry, and Whisper validation
+        This is the performance-critical method
         """
         try:
             model = get_or_load_tts_model()
@@ -909,7 +909,7 @@ class CoreEngine:
                 if f.is_file():
                     f.unlink()
 
-            # Extract parameters with defaults (matching Chatter.py)
+            # Extract parameters with defaults
             num_generations = kwargs.get('num_generations', 1)
             enable_batching = kwargs.get('enable_batching', False)
             smart_batch_short_sentences = kwargs.get('smart_batch_short_sentences', True)
@@ -995,7 +995,7 @@ class CoreEngine:
                     for group_idx, sentence_group in enumerate(sentence_groups):
                         sentence_text = ' '.join(sentence_group)
                         
-                        # Process this chunk synchronously - matching Chatter.py exactly
+                        # Process this chunk
                         chunk_idx, candidates = self.process_one_chunk(
                             model, sentence_text, group_idx, gen_index, generation_seed,
                             audio_prompt_path_str, exaggeration, temperature, cfg_weight,
@@ -1048,7 +1048,9 @@ class CoreEngine:
                 # Get selected candidates using validation
                 selected_candidates = self._validate_and_select_candidates(
                     chunk_candidate_map, sentence_groups, whisper_model, use_faster_whisper,
-                    bypass_whisper_checking, use_longest_transcript_on_fail
+                    bypass_whisper_checking, use_longest_transcript_on_fail, max_attempts_per_candidate,
+                    model, audio_prompt_path_str, exaggeration, temperature, cfg_weight,
+                    disable_watermark, num_candidates_per_chunk, enable_parallel, num_parallel_workers, gen_index
                 )
                 
                 if selected_candidates:
@@ -1070,6 +1072,10 @@ class CoreEngine:
             
             if not final_chunks:
                 raise GenerationError("No final audio chunks were created")
+
+            # TODO: Probably here we should apply the last post-processing steps (use_auto_editor and normalize_audio)
+            # For reference look at Chatter.py lines 968-1008
+            # From the return value we should only process final_chunks[0] ? Check if it is possible to return multiple chunks here
             
             # Return the first (and typically only) generation
             return Path(final_chunks[0])
@@ -1080,9 +1086,12 @@ class CoreEngine:
 
     def _validate_and_select_candidates(self, chunk_candidate_map: Dict, sentence_groups: List, 
                                       whisper_model, use_faster_whisper: bool, bypass_whisper_checking: bool,
-                                      use_longest_transcript_on_fail: bool) -> List[str]:
+                                      use_longest_transcript_on_fail: bool, max_attempts_per_candidate: int,
+                                      model, audio_prompt_path_str: Optional[str], exaggeration: float, temperature: float,
+                                      cfg_weight: float, disable_watermark: bool, num_candidates_per_chunk: int,
+                                      enable_parallel: bool, num_parallel_workers: int, gen_index: int) -> List[str]:
         """
-        Validate candidates with Whisper and select best ones (matching Chatter.py logic)
+        Validate candidates with Whisper and select best ones
         Returns list of selected candidate paths in chunk order
         """
         # Initialize validation tracking
@@ -1097,52 +1106,190 @@ class CoreEngine:
                 if candidates:
                     shortest = min(candidates, key=lambda c: c['duration'])
                     selected_candidates.append(shortest['path'])
+                    logger.info(f"[Chunk {chunk_idx}] Selected shortest candidate: {os.path.basename(shortest['path'])} (BYPASS MODE)")
             return selected_candidates
         
         # Full Whisper validation
         logger.info(f"Running Whisper validation on {sum(len(candidates) for candidates in chunk_candidate_map.values())} candidates")
+        logger.info(f"Validation criteria: score >= 0.95 threshold, model: {whisper_model.__class__.__name__}")
+        logger.info(f"Retry configuration: max_attempts_per_candidate={max_attempts_per_candidate}")
         
+        validation_start_time = time.time()
         for chunk_idx, candidates in chunk_candidate_map.items():
             sentence_group = candidates[0]['sentence_group'] if candidates else ""
+            logger.debug(f"[Chunk {chunk_idx}] Validating {len(candidates)} candidates for text: '{sentence_group[:50]}{'...' if len(sentence_group) > 50 else ''}'")
             
             for cand in candidates:
                 candidate_path = cand['path']
                 try:
                     path, score, transcribed = whisper_check_mp(candidate_path, sentence_group, whisper_model, use_faster_whisper)
-                    logger.debug(f"[Chunk {chunk_idx}] {os.path.basename(candidate_path)}: score={score:.3f}")
+                    logger.debug(f"[Chunk {chunk_idx}] {os.path.basename(candidate_path)}: score={score:.3f}, transcript='{transcribed[:30]}{'...' if len(transcribed) > 30 else ''}'")
                     
                     if score >= 0.95:
                         chunk_validations[chunk_idx].append((cand['duration'], cand['path']))
+                        logger.debug(f"[Chunk {chunk_idx}] ✅ PASSED validation: {os.path.basename(candidate_path)}")
                     else:
                         chunk_failed_candidates[chunk_idx].append((score, cand['path'], transcribed))
+                        logger.debug(f"[Chunk {chunk_idx}] ❌ FAILED validation: {os.path.basename(candidate_path)} (score={score:.3f} < 0.95)")
                         
                 except Exception as e:
                     logger.error(f"Whisper validation failed for {candidate_path}: {e}")
                     chunk_failed_candidates[chunk_idx].append((0.0, candidate_path, ""))
         
-        # Select best candidates
+        validation_time = time.time() - validation_start_time
+        logger.info(f"Initial validation completed in {validation_time:.1f}s")
+        
+        # FULL RETRY QUEUE IMPLEMENTATION
+        retry_queue = [chunk_idx for chunk_idx in chunk_candidate_map.keys() if not chunk_validations[chunk_idx]]
+        chunk_attempts = {chunk_idx: 1 for chunk_idx in chunk_candidate_map.keys()}  # Track attempts per chunk
+        
+        passed_chunks = len([idx for idx in chunk_candidate_map.keys() if chunk_validations[idx]])
+        failed_chunks = len(retry_queue)
+        logger.info(f"Initial validation summary: {passed_chunks} chunks PASSED, {failed_chunks} chunks FAILED")
+        
+        if retry_queue:
+            logger.warning(f"Failed chunks needing retry: {retry_queue}")
+        else:
+            logger.info("✅ All chunks passed initial validation - no retry needed")
+        
+        retry_attempt = 0
+        while retry_queue:
+            retry_attempt += 1
+            # Filter retry queue to only chunks that haven't exceeded max attempts
+            still_need_retry = [
+                chunk_idx for chunk_idx in retry_queue 
+                if chunk_attempts[chunk_idx] < max_attempts_per_candidate
+            ]
+            if not still_need_retry:
+                logger.warning(f"🛑 All failed chunks reached max retry attempts ({max_attempts_per_candidate})")
+                break
+            
+            logger.warning(f"🔄 RETRY ATTEMPT {retry_attempt}: Processing {len(still_need_retry)} chunks (attempt {chunk_attempts[still_need_retry[0]]+1}/{max_attempts_per_candidate})")
+            
+            # Generate new candidates for failed chunks
+            retry_candidate_map = {}
+            retry_start_time = time.time()
+            if enable_parallel and len(still_need_retry) > 1:
+                # Parallel retry processing
+                logger.info(f"🔄 Parallel retry with {num_parallel_workers} workers")
+                from concurrent.futures import ThreadPoolExecutor
+                with ThreadPoolExecutor(max_workers=num_parallel_workers) as executor:
+                    futures = []
+                    for chunk_idx in still_need_retry:
+                        sentence_group = sentence_groups[chunk_idx]
+                        # Generate new seed for retry
+                        retry_seed = random.randint(0, 999999999)
+                        logger.debug(f"🔄 [Chunk {chunk_idx}] Retry seed: {retry_seed}")
+                        
+                        future = executor.submit(
+                            self.process_one_chunk,
+                            model, sentence_group, chunk_idx, gen_index, retry_seed,
+                            audio_prompt_path_str, exaggeration, temperature, cfg_weight,
+                            disable_watermark, 1, max_attempts_per_candidate,  # Only 1 candidate for retry
+                            f"retry_gen_{gen_index}_chunk_{chunk_idx}_attempt_{chunk_attempts[chunk_idx]+1}"
+                        )
+                        futures.append((chunk_idx, future))
+                    
+                    # Collect retry results
+                    for chunk_idx, future in futures:
+                        try:
+                            result_chunk_idx, candidates = future.result()
+                            if candidates:
+                                retry_candidate_map[chunk_idx] = candidates
+                                logger.info(f"🔄 [Chunk {chunk_idx}] Generated {len(candidates)} retry candidates")
+                        except Exception as e:
+                            logger.error(f"🔄 [Chunk {chunk_idx}] Retry generation failed: {e}")
+            else:
+                # Sequential retry processing
+                logger.info(f"🔄 Sequential retry processing")
+                for chunk_idx in still_need_retry:
+                    sentence_group = sentence_groups[chunk_idx]
+                    # Generate new seed for retry
+                    retry_seed = random.randint(0, 999999999)
+                    logger.debug(f"🔄 [Chunk {chunk_idx}] Retry seed: {retry_seed}")
+                    
+                    try:
+                        result_chunk_idx, candidates = self.process_one_chunk(
+                            model, sentence_group, chunk_idx, gen_index, retry_seed,
+                            audio_prompt_path_str, exaggeration, temperature, cfg_weight,
+                            disable_watermark, 1, max_attempts_per_candidate,  # Only 1 candidate for retry
+                            f"retry_gen_{gen_index}_chunk_{chunk_idx}_attempt_{chunk_attempts[chunk_idx]+1}"
+                        )
+                        if candidates:
+                            retry_candidate_map[chunk_idx] = candidates
+                            logger.info(f"🔄 [Chunk {chunk_idx}] Generated {len(candidates)} retry candidates")
+                    except Exception as e:
+                        logger.error(f"🔄 [Chunk {chunk_idx}] Retry generation failed: {e}")
+            
+            retry_gen_time = time.time() - retry_start_time
+            logger.info(f"🔄 Retry generation completed in {retry_gen_time:.1f}s")
+            
+            # Validate retry candidates
+            retry_validation_start = time.time()
+            for chunk_idx, candidates in retry_candidate_map.items():
+                sentence_group = sentence_groups[chunk_idx]
+                logger.debug(f"🔄 [Chunk {chunk_idx}] Validating {len(candidates)} retry candidates")
+                
+                for candidate_path in candidates:
+                    try:
+                        path, score, transcribed = whisper_check_mp(candidate_path, sentence_group, whisper_model, use_faster_whisper)
+                        duration = librosa.get_duration(filename=candidate_path)
+                        logger.debug(f"🔄 [Chunk {chunk_idx}] RETRY {os.path.basename(candidate_path)}: score={score:.3f}")
+                        
+                        if score >= 0.95:
+                            chunk_validations[chunk_idx].append((duration, candidate_path))
+                            logger.info(f"🔄 [Chunk {chunk_idx}] ✅ RETRY SUCCESS: {os.path.basename(candidate_path)} (score={score:.3f})")
+                        else:
+                            chunk_failed_candidates[chunk_idx].append((score, candidate_path, transcribed))
+                            logger.debug(f"🔄 [Chunk {chunk_idx}] ❌ RETRY FAILED: {os.path.basename(candidate_path)} (score={score:.3f})")
+                            
+                    except Exception as e:
+                        logger.error(f"Whisper validation failed for retry {candidate_path}: {e}")
+                        chunk_failed_candidates[chunk_idx].append((0.0, candidate_path, ""))
+            
+            retry_validation_time = time.time() - retry_validation_start
+            logger.info(f"🔄 Retry validation completed in {retry_validation_time:.1f}s")
+            
+            # Update retry queue and attempt counts
+            retry_queue = [chunk_idx for chunk_idx in still_need_retry if not chunk_validations[chunk_idx]]
+            for chunk_idx in still_need_retry:
+                chunk_attempts[chunk_idx] += 1
+            
+            if retry_queue:
+                logger.warning(f"🔄 Still need retry: {retry_queue} (attempts: {[chunk_attempts[idx] for idx in retry_queue]})")
+            else:
+                logger.info(f"🔄 ✅ All chunks now have valid candidates after retry attempt {retry_attempt}")
+        
+        total_validation_time = time.time() - validation_start_time
+        logger.info(f"🏁 Complete validation finished in {total_validation_time:.1f}s (including {retry_attempt} retry attempts)")
+        
+        # Final candidate selection
         selected_candidates = []
+        logger.info("🎯 Final candidate selection:")
         for chunk_idx in sorted(chunk_candidate_map.keys()):
             if chunk_validations[chunk_idx]:
                 # Best passed candidate (shortest duration)
                 best = min(chunk_validations[chunk_idx], key=lambda x: x[0])
                 selected_candidates.append(best[1])
-                logger.debug(f"[Chunk {chunk_idx}] Selected validated candidate: {os.path.basename(best[1])}")
+                logger.info(f"[Chunk {chunk_idx}] ✅ Selected validated candidate: {os.path.basename(best[1])} (duration={best[0]:.2f}s, PASSED Whisper)")
             elif chunk_failed_candidates[chunk_idx]:
                 # Fallback strategies
                 failed = chunk_failed_candidates[chunk_idx]
                 if use_longest_transcript_on_fail:
                     # Select candidate with longest transcript
                     best = max(failed, key=lambda x: len(x[2]))
+                    strategy = "longest transcript"
                 else:
                     # Select candidate with highest score
                     best = max(failed, key=lambda x: x[0])
+                    strategy = "highest score"
                 selected_candidates.append(best[1])
-                logger.warning(f"[Chunk {chunk_idx}] No validated candidates, using fallback: {os.path.basename(best[1])}")
+                logger.warning(f"[Chunk {chunk_idx}] ⚠️ FALLBACK ({strategy}): {os.path.basename(best[1])} (score={best[0]:.3f}, transcript='{best[2][:30]}{'...' if len(best[2]) > 30 else ''}')")
             else:
-                logger.error(f"[Chunk {chunk_idx}] No candidates available")
+                logger.error(f"[Chunk {chunk_idx}] ❌ No candidates available")
                 return []
         
+        logger.info(f"🏁 Final selection: {len(selected_candidates)} chunks ready for assembly")
         return selected_candidates
 
     def _combine_audio_chunks(self, chunk_paths: List[str], gen_index: int, generation_params: Dict[str, Any] = None) -> str:
@@ -1350,7 +1497,7 @@ class CoreEngine:
         
         with logger.operation_timer("vc_generation", record_metrics=True):
             try:
-                # Load model synchronously like original Chatter.py
+                # Load model
                 vc_model = get_or_load_vc_model()
                 
                 # Extract and validate parameters
@@ -1424,7 +1571,7 @@ class CoreEngine:
     
     def _process_vc_generation_sync(self, input_path: Path, target_path: Path, **kwargs) -> Path:
         """
-        SYNCHRONOUS VC generation matching Chatter.py patterns exactly
+        VC generation
         """
         try:
             import soundfile as sf
@@ -1444,7 +1591,7 @@ class CoreEngine:
             temp_dir = Path(config_manager.get("paths.temp_dir", "temp"))
             temp_dir.mkdir(exist_ok=True)
             
-            # Load and prepare input audio (matching Chatter.py exactly)
+            # Load and prepare input audio
             wav, sr = sf.read(str(input_path))
             if wav.ndim > 1:
                 wav = wav.mean(axis=1)
@@ -1465,7 +1612,7 @@ class CoreEngine:
             output_path = output_dir / filename
             
             if total_sec <= chunk_sec:
-                # Short audio - process directly (matching Chatter.py)
+                # Short audio - process directly
                 logger.info("Processing short audio directly")
                 wav_out = vc_model.generate(
                     str(input_path),
@@ -1478,7 +1625,7 @@ class CoreEngine:
                 sf.write(str(output_path), out_wav, model_sr)
                 
             else:
-                # Long audio - implement chunking with crossfading (matching Chatter.py)
+                # Long audio - implement chunking with crossfading
                 logger.info(f"Processing long audio with chunking: {chunk_sec}s chunks, {overlap_sec}s overlap")
                 chunk_samples = int(chunk_sec * model_sr)
                 overlap_samples = int(overlap_sec * model_sr)
@@ -1514,7 +1661,7 @@ class CoreEngine:
                 if not out_chunks:
                     raise GenerationError("No chunks were processed successfully")
                 
-                # Combine chunks with crossfading (matching Chatter.py exactly)
+                # Combine chunks with crossfading
                 logger.info("Combining chunks with crossfading...")
                 result = out_chunks[0]
                 
