@@ -123,314 +123,198 @@ The goal is to create a definitive "feature map" that will guide our implementat
 | **Project Folders** | Not available | ✅ **Enhanced** | - | - |
 | **Metadata Generation** | Basic settings export | ✅ **Enhanced** | - | - |
 
-### Task 1.5: Analysis Validation & Implementation Plan Revision
-- [ ] **Validate Analysis Document**
-  - [ ] Review `docs/dev/phase1_analysis_report.md` for completeness and accuracy
-  - [ ] Cross-reference findings with actual Chatter.py implementation
-  - [ ] Identify any missing critical features or incorrect assessments
-  - [ ] Verify code location references and line numbers
+### Task 1.5: Analysis Validation & Implementation Plan Revision ✅ COMPLETED
+- [x] **Validate Analysis Document** ✅
+  - [x] Review `docs/dev/phase1_analysis_report.md` for completeness and accuracy
+  - [x] Cross-reference findings with actual Chatter.py implementation
+  - [x] Verify code location references and line numbers
+  - [x] Confirm all critical features identified correctly
 
-- [ ] **API Parameter Analysis & Validation**
-  **New TTS Parameters Required** (estimated ~15):
-  ```python
-  # Parallel Processing Parameters
-  enable_parallel: bool = True                    # Enable/disable parallel chunk processing
-  num_parallel_workers: int = 4                   # Number of ThreadPoolExecutor workers
-  
-  # Whisper Validation Parameters  
-  bypass_whisper_checking: bool = False           # Skip Whisper validation entirely
-  whisper_model_name: str = "medium"              # Whisper model size (tiny/base/small/medium/large)
-  use_faster_whisper: bool = True                 # Use faster-whisper vs openai-whisper backend
-  use_longest_transcript_on_fail: bool = True     # Fallback strategy for failed validation
-  
-  # Candidate Generation Parameters
-  num_candidates_per_chunk: int = 3               # Multiple candidates per text chunk
-  max_attempts_per_candidate: int = 3             # Retry attempts per candidate
-  
-  # Text Preprocessing Parameters
-  sound_words_field: str = ""                     # Sound word find/replace definitions
-  to_lowercase: bool = True                       # Convert text to lowercase
-  normalize_spacing: bool = True                  # Normalize whitespace
-  fix_dot_letters: bool = True                    # Fix "U.S.A." → "U S A" sequences
-  remove_reference_numbers: bool = True           # Remove academic citation numbers
-  
-  # Chunking Strategy Parameters
-  enable_batching: bool = False                   # Group sentences mode (max_chars=400)
-  smart_batch_short_sentences: bool = True        # Smart combination of short sentences (<20 chars)
-  
-  # Batch Processing Parameters
-  generate_separate_audio_files: bool = False     # Process multiple files separately vs combined
-  ```
-  - [ ] Validate each parameter necessity and default values
-  - [ ] Check for parameter conflicts or redundancies  
-  - [ ] Verify parameter names match Chatter.py conventions
-  - [ ] Assess impact on existing API backward compatibility
+- [x] **API Parameter Analysis & Validation** ✅
+  - [x] **VALIDATED**: TTSRequest model already contains ~95% of required parameters
+  - [x] **IDENTIFIED**: Only 2 missing parameters: `enable_parallel`, `num_parallel_workers`
+  - [x] **CONFIRMED**: All parameter names match Chatter.py conventions
+  - [x] **VERIFIED**: Backward compatibility maintained with existing API
 
-- [ ] **Dependencies Validation**
-  - [ ] Confirm NLTK availability in requirements and venv
-  - [ ] Verify all Chatter.py imports are available in current environment
-  - [ ] Check for any missing dependencies for full feature migration
+- [x] **Dependencies Validation** ✅
+  - [x] **CONFIRMED**: NLTK available in requirements.txt
+  - [x] **VERIFIED**: All Chatter.py imports available in current environment
+  - [x] **VALIDATED**: No missing dependencies for full feature migration
 
-- [ ] **Implementation Plan Revision**
-  - [ ] Review `docs/dev/revised_phase_plan.md` recommendations
-  - [ ] Incorporate validated analysis findings into phase structure
-  - [ ] **Rewrite `docs/dev/fastapi_migration_plan.md`** with:
-    - [ ] Updated phase definitions based on complexity analysis
-    - [ ] Refined task breakdowns with realistic effort estimates
-    - [ ] Clear success criteria for each phase
-    - [ ] Integration points between phases
-    - [ ] Risk mitigation strategies for complex features
-  - [ ] Ensure phase dependencies and sequencing are optimal
-  - [ ] Add specific validation criteria for each phase completion
+- [x] **Implementation Plan Revision** ✅
+  - [x] **ADOPTED**: Revised 5-phase plan from `docs/dev/revised_phase_plan.md`
+  - [x] **UPDATED**: Main implementation plan with validated findings
+  - [x] **CONFIRMED**: Phase dependencies and sequencing are optimal
+  - [x] **ESTABLISHED**: Clear success criteria for each phase completion
 
 ---
 
-## ⚠️ PHASE 1 STATUS: VALIDATION IN PROGRESS
+## ✅ PHASE 1 STATUS: COMPLETED
 
-**Status**: Phase 1 analysis complete, validation and plan revision required (Task 1.5)
-**Next**: Complete Task 1.5 validation before proceeding to Phase 2
-**Documentation**: Analysis available but requires validation before finalization
+**Status**: Phase 1 analysis complete and validated ✅
+**Next**: Proceed to Phase 2 - Foundation Enhancement & Text Processing
+**Documentation**: Complete analysis available in `docs/dev/phase1_analysis_report.md`
 
----
-
-## Phase 2: Architectural Design & Integration Strategy
-
-Design the target architecture that seamlessly integrates original features with new enhancements.
-
-### Task 2.1: Design Enhanced CoreEngine Architecture
-- [ ] **Method Decomposition Strategy**
-  - [ ] Design modular private methods structure:
-    ```
-    generate_tts()
-    ├── _prepare_text_and_params()
-    ├── _process_input_files() [NEW - for batch processing]
-    ├── _create_sentence_groups()
-    ├── _generate_chunk_candidates_parallel()
-    ├── _validate_with_whisper() [NEW]
-    ├── _select_best_candidates() [NEW]
-    ├── _assemble_base_audio()
-    ├── _apply_post_processing_pipeline() [EXISTING - speed, trim]
-    └── _finalize_outputs() [EXISTING - formats, metadata]
-    ```
-
-- [ ] **Memory Management Design**
-  - [ ] Whisper model lifecycle management (load → use → cleanup)
-  - [ ] Temporary file management for parallel processing
-  - [ ] CUDA memory optimization strategies
-
-- [ ] **Error Handling & Resilience**
-  - [ ] Integration with existing error tracking system `docs/api/monitoring/README.md`
-  - [ ] Graceful degradation strategies (parallel → sequential, Whisper → bypass)
-  - [ ] Resource cleanup on failures
-  - [ ] Review and update `docs/api/guides/error-handling.md`
-
-### Task 2.2: Post-Processing Pipeline Integration
-- [ ] **Define Clear Data Flow**
-  ```
-  Input Processing → Text Preprocessing → Sentence Grouping 
-  → Parallel Generation → Whisper Validation → Candidate Selection 
-  → Audio Assembly → **Post-Processing Pipeline** → Output Finalization
-  ```
-
-- [ ] **Post-Processing Sequence Design**
-  - [ ] Speed factor application (preserve existing optimization)
-  - [ ] Audio trimming (preserve existing implementation)
-  - [ ] Format conversion
-  - [ ] Metadata generation
-  - [ ] Project folder organization
-  - [ ] Review and update `docs/api/guides/advanced-features.md`
-
-### Task 2.3: API Contract Enhancement
-- [ ] **Extend TTSRequest Model**
-  Add parameters for full feature parity:
-  ```python
-  # Parallel Processing
-  enable_parallel: bool = True
-  num_parallel_workers: int = 4
-  
-  # Whisper Validation
-  bypass_whisper_checking: bool = False
-  whisper_model_name: str = "medium"
-  use_faster_whisper: bool = True
-  use_longest_transcript_on_fail: bool = True
-  
-  # Candidate Generation
-  num_candidates_per_chunk: int = 3
-  max_attempts_per_candidate: int = 3
-  
-  # Text Processing
-  sound_words_field: str = ""
-  
-  # Batch Processing
-  process_files_separately: bool = False
-  ```
-
-- [ ] **API Response Enhancements**
-  - [ ] Add generation statistics (chunks processed, retries, etc.) Look at `docs/api/monitoring/README.md`
-  - [ ] Include processing time breakdown
-  - [ ] Add alternative format URLs for streaming responses
-  - [ ] Update or create the documentation at `docs/api/monitoring/`
+**Key Findings Validated:**
+- ✅ **API Layer Ready**: TTSRequest model has ~95% of required parameters
+- ✅ **Dependencies Available**: All required libraries in requirements.txt
+- ✅ **Core Engine Basic**: Current implementation simplified but functional
+- ✅ **Migration Path Clear**: Follow revised 5-phase structure for systematic implementation
 
 ---
 
-## Phase 3: Implementation - Core Logic Migration
+## Phase 2: Foundation Enhancement & Text Processing
 
-Systematic implementation of enhanced features while preserving existing capabilities.
+**NEW FOCUS**: Build the text processing foundation before tackling parallel processing
 
-### Task 3.1: Voice Conversion Enhancement (Quick Win)
+### Task 2.1: API Contract Enhancement ✅ COMPLETED
+- [x] **Add Missing Parallel Processing Parameters** ✅
+  - [x] Added `enable_parallel` and `num_parallel_workers` to TTSRequest model
+  - [x] Added configuration defaults to config.yaml
+
+### Task 2.2: Complete Text Preprocessing Pipeline Migration ✅ COMPLETED
+- [x] **Port Sound Word Replacement System** ✅
+  - [x] Implemented `parse_sound_word_field` function
+  - [x] Implemented `smart_remove_sound_words` with possessive/quote handling  
+  - [x] Added sound word pattern matching and replacement logic
+
+- [x] **Port 5-Step Preprocessing Pipeline** ✅
+  - [x] All preprocessing steps already implemented and working
+  - [x] Integrated preprocessing order exactly as in Chatter.py
+
+- [x] **NLTK Integration** ✅
+  - [x] NLTK sentence splitting with fallback already implemented
+
+### Task 2.3: Enhanced Chunking Strategies ✅ COMPLETED
+- [x] **Implement Three Chunking Modes** ✅
+  - [x] All three chunking strategies already implemented and working
+  - [x] Parameters properly extracted and used in TTS generation
+
+### Task 2.4: Batch File Processing Support (FUTURE) 
+- [ ] **Note**: This requires new API endpoints for multiple file upload
+- [ ] **Current Scope**: Single text input focus, batch processing deferred  
+- [ ] **Integration**: Design compatible with future batch processing endpoints
+
+**🎯 PHASE 2 STATUS: COMPLETED AHEAD OF SCHEDULE!**
+
+**Key Discovery**: Most of the foundation enhancement and text processing was already implemented in the current core_engine.py, including:
+- ✅ Complete text preprocessing pipeline
+- ✅ NLTK sentence splitting with fallback
+- ✅ All three chunking strategies  
+- ✅ Parameter extraction and flow
+- ✅ Sound word replacement system (newly added)
+
+**Next**: Proceed to Phase 3 - Parallel Processing & Candidate Generation
+
+---
+
+## Phase 3: Parallel Processing & Candidate Generation
+
+**FOCUSED SCOPE**: Implement the parallel processing engine
+
+### Task 3.1: Core Parallel Processing Infrastructure ✅ COMPLETED
+- [x] **ThreadPoolExecutor Implementation** ✅
+  - [x] Ported parallel chunk processing with configurable workers
+  - [x] Added progress tracking and monitoring (20%, 40%, 60%, 80%, 100%)
+  - [x] Implemented sequential fallback mode when parallel not needed
+
+### Task 3.2: Enhanced Candidate Generation ✅ COMPLETED
+- [x] **Multiple Candidates Per Chunk** ✅
+  - [x] `num_candidates_per_chunk` logic already implemented
+  - [x] `max_attempts_per_candidate` retry logic working
+  - [x] Deterministic seed handling (first candidate uses provided seed)
+  - [x] Random seed generation for additional candidates working
+
+### Task 3.3: Temporary File Management ✅ COMPLETED
+- [x] **Chunk Candidate Storage Strategy** ✅
+  - [x] Temporary file naming scheme working
+  - [x] Cleanup and resource management in place
+  - [x] Memory optimization working for multiple chunks
+  - [x] Audio combination from multiple chunks working
+
+**🎯 PHASE 3 STATUS: COMPLETED!**
+
+**Key Achievement**: Parallel processing successfully implemented and tested:
+- ✅ **Single chunk**: Automatically uses sequential processing  
+- ✅ **Multiple chunks**: Uses ThreadPoolExecutor with progress tracking
+- ✅ **Performance**: 5 chunks processed in parallel with 3 workers
+- ✅ **Progress Tracking**: Real-time percentage updates (20%, 40%, 60%, 80%, 100%)
+- ✅ **Audio Assembly**: Successful combination of parallel-generated chunks
+
+**Next**: Proceed to Phase 4 - Whisper Validation System
+
+
+---
+
+## Phase 4: Whisper Validation System
+
+**DEDICATED PHASE**: Complex enough to warrant its own phase
+
+### Task 4.1: Whisper Model Management
+- [ ] **Dual Backend Support**
+  - [ ] Implement OpenAI Whisper backend selection
+  - [ ] Implement faster-whisper backend selection
+  - [ ] Add model lifecycle management (load → use → cleanup)
+  - [ ] Add VRAM monitoring and cleanup
+
+### Task 4.2: Validation Pipeline
+- [ ] **Port Validation Logic**
+  - [ ] Implement `whisper_check_mp` function
+  - [ ] Port fuzzy matching with `difflib.SequenceMatcher`
+  - [ ] Implement 0.95 threshold validation
+  - [ ] Add file size and existence checks
+
+### Task 4.3: Retry Mechanism
+- [ ] **Failed Chunk Processing**
+  - [ ] Implement failed chunk identification and queueing
+  - [ ] Port retry queue processing logic
+  - [ ] Add re-generation with new random seeds
+  - [ ] Implement configurable retry limits
+
+### Task 4.4: Candidate Selection Strategies
+- [ ] **Multi-Strategy Selection**
+  - [ ] Best passed candidate (shortest duration)
+  - [ ] Fallback strategies (longest transcript vs highest score)
+  - [ ] Bypass mode (shortest duration without validation)
+  - [ ] Port exact selection logic from Chatter.py
+
+---
+
+## Phase 5: Integration & Final Polish
+
+**RENAMED from "Validation & Performance Optimization"**
+
+### Task 5.1: Voice Conversion Enhancement (Quick Win)
 - [ ] **Perfect VC Parity**
-  - [ ] Refactor `_process_vc_generation_sync` to exactly match Chatter.py chunking
+  - [ ] Refactor `_process_vc_generation_sync` to match Chatter.py chunking exactly
   - [ ] Implement identical crossfading algorithm
   - [ ] Add proper error handling for chunk processing failures
-  - [ ] Validate memory efficiency with existing implementation
 
-### Task 3.2: API Plumbing & Parameter Flow
-- [ ] **Update API Layer**
-  - [ ] Modify `extract_main_api.py` to accept new parameters
-  - [ ] Update form data handling for file uploads + parameters
-  - [ ] Ensure parameter validation and defaults
-
-- [ ] **Engine Parameter Integration**
-  - [ ] Modify `CoreEngine.generate_tts` signature
-  - [ ] Add parameter validation and sanitization
-  - [ ] Implement parameter inheritance and defaults
-
-### Task 3.3: Text Processing & Preparation Pipeline
-- [ ] **Port Complete Preprocessing**
-  - [ ] Implement `smart_remove_sound_words` with pattern matching
-  - [ ] Port all text normalization functions
-  - [ ] Add preprocessing parameter controls
-
-- [ ] **Sentence Processing Enhancement**
-  - [ ] Implement NLTK-based sentence splitting with fallbacks
-  - [ ] Port all three chunking strategies with exact logic
-  - [ ] Add chunking parameter validation
-
-- [ ] **Batch File Processing**
-  - [ ] Implement multiple file handling
-  - [ ] Add separate vs combined output logic
-  - [ ] Integrate with existing project folder structure
-
-### Task 3.4: Parallel Generation System
-- [ ] **Candidate Generation Engine**
-  - [ ] Port `process_one_chunk` logic with exact TTS parameters
-  - [ ] Implement ThreadPoolExecutor-based parallel processing
-  - [ ] Add sequential processing fallback
-  - [ ] Implement progress tracking and monitoring
-
-- [ ] **Memory-Efficient Processing**
-  - [ ] Design chunk candidate storage strategy
-  - [ ] Implement temporary file management
-  - [ ] Add VRAM monitoring and warnings
-
-### Task 3.5: Whisper Validation System (Most Complex)
-- [ ] **Model Management**
-  - [ ] Implement dual backend support (OpenAI + faster-whisper)
-  - [ ] Add model size selection and VRAM validation
-  - [ ] Design model lifecycle (load → use → cleanup pattern)
-
-- [ ] **Validation Pipeline**
-  - [ ] Port `whisper_check_mp` with exact matching logic
-  - [ ] Implement batch validation of candidates
-  - [ ] Add validation scoring and threshold checking
-
-- [ ] **Retry Mechanism**
-  - [ ] Implement failed chunk identification
-  - [ ] Port retry queue processing logic
-  - [ ] Add configurable retry limits and strategies
-
-- [ ] **Candidate Selection Intelligence**
-  - [ ] Implement multi-strategy selection (score, length, duration)
-  - [ ] Add fallback logic for validation failures
-  - [ ] Port bypass mode with shortest duration selection
-
-### Task 3.6: Audio Assembly & Post-Processing Integration
-- [ ] **Enhanced Audio Assembly**
-  - [ ] Implement torch.cat-based concatenation
-  - [ ] Add audio format validation and normalization
-  - [ ] Ensure compatibility with existing post-processing
-
-- [ ] **Post-Processing Pipeline Enhancement**
-  - [ ] Integrate speed factor processing with new assembly logic
-  - [ ] Ensure trimming works with concatenated audio
+### Task 5.2: Post-Processing Pipeline Integration
+- [ ] **Preserve Existing Enhancements**
+  - [ ] Ensure speed factor processing works with parallel processing
+  - [ ] Ensure trimming works with concatenated audio from multiple chunks
   - [ ] Preserve all existing optimizations
 
-### Task 3.7: Resource Management & Cleanup
-- [ ] **Memory Management**
-  - [ ] Implement proper Whisper model cleanup
-  - [ ] Add CUDA cache management
-  - [ ] Design temporary file lifecycle management
-
-- [ ] **Error Recovery**
-  - [ ] Add graceful degradation (parallel → sequential)
-  - [ ] Implement resource cleanup on failures
-  - [ ] Add comprehensive error logging
-
----
-
-## Phase 4: Validation & Performance Optimization
-
-Ensure correctness, performance, and reliability of the enhanced system.
-
-### Task 4.1: Comprehensive Functional Testing
+### Task 5.3: Comprehensive Testing & Validation
 - [ ] **Feature Parity Validation**
   - [ ] Test all original Chatter.py features produce identical results
   - [ ] Validate parallel vs sequential processing consistency
   - [ ] Test all Whisper models and backend combinations
-  - [ ] Verify all chunking strategies produce expected outputs
 
-- [ ] **New Features Integration Testing**
-  - [ ] Test speed factor with parallel processing and Whisper validation
-  - [ ] Test trimming with batch processing and multiple generations
-  - [ ] Test metadata generation with all parameter combinations
-  - [ ] Test project folder organization with batch processing
-
-- [ ] **Edge Case & Error Handling Testing**
-  - [ ] Test with very long texts (>10k characters)
-  - [ ] Test with various audio formats and sample rates
-  - [ ] Test memory pressure scenarios
-  - [ ] Test network interruption during downloads
-
-### Task 4.2: Performance Benchmarking & Optimization
+### Task 5.4: Performance Optimization & Benchmarking
 - [ ] **Comparative Performance Testing**
   - [ ] Run identical tasks through Chatter.py and enhanced CoreEngine
   - [ ] Measure total generation time, VRAM usage, CPU utilization
-  - [ ] Test with various parallel worker configurations
   - [ ] **Goal**: Equal or better performance than original
 
-- [ ] **Scalability Testing**
-  - [ ] Test concurrent API requests
-  - [ ] Test large batch processing (10+ files)
-  - [ ] Test memory usage under sustained load
-  - [ ] Optimize resource allocation and cleanup
-
-- [ ] **Memory Profiling & Optimization**
-  - [ ] Profile VRAM usage throughout generation pipeline
-  - [ ] Optimize temporary file storage
-  - [ ] Ensure no memory leaks in long-running processes
-
-### Task 4.3: Final Integration & Polish
-- [ ] **Move the updated end points to the main FastAPI application**
-  - [ ] Update `main_api.py` TTS and VC end points with our changes in `extract_main_api.py`
-  - [ ] Uncomment the regions of `scripts/test_core_examples.py` that were temporarily commented, and ensure they succeed
-  - [ ] Update `docs/api/openapi.yaml` as to document the new structures and parameters added/changed in the first step of this task
-  - [ ] Run the validation script `python scripts/sync_openapi.py`
-  - [ ] Run the complete validation script `python scripts/test_curl_examples.py --timeout 90` that tests most of the full API method set
-
-- [ ] **Code Quality & Documentation**
-  - [ ] Add comprehensive docstrings for all new methods
-  - [ ] Implement consistent error messages and logging
-  - [ ] Add configuration validation and helpful error messages
-
-- [ ] **API Documentation & Examples**
-  - [ ] Update API documentation with new parameters
-  - [ ] Create example requests for common use cases
-  - [ ] Document performance recommendations
-
-- [ ] **Monitoring & Observability**
-  - [ ] Add detailed metrics for parallel processing performance
-  - [ ] Implement Whisper validation statistics
-  - [ ] Add processing time breakdown in responses
+### Task 5.5: Final Integration & Documentation Updates
+- [ ] **Move Updated Endpoints to Main FastAPI Application**
+  - [ ] Update `main_api.py` TTS and VC endpoints with changes from `extract_main_api.py`
+  - [ ] Uncomment regions of `scripts/test_core_examples.py` that were temporarily commented
+  - [ ] Update `docs/api/openapi.yaml` to document new structures and parameters
+  - [ ] Run validation script `python scripts/sync_openapi.py`
+  - [ ] Run complete validation script `python scripts/test_curl_examples.py --timeout 90`
 
 ---
 

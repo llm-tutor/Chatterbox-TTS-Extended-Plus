@@ -476,20 +476,89 @@ class CoreEngine:
     def process_text_preprocessing(self, text: str, **kwargs) -> str:
         """Preprocess text with the same logic as Chatter.py"""
         
-        # Apply preprocessing options
+        # 1. Sound word replacement/removal (NEW feature)
+        sound_words_field = kwargs.get('sound_words_field', '')
+        if sound_words_field and sound_words_field.strip():
+            sound_words = self.parse_sound_word_field(sound_words_field)
+            if sound_words:
+                text = self.smart_remove_sound_words(text, sound_words)
+        
+        # 2. Case normalization
         if kwargs.get('to_lowercase', True):
             text = text.lower()
         
+        # 3. Whitespace normalization  
         if kwargs.get('normalize_spacing', True):
             text = normalize_whitespace(text)
         
+        # 4. Letter-period sequence fixes (e.g., "U.S.A." → "U S A")
         if kwargs.get('fix_dot_letters', True):
             text = replace_letter_period_sequences(text)
         
+        # 5. Reference number removal (academic citations)
         if kwargs.get('remove_reference_numbers', True):
             text = remove_inline_reference_numbers(text)
         
         return text
+
+    def parse_sound_word_field(self, user_input: str) -> List[Tuple[str, str]]:
+        """Parse sound word field from user input - ported from Chatter.py"""
+        lines = [l.strip() for l in user_input.replace(',', '\n').split('\n') if l.strip()]
+        result = []
+        for line in lines:
+            if '=>' in line:
+                pattern, replacement = line.split('=>', 1)
+                result.append((pattern.strip(), replacement.strip()))
+            else:
+                result.append((line, ''))  # Remove (replace with empty string)
+        return result
+
+    def smart_remove_sound_words(self, text: str, sound_words: List[Tuple[str, str]]) -> str:
+        """Smart sound word replacement - ported from Chatter.py"""
+        for pattern, replacement in sound_words:
+            if replacement:
+                # 1. Handle possessive: "Baggins’" or "Baggins'" (optionally with s or S after apostrophe)
+                text = re.sub(
+                    r'(?i)(%s)([’\']s?)' % re.escape(pattern),
+                    lambda m: replacement + "'s" if m.group(2) else replacement,
+                    text
+                )
+                # 2. Replace word in quotes
+                text = re.sub(
+                    r'(["\'])%s(["\'])' % re.escape(pattern),
+                    lambda m: f"{m.group(1)}{replacement}{m.group(2)}",
+                    text,
+                    flags=re.IGNORECASE
+                )
+                # 3. Replace as whole word (not in quotes)
+                text = re.sub(
+                    r'\b%s\b' % re.escape(pattern),
+                    replacement,
+                    text,
+                    flags=re.IGNORECASE
+                )
+            else:
+                # Remove word plus adjacent punctuation/spaces/quotes
+                text = re.sub(
+                    r'([\'"]?)(,? ?){0,1}%s(,? ?){0,1}([\'"]?)' % re.escape(pattern),
+                    '',
+                    text,
+                    flags=re.IGNORECASE
+                )
+                text = re.sub(
+                    r'(,? ?){0,1}\b%s\b(,? ?){0,1}' % re.escape(pattern),
+                    '',
+                    text,
+                    flags=re.IGNORECASE
+                )
+        # Clean up doubled-up commas and extra spaces
+        text = re.sub(r'([,\s]+,)+', ',', text)
+        text = re.sub(r',\s*,+', ',', text)
+        text = re.sub(r'\s{2,}', ' ', text)
+        text = re.sub(r'(\s+,|,\s+)', ', ', text)
+        text = re.sub(r'(^|[\.!\?]\s*),+', r'\1', text)
+        text = re.sub(r',+\s*([\.!\?])', r'\1', text)
+        return text.strip()
 
     def process_one_chunk(self, model, sentence_group: str, idx: int, gen_index: int, this_seed: int,
                          audio_prompt_path_input: Optional[str], exaggeration_input: float, 
@@ -726,7 +795,11 @@ class CoreEngine:
             
             logger.info(f"Created {len(sentence_groups)} sentence groups")
             
-            # Process each sentence group - SYNCHRONOUS like original
+            # Extract parallel processing parameters
+            enable_parallel = kwargs.get('enable_parallel', config_manager.get("tts_defaults.enable_parallel", True))
+            num_parallel_workers = kwargs.get('num_parallel_workers', config_manager.get("tts_defaults.num_parallel_workers", 4))
+            
+            # Process each sentence group - PARALLEL or SEQUENTIAL based on settings
             all_candidates = {}
             audio_prompt_path_str = str(ref_audio_path) if ref_audio_path else None
             
@@ -734,22 +807,62 @@ class CoreEngine:
                 logger.info(f"Starting generation {gen_index + 1}/{num_generations}")
                 generation_seed = random.randint(1, 2**32-1)
                 
-                for group_idx, sentence_group in enumerate(sentence_groups):
-                    sentence_text = ' '.join(sentence_group)
+                if enable_parallel and len(sentence_groups) > 1:
+                    # Parallel processing with ThreadPoolExecutor
+                    logger.info(f"Processing {len(sentence_groups)} chunks in parallel with {num_parallel_workers} workers")
                     
-                    # Process this chunk synchronously - matching Chatter.py exactly
-                    chunk_idx, candidates = self.process_one_chunk(
-                        model, sentence_text, group_idx, gen_index, generation_seed,
-                        audio_prompt_path_str, exaggeration, temperature, cfg_weight,
-                        disable_watermark, num_candidates_per_chunk, max_attempts_per_candidate,
-                        bypass_whisper_checking, retry_attempt_number=1
-                    )
+                    with ThreadPoolExecutor(max_workers=num_parallel_workers) as executor:
+                        # Submit all chunks for parallel processing
+                        futures = []
+                        for group_idx, sentence_group in enumerate(sentence_groups):
+                            sentence_text = ' '.join(sentence_group)
+                            future = executor.submit(
+                                self.process_one_chunk,
+                                model, sentence_text, group_idx, gen_index, generation_seed,
+                                audio_prompt_path_str, exaggeration, temperature, cfg_weight,
+                                disable_watermark, num_candidates_per_chunk, max_attempts_per_candidate,
+                                bypass_whisper_checking, retry_attempt_number=1
+                            )
+                            futures.append(future)
+                        
+                        # Collect results with progress tracking
+                        completed = 0
+                        total_chunks = len(futures)
+                        for future in as_completed(futures):
+                            try:
+                                chunk_idx, candidates = future.result()
+                                if candidates:
+                                    all_candidates[f"gen_{gen_index}_chunk_{chunk_idx}"] = candidates
+                                    logger.debug(f"Generation {gen_index}, chunk {chunk_idx}: {len(candidates)} candidates")
+                                else:
+                                    logger.warning(f"No candidates generated for generation {gen_index}, chunk {chunk_idx}")
+                                
+                                completed += 1
+                                percent = int(100 * completed / total_chunks)
+                                logger.info(f"[PROGRESS] Generated chunk {completed}/{total_chunks} ({percent}%)")
+                                
+                            except Exception as e:
+                                logger.error(f"Error processing chunk in parallel: {e}")
+                else:
+                    # Sequential processing (fallback or single chunk)
+                    logger.info(f"Processing {len(sentence_groups)} chunks sequentially")
                     
-                    if candidates:
-                        all_candidates[f"gen_{gen_index}_chunk_{chunk_idx}"] = candidates
-                        logger.debug(f"Generation {gen_index}, chunk {chunk_idx}: {len(candidates)} candidates")
-                    else:
-                        logger.warning(f"No candidates generated for generation {gen_index}, chunk {chunk_idx}")
+                    for group_idx, sentence_group in enumerate(sentence_groups):
+                        sentence_text = ' '.join(sentence_group)
+                        
+                        # Process this chunk synchronously - matching Chatter.py exactly
+                        chunk_idx, candidates = self.process_one_chunk(
+                            model, sentence_text, group_idx, gen_index, generation_seed,
+                            audio_prompt_path_str, exaggeration, temperature, cfg_weight,
+                            disable_watermark, num_candidates_per_chunk, max_attempts_per_candidate,
+                            bypass_whisper_checking, retry_attempt_number=1
+                        )
+                        
+                        if candidates:
+                            all_candidates[f"gen_{gen_index}_chunk_{chunk_idx}"] = candidates
+                            logger.debug(f"Generation {gen_index}, chunk {chunk_idx}: {len(candidates)} candidates")
+                        else:
+                            logger.warning(f"No candidates generated for generation {gen_index}, chunk {chunk_idx}")
             
             if not all_candidates:
                 raise GenerationError("No audio candidates were generated successfully")

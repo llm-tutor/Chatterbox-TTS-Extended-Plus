@@ -62,6 +62,8 @@ class TTSRequest(BaseModel):
     normalize_tp: float = Field(-2.0, description="True peak level")
     normalize_lra: float = Field(7.0, description="Loudness range")
     sound_words_field: str = Field("", description="Sound words field")
+    enable_parallel: bool = Field(True, description="Enable parallel chunk processing")
+    num_parallel_workers: int = Field(4, ge=1, le=16, description="Number of parallel workers")
     speed_factor: float = Field(1.0, ge=0.5, le=2.0, description="Speed adjustment factor (0.5x to 2.0x)")
     speed_factor_library: Optional[str] = Field(
         "auto", 

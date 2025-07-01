@@ -47,6 +47,8 @@ tts_defaults:
   normalize_spacing: true
   fix_dot_letters: true
   remove_reference_numbers: true
+  enable_parallel: true
+  num_parallel_workers: 4
   use_auto_editor: false
   ae_threshold: 0.06
   ae_margin: 0.2
