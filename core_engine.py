@@ -52,6 +52,7 @@ logger = get_logger(__name__)
 _tts_model: Optional[ChatterboxTTS] = None
 _vc_model: Optional[ChatterboxVC] = None
 _whisper_model: Optional[Union[whisper.Whisper, FasterWhisperModel]] = None
+_whisper_model_params: Optional[dict] = None  # Track current Whisper model parameters
 _device: Optional[str] = None
 
 def _get_device() -> str:
@@ -211,36 +212,58 @@ def load_whisper_backend(model_name: str, use_faster_whisper: bool) -> Union[whi
         logger.info(f"Loading openai-whisper model: {model_name}")
         return whisper.load_model(model_name, device=device)
 
-def get_or_load_whisper_model() -> Union[whisper.Whisper, FasterWhisperModel]:
-    """Load Whisper model with enhanced error handling"""
-    global _whisper_model
-    if _whisper_model is None:
+def get_or_load_whisper_model(use_faster_whisper: Optional[bool] = None, whisper_model_name: Optional[str] = None) -> Union[whisper.Whisper, FasterWhisperModel]:
+    """Load Whisper model with enhanced error handling
+    
+    Args:
+        use_faster_whisper: Override config setting for backend choice
+        whisper_model_name: Override config setting for model name
+    """
+    global _whisper_model, _whisper_model_params
+    
+    # Get current configuration with parameter overrides
+    model_name = whisper_model_name if whisper_model_name is not None else config_manager.get("tts.whisper_model_name", "medium")
+    backend_faster = use_faster_whisper if use_faster_whisper is not None else config_manager.get("tts.use_faster_whisper", True)
+    
+    # Current parameters
+    current_params = {
+        'model_name': model_name,
+        'use_faster_whisper': backend_faster
+    }
+    
+    # Check if model needs to be loaded or reloaded
+    if _whisper_model is None or _whisper_model_params != current_params:
         from resilience import error_tracker, ErrorCategory, ErrorSeverity
         
-        logger.info("Whisper Model not loaded, initializing...")
+        if _whisper_model is not None:
+            logger.info(f"Whisper model parameters changed, reloading... {_whisper_model_params} -> {current_params}")
+        else:
+            logger.info("Whisper Model not loaded, initializing...")
         
         try:
-            # Get whisper configuration
-            model_name = config_manager.get("tts.whisper_model_name", "medium")
-            use_faster_whisper = config_manager.get("tts.use_faster_whisper", True)
-            
             # Model loading with timeout
             loading_timeout = config_manager.get("error_handling.model_loading.loading_timeout_seconds", 300)
             
             if loading_timeout > 0:
-                logger.info(f"Loading Whisper model '{model_name}' (faster_whisper={use_faster_whisper}) with {loading_timeout}s timeout...")
+                logger.info(f"Loading Whisper model '{model_name}' (faster_whisper={backend_faster}) with {loading_timeout}s timeout...")
                 
                 start_time = time.time()
-                _whisper_model = load_whisper_backend(model_name, use_faster_whisper)
+                _whisper_model = load_whisper_backend(model_name, backend_faster)
                 load_time = time.time() - start_time
                 
                 logger.info(f"Whisper model loaded in {load_time:.1f}s")
                 
                 if load_time > loading_timeout:
                     logger.warning(f"Whisper model loading took {load_time:.1f}s (timeout: {loading_timeout}s)")
+                    
+                # Store current parameters
+                _whisper_model_params = current_params
             else:
-                _whisper_model = load_whisper_backend(model_name, use_faster_whisper)
+                _whisper_model = load_whisper_backend(model_name, backend_faster)
                 logger.info("Whisper model loaded (no timeout)")
+                
+                # Store current parameters
+                _whisper_model_params = current_params
             
         except Exception as e:
             # Record the error
@@ -272,7 +295,7 @@ def get_or_load_whisper_model() -> Union[whisper.Whisper, FasterWhisperModel]:
 
 def cleanup_whisper_model():
     """Clean up Whisper model to free VRAM"""
-    global _whisper_model
+    global _whisper_model, _whisper_model_params
     if _whisper_model is not None:
         logger.info("Cleaning up Whisper model...")
         try:
@@ -281,6 +304,7 @@ def cleanup_whisper_model():
                 del _whisper_model.model
             del _whisper_model
             _whisper_model = None
+            _whisper_model_params = None  # Clear cached parameters
             
             # Force garbage collection and CUDA cleanup
             gc.collect()
@@ -1019,7 +1043,7 @@ class CoreEngine:
             # Load Whisper model for validation if not bypassed
             whisper_model = None
             if not bypass_whisper_checking:
-                whisper_model = get_or_load_whisper_model()
+                whisper_model = get_or_load_whisper_model(use_faster_whisper, whisper_model_name)
             
             # Process each generation with full validation pipeline
             final_chunks = []
@@ -1076,7 +1100,7 @@ class CoreEngine:
 
             # Apply post-processing pipeline to the final output (auto-editor + ffmpeg normalization)
             # Process final_chunks[0] which contains the complete generated audio
-            logger.info("🎨 Applying post-processing pipeline...")
+            logger.info("[PROCESS] Applying post-processing pipeline...")
             final_audio_path = apply_complete_post_processing_pipeline(final_chunks[0], kwargs)
             
             # Return the final processed audio
@@ -1129,7 +1153,7 @@ class CoreEngine:
                     
                     if score >= 0.95:
                         chunk_validations[chunk_idx].append((cand['duration'], cand['path']))
-                        logger.debug(f"[Chunk {chunk_idx}] ✅ PASSED validation: {os.path.basename(candidate_path)}")
+                        logger.debug(f"[Chunk {chunk_idx}] [SUCCESS] PASSED validation: {os.path.basename(candidate_path)}")
                     else:
                         chunk_failed_candidates[chunk_idx].append((score, cand['path'], transcribed))
                         logger.debug(f"[Chunk {chunk_idx}] ❌ FAILED validation: {os.path.basename(candidate_path)} (score={score:.3f} < 0.95)")
@@ -1152,7 +1176,7 @@ class CoreEngine:
         if retry_queue:
             logger.warning(f"Failed chunks needing retry: {retry_queue}")
         else:
-            logger.info("✅ All chunks passed initial validation - no retry needed")
+            logger.info("[SUCCESS] All chunks passed initial validation - no retry needed")
         
         retry_attempt = 0
         while retry_queue:
@@ -1163,17 +1187,17 @@ class CoreEngine:
                 if chunk_attempts[chunk_idx] < max_attempts_per_candidate
             ]
             if not still_need_retry:
-                logger.warning(f"🛑 All failed chunks reached max retry attempts ({max_attempts_per_candidate})")
+                logger.warning(f"[STOP] All failed chunks reached max retry attempts ({max_attempts_per_candidate})")
                 break
             
-            logger.warning(f"🔄 RETRY ATTEMPT {retry_attempt}: Processing {len(still_need_retry)} chunks (attempt {chunk_attempts[still_need_retry[0]]+1}/{max_attempts_per_candidate})")
+            logger.warning(f"[RETRY] RETRY ATTEMPT {retry_attempt}: Processing {len(still_need_retry)} chunks (attempt {chunk_attempts[still_need_retry[0]]+1}/{max_attempts_per_candidate})")
             
             # Generate new candidates for failed chunks
             retry_candidate_map = {}
             retry_start_time = time.time()
             if enable_parallel and len(still_need_retry) > 1:
                 # Parallel retry processing
-                logger.info(f"🔄 Parallel retry with {num_parallel_workers} workers")
+                logger.info(f"[RETRY] Parallel retry with {num_parallel_workers} workers")
                 from concurrent.futures import ThreadPoolExecutor
                 with ThreadPoolExecutor(max_workers=num_parallel_workers) as executor:
                     futures = []
@@ -1181,7 +1205,7 @@ class CoreEngine:
                         sentence_group = sentence_groups[chunk_idx]
                         # Generate new seed for retry
                         retry_seed = random.randint(0, 999999999)
-                        logger.debug(f"🔄 [Chunk {chunk_idx}] Retry seed: {retry_seed}")
+                        logger.debug(f"[RETRY] [Chunk {chunk_idx}] Retry seed: {retry_seed}")
                         
                         future = executor.submit(
                             self.process_one_chunk,
@@ -1198,17 +1222,17 @@ class CoreEngine:
                             result_chunk_idx, candidates = future.result()
                             if candidates:
                                 retry_candidate_map[chunk_idx] = candidates
-                                logger.info(f"🔄 [Chunk {chunk_idx}] Generated {len(candidates)} retry candidates")
+                                logger.info(f"[RETRY] [Chunk {chunk_idx}] Generated {len(candidates)} retry candidates")
                         except Exception as e:
-                            logger.error(f"🔄 [Chunk {chunk_idx}] Retry generation failed: {e}")
+                            logger.error(f"[RETRY] [Chunk {chunk_idx}] Retry generation failed: {e}")
             else:
                 # Sequential retry processing
-                logger.info(f"🔄 Sequential retry processing")
+                logger.info(f"[RETRY] Sequential retry processing")
                 for chunk_idx in still_need_retry:
                     sentence_group = sentence_groups[chunk_idx]
                     # Generate new seed for retry
                     retry_seed = random.randint(0, 999999999)
-                    logger.debug(f"🔄 [Chunk {chunk_idx}] Retry seed: {retry_seed}")
+                    logger.debug(f"[RETRY] [Chunk {chunk_idx}] Retry seed: {retry_seed}")
                     
                     try:
                         result_chunk_idx, candidates = self.process_one_chunk(
@@ -1219,38 +1243,38 @@ class CoreEngine:
                         )
                         if candidates:
                             retry_candidate_map[chunk_idx] = candidates
-                            logger.info(f"🔄 [Chunk {chunk_idx}] Generated {len(candidates)} retry candidates")
+                            logger.info(f"[RETRY] [Chunk {chunk_idx}] Generated {len(candidates)} retry candidates")
                     except Exception as e:
-                        logger.error(f"🔄 [Chunk {chunk_idx}] Retry generation failed: {e}")
+                        logger.error(f"[RETRY] [Chunk {chunk_idx}] Retry generation failed: {e}")
             
             retry_gen_time = time.time() - retry_start_time
-            logger.info(f"🔄 Retry generation completed in {retry_gen_time:.1f}s")
+            logger.info(f"[RETRY] Retry generation completed in {retry_gen_time:.1f}s")
             
             # Validate retry candidates
             retry_validation_start = time.time()
             for chunk_idx, candidates in retry_candidate_map.items():
                 sentence_group = sentence_groups[chunk_idx]
-                logger.debug(f"🔄 [Chunk {chunk_idx}] Validating {len(candidates)} retry candidates")
+                logger.debug(f"[RETRY] [Chunk {chunk_idx}] Validating {len(candidates)} retry candidates")
                 
                 for candidate_path in candidates:
                     try:
                         path, score, transcribed = whisper_check_mp(candidate_path, sentence_group, whisper_model, use_faster_whisper)
                         duration = librosa.get_duration(path=candidate_path)
-                        logger.debug(f"🔄 [Chunk {chunk_idx}] RETRY {os.path.basename(candidate_path)}: score={score:.3f}")
+                        logger.debug(f"[RETRY] [Chunk {chunk_idx}] RETRY {os.path.basename(candidate_path)}: score={score:.3f}")
                         
                         if score >= 0.95:
                             chunk_validations[chunk_idx].append((duration, candidate_path))
-                            logger.info(f"🔄 [Chunk {chunk_idx}] ✅ RETRY SUCCESS: {os.path.basename(candidate_path)} (score={score:.3f})")
+                            logger.info(f"[RETRY] [Chunk {chunk_idx}] [SUCCESS] RETRY SUCCESS: {os.path.basename(candidate_path)} (score={score:.3f})")
                         else:
                             chunk_failed_candidates[chunk_idx].append((score, candidate_path, transcribed))
-                            logger.debug(f"🔄 [Chunk {chunk_idx}] ❌ RETRY FAILED: {os.path.basename(candidate_path)} (score={score:.3f})")
+                            logger.debug(f"[RETRY] [Chunk {chunk_idx}] ❌ RETRY FAILED: {os.path.basename(candidate_path)} (score={score:.3f})")
                             
                     except Exception as e:
                         logger.error(f"Whisper validation failed for retry {candidate_path}: {e}")
                         chunk_failed_candidates[chunk_idx].append((0.0, candidate_path, ""))
             
             retry_validation_time = time.time() - retry_validation_start
-            logger.info(f"🔄 Retry validation completed in {retry_validation_time:.1f}s")
+            logger.info(f"[RETRY] Retry validation completed in {retry_validation_time:.1f}s")
             
             # Update retry queue and attempt counts
             retry_queue = [chunk_idx for chunk_idx in still_need_retry if not chunk_validations[chunk_idx]]
@@ -1258,22 +1282,22 @@ class CoreEngine:
                 chunk_attempts[chunk_idx] += 1
             
             if retry_queue:
-                logger.warning(f"🔄 Still need retry: {retry_queue} (attempts: {[chunk_attempts[idx] for idx in retry_queue]})")
+                logger.warning(f"[RETRY] Still need retry: {retry_queue} (attempts: {[chunk_attempts[idx] for idx in retry_queue]})")
             else:
-                logger.info(f"🔄 ✅ All chunks now have valid candidates after retry attempt {retry_attempt}")
+                logger.info(f"[RETRY] [SUCCESS] All chunks now have valid candidates after retry attempt {retry_attempt}")
         
         total_validation_time = time.time() - validation_start_time
-        logger.info(f"🏁 Complete validation finished in {total_validation_time:.1f}s (including {retry_attempt} retry attempts)")
+        logger.info(f"[FINISH] Complete validation finished in {total_validation_time:.1f}s (including {retry_attempt} retry attempts)")
         
         # Final candidate selection
         selected_candidates = []
-        logger.info("🎯 Final candidate selection:")
+        logger.info("[TARGET] Final candidate selection:")
         for chunk_idx in sorted(chunk_candidate_map.keys()):
             if chunk_validations[chunk_idx]:
                 # Best passed candidate (shortest duration)
                 best = min(chunk_validations[chunk_idx], key=lambda x: x[0])
                 selected_candidates.append(best[1])
-                logger.info(f"[Chunk {chunk_idx}] ✅ Selected validated candidate: {os.path.basename(best[1])} (duration={best[0]:.2f}s, PASSED Whisper)")
+                logger.info(f"[Chunk {chunk_idx}] [SUCCESS] Selected validated candidate: {os.path.basename(best[1])} (duration={best[0]:.2f}s, PASSED Whisper)")
             elif chunk_failed_candidates[chunk_idx]:
                 # Fallback strategies
                 failed = chunk_failed_candidates[chunk_idx]
@@ -1286,12 +1310,12 @@ class CoreEngine:
                     best = max(failed, key=lambda x: x[0])
                     strategy = "highest score"
                 selected_candidates.append(best[1])
-                logger.warning(f"[Chunk {chunk_idx}] ⚠️ FALLBACK ({strategy}): {os.path.basename(best[1])} (score={best[0]:.3f}, transcript='{best[2][:30]}{'...' if len(best[2]) > 30 else ''}')")
+                logger.warning(f"[Chunk {chunk_idx}] [WARNING] FALLBACK ({strategy}): {os.path.basename(best[1])} (score={best[0]:.3f}, transcript='{best[2][:30]}{'...' if len(best[2]) > 30 else ''}')")
             else:
                 logger.error(f"[Chunk {chunk_idx}] ❌ No candidates available")
                 return []
         
-        logger.info(f"🏁 Final selection: {len(selected_candidates)} chunks ready for assembly")
+        logger.info(f"[FINISH] Final selection: {len(selected_candidates)} chunks ready for assembly")
         return selected_candidates
 
     def _combine_audio_chunks(self, chunk_paths: List[str], gen_index: int, generation_params: Dict[str, Any] = None) -> str:
@@ -1615,7 +1639,7 @@ class CoreEngine:
             
             if total_sec <= chunk_sec:
                 # Short audio - process directly
-                logger.info(f"🎯 Processing short audio directly ({total_sec:.2f}s ≤ {chunk_sec}s)")
+                logger.info(f"[TARGET] Processing short audio directly ({total_sec:.2f}s ≤ {chunk_sec}s)")
                 wav_out = vc_model.generate(
                     str(input_path),
                     target_voice_path=str(target_path),
@@ -1625,11 +1649,11 @@ class CoreEngine:
                 
                 # Save the result
                 sf.write(str(output_path), out_wav, model_sr)
-                logger.info(f"✅ VC result saved: {output_path}")
+                logger.info(f"[SUCCESS] VC result saved: {output_path}")
                 
             else:
                 # Long audio - implement chunking with crossfading
-                logger.info(f"🔄 Processing long audio with chunking: {chunk_sec}s chunks, {overlap_sec}s overlap ({total_sec:.2f}s total)")
+                logger.info(f"[RETRY] Processing long audio with chunking: {chunk_sec}s chunks, {overlap_sec}s overlap ({total_sec:.2f}s total)")
                 chunk_samples = int(chunk_sec * model_sr)
                 overlap_samples = int(overlap_sec * model_sr)
                 step_samples = chunk_samples - overlap_samples
@@ -1657,7 +1681,7 @@ class CoreEngine:
                         )
                         out_chunk_np = out_chunk.squeeze(0).numpy()
                         out_chunks.append(out_chunk_np)
-                        logger.debug(f"✅ Chunk {start//model_sr:.1f}s-{end//model_sr:.1f}s processed successfully")
+                        logger.debug(f"[SUCCESS] Chunk {start//model_sr:.1f}s-{end//model_sr:.1f}s processed successfully")
                     except Exception as e:
                         logger.error(f"❌ Failed to process chunk {start//model_sr:.1f}s-{end//model_sr:.1f}s: {e}")
                         raise GenerationError(f"VC chunk processing failed at {start//model_sr:.1f}s-{end//model_sr:.1f}s: {e}")
@@ -1687,7 +1711,7 @@ class CoreEngine:
                 
                 # Save the combined result
                 sf.write(str(output_path), result, model_sr)
-                logger.info(f"✅ Combined VC result saved: {output_path} ({len(result)/model_sr:.2f}s)")
+                logger.info(f"[SUCCESS] Combined VC result saved: {output_path} ({len(result)/model_sr:.2f}s)")
             
             return output_path
             

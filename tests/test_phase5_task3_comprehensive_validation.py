@@ -147,7 +147,7 @@ def test_whisper_models_and_backends():
         )
         
         # Test OpenAI whisper backend  
-        print("  🐍 Testing OpenAI whisper backend...")
+        print("  [PYTHON] Testing OpenAI whisper backend...")
         result_openai = engine.generate_tts(
             text=test_text,
             bypass_whisper_checking=False,
@@ -204,7 +204,7 @@ def main():
         print("[SUCCESS] Feature parity with original Chatter.py achieved!")
         return True
     else:
-        print(f"⚠️  {failed} test(s) failed")
+        print("[WARNING] {failed} test(s) failed")
         return False
 
 if __name__ == "__main__":
