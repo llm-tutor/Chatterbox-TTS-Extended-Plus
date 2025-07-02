@@ -324,7 +324,7 @@ def whisper_check_mp(candidate_path: str, target_text: str, whisper_model: Union
             result = whisper_model.transcribe(candidate_path)
             transcribed = result['text'].strip().lower()
         
-        logger.debug(f"Whisper transcription: '{transcribed}' for candidate '{os.path.basename(candidate_path)}'")
+        logger.info(f"Whisper transcription: '{transcribed}' for candidate '{os.path.basename(candidate_path)}'")
         
         # Calculate similarity score using difflib
         score = difflib.SequenceMatcher(
@@ -758,7 +758,7 @@ class CoreEngine:
                             logger.warning(f"File {candidate_path} was not created or is too small")
                             continue
                         
-                        logger.debug(f"Saved candidate {cand_idx+1}, attempt {attempt+1}, duration={librosa.get_duration(filename=str(candidate_path)):.3f}s: {candidate_path}")
+                        logger.debug(f"Saved candidate {cand_idx+1}, attempt {attempt+1}, duration={librosa.get_duration(path=str(candidate_path)):.3f}s: {candidate_path}")
                         # TO-FIX: Consider if we are losing useful information here (Chatter.py:537)
                         candidates.append(str(candidate_path))
                         break  # Success, move to next candidate
@@ -1034,7 +1034,7 @@ class CoreEngine:
                         chunk_candidate_map[group_idx] = []
                         for candidate_path in all_candidates[key]:
                             try:
-                                duration = librosa.get_duration(filename=candidate_path)
+                                duration = librosa.get_duration(path=candidate_path)
                                 chunk_candidate_map[group_idx].append({
                                     'path': candidate_path,
                                     'duration': duration,
@@ -1235,7 +1235,7 @@ class CoreEngine:
                 for candidate_path in candidates:
                     try:
                         path, score, transcribed = whisper_check_mp(candidate_path, sentence_group, whisper_model, use_faster_whisper)
-                        duration = librosa.get_duration(filename=candidate_path)
+                        duration = librosa.get_duration(path=candidate_path)
                         logger.debug(f"🔄 [Chunk {chunk_idx}] RETRY {os.path.basename(candidate_path)}: score={score:.3f}")
                         
                         if score >= 0.95:
@@ -1615,7 +1615,7 @@ class CoreEngine:
             
             if total_sec <= chunk_sec:
                 # Short audio - process directly
-                logger.info("Processing short audio directly")
+                logger.info(f"🎯 Processing short audio directly ({total_sec:.2f}s ≤ {chunk_sec}s)")
                 wav_out = vc_model.generate(
                     str(input_path),
                     target_voice_path=str(target_path),
@@ -1625,13 +1625,17 @@ class CoreEngine:
                 
                 # Save the result
                 sf.write(str(output_path), out_wav, model_sr)
+                logger.info(f"✅ VC result saved: {output_path}")
                 
             else:
                 # Long audio - implement chunking with crossfading
-                logger.info(f"Processing long audio with chunking: {chunk_sec}s chunks, {overlap_sec}s overlap")
+                logger.info(f"🔄 Processing long audio with chunking: {chunk_sec}s chunks, {overlap_sec}s overlap ({total_sec:.2f}s total)")
                 chunk_samples = int(chunk_sec * model_sr)
                 overlap_samples = int(overlap_sec * model_sr)
                 step_samples = chunk_samples - overlap_samples
+                
+                expected_chunks = max(1, (len(wav) - overlap_samples) // step_samples + 1)
+                logger.info(f"📊 Expected {expected_chunks} chunks ({chunk_samples} samples each, {overlap_samples} overlap)")
                 
                 out_chunks = []
                 
@@ -1653,18 +1657,22 @@ class CoreEngine:
                         )
                         out_chunk_np = out_chunk.squeeze(0).numpy()
                         out_chunks.append(out_chunk_np)
-                        logger.debug(f"Chunk {start}-{end} processed successfully")
+                        logger.debug(f"✅ Chunk {start//model_sr:.1f}s-{end//model_sr:.1f}s processed successfully")
                     except Exception as e:
-                        logger.error(f"Failed to process chunk {start}-{end}: {e}")
-                        # Use silence as fallback
-                        silence_samples = len(chunk)
-                        out_chunks.append(np.zeros(silence_samples, dtype=np.float32))
+                        logger.error(f"❌ Failed to process chunk {start//model_sr:.1f}s-{end//model_sr:.1f}s: {e}")
+                        raise GenerationError(f"VC chunk processing failed at {start//model_sr:.1f}s-{end//model_sr:.1f}s: {e}")
+                    finally:
+                        # Clean up temporary chunk file immediately
+                        if temp_chunk_path.exists():
+                            temp_chunk_path.unlink()
+                            if temp_chunk_path in self._temp_files:
+                                self._temp_files.remove(temp_chunk_path)
                 
                 if not out_chunks:
-                    raise GenerationError("No chunks were processed successfully")
+                    raise GenerationError("❌ No chunks were processed successfully - all chunks failed")
                 
                 # Combine chunks with crossfading
-                logger.info("Combining chunks with crossfading...")
+                logger.info(f"🎵 Combining {len(out_chunks)} chunks with crossfading (overlap: {overlap_samples} samples)...")
                 result = out_chunks[0]
                 
                 for i in range(1, len(out_chunks)):
@@ -1679,7 +1687,7 @@ class CoreEngine:
                 
                 # Save the combined result
                 sf.write(str(output_path), result, model_sr)
-                logger.info(f"Combined VC result saved: {output_path}")
+                logger.info(f"✅ Combined VC result saved: {output_path} ({len(result)/model_sr:.2f}s)")
             
             return output_path
             
