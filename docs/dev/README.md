@@ -10,8 +10,6 @@ Documents for ongoing projects and foundational standards:
 | Document | Purpose | Status |
 |----------|---------|---------|
 | **[implementation-protocols.md](implementation-protocols.md)** | Common protocols, guidelines, and testing procedures for all development projects | **Foundation** |
-| **[fastapi_migration_plan.md](fastapi_migration_plan.md)** | Migration project progress tracking and task checklists | **Active** |
-| **[fastapi_migration_resume_prompt.md](fastapi_migration_resume_prompt.md)** | Migration project guidelines and protocols | **Active** |
 | **[api_refinement_implementation_plan.md](refinement_plan/api_refinement_implementation_plan.md)** | API refinement project progress tracking and task checklists | **Active** |
 | **[api_refinement_resume_prompt.md](refinement_plan/api_refinement_resume_prompt.md)** | API refinement project guidelines and protocols | **Active** |
 | **refinement_plan/phase10_*.*** | API refinement research files and performance data | **Active** |
@@ -25,6 +23,7 @@ Completed projects organized by category:
 archives/
 ├── api-implementation/          # Original API development (Phases 1-7)
 ├── api-docs-reorganization/     # API documentation restructuring  
+├── fastapi-migration/          # FastAPI migration project (Phases 1-5)
 ├── two-tier-testing/           # Testing strategy implementation
 └── utils-refactoring/          # Utils.py modular refactoring project
 ```
@@ -92,6 +91,11 @@ Each project archive typically contains:
 - **Scope**: Balanced testing approach implementation
 - **Key Achievements**: Core validation (2-3 min), comprehensive testing (8-15 min), implementation protocols
 - **Reference**: Testing patterns and validation procedures
+
+### **FastAPI Migration** (`archives/fastapi-migration/`)
+- **Scope**: Complete migration of Chatter.py functionality to FastAPI with full feature parity (Phases 1-5)
+- **Key Achievements**: Parallel processing, Whisper validation system, dual backend support, post-processing pipeline, enhanced features, Unicode compatibility
+- **Reference**: Complete implementation plan, analysis, and methodology documentation
 
 ### **Utils Refactoring** (`archives/utils-refactoring/`)
 - **Scope**: Modular transformation of monolithic utils.py (2,391 lines → organized modules)
