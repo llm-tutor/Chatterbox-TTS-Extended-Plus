@@ -47,6 +47,37 @@ When multiple formats are requested, the primary format is streamed directly:
 - The first format in `export_formats` is streamed
 - Other formats are available via `X-Alternative-Formats` header
 
+## Supported Endpoints
+
+All audio generation endpoints support consistent streaming behavior:
+
+### Text-to-Speech (TTS)
+```bash
+curl -X POST "http://localhost:7860/api/v1/tts?response_mode=stream" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Hello world", "export_formats": ["wav", "mp3"]}' \
+  --output speech.wav
+```
+
+### Voice Conversion (VC)
+```bash
+curl -X POST "http://localhost:7860/api/v1/vc?response_mode=stream" \
+  -F "input_audio=@source.wav" \
+  -F "target_voice_source=target.wav" \
+  -F "export_formats=wav,flac" \
+  --output converted.wav
+```
+
+### Audio Concatenation
+```bash
+curl -X POST "http://localhost:7860/api/v1/concat?response_mode=stream" \
+  -H "Content-Type: application/json" \
+  -d '{"files": ["file1.wav", "file2.wav"], "export_formats": ["wav", "mp3"]}' \
+  --output combined.wav
+```
+
+> **Consistent Behavior**: All endpoints stream the first requested format and provide alternative formats via the `X-Alternative-Formats` header when multiple formats are requested.
+
 ## Programming Examples
 
 ### Python - Direct Download

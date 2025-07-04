@@ -1379,25 +1379,23 @@ async def concatenate_audio(
             # Additional formats are available via URLs in the response metadata
             primary_file = output_dir / output_files[0]
             if primary_file.exists():
-                def file_streamer():
-                    with open(primary_file, "rb") as f:
-                        while chunk := f.read(8192):
-                            yield chunk
+                logger.info(f"Streaming concatenation output: {primary_file.name}")
                 
-                # Determine content type
-                content_type = "audio/wav"
-                if primary_file.suffix.lower() == ".mp3":
-                    content_type = "audio/mpeg"
-                elif primary_file.suffix.lower() == ".flac":
-                    content_type = "audio/flac"
+                # Create streaming response with additional headers containing alternative formats
+                streaming_response = create_file_stream_response(primary_file)
                 
-                return StreamingResponse(
-                    file_streamer(),
-                    media_type=content_type,
-                    headers={
-                        "Content-Disposition": f"attachment; filename={primary_file.name}"
-                    }
-                )
+                # Add alternative format URLs in custom headers
+                if len(output_files) > 1:
+                    alt_formats = []
+                    for output_file in output_files[1:]:  # Skip first file (being streamed)
+                        file_path = output_dir / output_file
+                        format_ext = file_path.suffix[1:].lower()  # Remove dot and lowercase
+                        alt_formats.append(f"{format_ext}:/outputs/{output_file}")
+                    
+                    if alt_formats:
+                        streaming_response.headers["X-Alternative-Formats"] = "|".join(alt_formats)
+                
+                return streaming_response
         
         # Default: return URL-based response
         return response_data
@@ -1698,25 +1696,23 @@ async def concatenate_mixed_audio(
             # Additional formats are available via URLs in the response metadata
             primary_file = output_dir / output_files[0]
             if primary_file.exists():
-                def file_streamer():
-                    with open(primary_file, "rb") as f:
-                        while chunk := f.read(8192):
-                            yield chunk
+                logger.info(f"Streaming concatenation output: {primary_file.name}")
                 
-                # Determine content type
-                content_type = "audio/wav"
-                if primary_file.suffix.lower() == ".mp3":
-                    content_type = "audio/mpeg"
-                elif primary_file.suffix.lower() == ".flac":
-                    content_type = "audio/flac"
+                # Create streaming response with additional headers containing alternative formats
+                streaming_response = create_file_stream_response(primary_file)
                 
-                return StreamingResponse(
-                    file_streamer(),
-                    media_type=content_type,
-                    headers={
-                        "Content-Disposition": f"attachment; filename={primary_file.name}"
-                    }
-                )
+                # Add alternative format URLs in custom headers
+                if len(output_files) > 1:
+                    alt_formats = []
+                    for output_file in output_files[1:]:  # Skip first file (being streamed)
+                        file_path = output_dir / output_file
+                        format_ext = file_path.suffix[1:].lower()  # Remove dot and lowercase
+                        alt_formats.append(f"{format_ext}:/outputs/{output_file}")
+                    
+                    if alt_formats:
+                        streaming_response.headers["X-Alternative-Formats"] = "|".join(alt_formats)
+                
+                return streaming_response
         
         # Default: return URL-based response
         return response_data

@@ -49,6 +49,7 @@ cd tests && python generate_test_files.py
 - `test_phase11_task_11_13_basic_concat_revision.py` - Basic concatenation revision testing (Task 11.13)
 - `test_phase11_task_11_15_mixed_concat_revision.py` - Mixed concatenation decision tree testing (Task 11.15)
 - `test_phase11_task_11_16_mixed_concat_optimization.py` - Mixed concatenation optimization testing (Task 11.16)
+- `test_phase11_task_11_19_unified_streaming.py` - API streaming consistency validation (Task 11.19)
 
 #### **Complete File Management System** (`test_phase11_task_11_9_file_management.py`)
 ```bash
@@ -251,6 +252,43 @@ cd tests && python test_phase11_task_11_15_mixed_concat_revision.py
 - **Code organization**: Three focused functions replacing single large function
 - **Metadata consistency**: All functions return consistent metadata structure
 - **Performance**: Efficient processing with proper resource management
+
+#### **Unified API Streaming Consistency Testing** (`test_phase11_task_11_19_unified_streaming.py`)
+```bash
+cd tests && python test_phase11_task_11_19_unified_streaming.py
+```
+**Comprehensive validation of Task 11.19 implementation - Complete API streaming consistency**:
+- **Cross-endpoint streaming validation**: Tests TTS, VC, and concatenation endpoints for consistent behavior
+- **Multi-format streaming**: Validates first-format streaming with alternative format headers
+- **X-Alternative-Formats header**: Confirms proper header format and URL provision
+- **File integrity**: Validates streamed files are complete and properly sized
+
+**Key Test Scenarios** (Task 11.19 Coverage):
+1. **TTS Multi-Format Streaming**: `export_formats=["wav", "mp3"]` → streams WAV, provides MP3 URL ✅
+2. **VC Multi-Format Streaming**: `export_formats=["wav", "flac"]` → streams WAV, provides FLAC URL ✅ 
+3. **Concatenation Multi-Format Streaming**: `export_formats=["wav", "mp3"]` → streams WAV, provides MP3 URL ✅
+4. **Header Consistency**: All endpoints provide `X-Alternative-Formats` header when multiple formats requested ✅
+5. **File Integrity**: All streamed files pass size validation (>10KB threshold) ✅
+
+**Streaming Behavior Validated**:
+- ✅ **Consistent streaming logic**: All endpoints stream first requested format
+- ✅ **Alternative format provision**: Secondary formats available via header URLs  
+- ✅ **Header format consistency**: `format:url` pairs separated by `|` character
+- ✅ **Response integrity**: Audio files stream completely without corruption
+- ✅ **Multi-format support**: Works correctly with 2+ export formats
+
+**Technical Implementation**:
+- **Cross-endpoint testing**: Validates TTS, VC, and concatenation consistency
+- **File setup automation**: Automatically creates reference audio and input files as needed
+- **Size validation**: Confirms files are reasonable audio size (not error responses)
+- **Header parsing**: Validates X-Alternative-Formats header format and content
+- **Cleanup**: Automatically removes temporary test files after validation
+
+**Integration Points**:
+- **TTS Endpoint**: Uses simple text input with multiple export formats
+- **VC Endpoint**: Uses reference audio file as both input and target for testing
+- **Concatenation Endpoint**: Uses existing output files for reliable testing
+- **Error Handling**: Graceful handling of missing files with informative output
 
 ### Legacy/Reference Tests
 - `test_api_basic.py` - Basic API functionality

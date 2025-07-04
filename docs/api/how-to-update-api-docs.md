@@ -51,6 +51,7 @@ docs/api/
 │   ├── health.md              # /api/v1/health
 │   ├── tts.md                 # /api/v1/tts
 │   ├── voice-conversion.md    # /api/v1/vc
+│   ├── concatenation.md       # /api/v1/concat, /api/v1/concat/mixed
 │   ├── voice-management.md    # /api/v1/voice*
 │   └── file-operations.md     # /api/v1/outputs, etc.
 ├── guides/                     # Feature-specific guides

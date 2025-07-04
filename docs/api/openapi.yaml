@@ -479,6 +479,12 @@ paths:
       responses:
         '200':
           description: TTS generation successful
+          headers:
+            X-Alternative-Formats:
+              description: URLs for additional output formats when streaming (format:url pairs separated by |)
+              schema:
+                type: string
+              example: "mp3:/outputs/tts_2025-06-22_143100_123_temp0.75.mp3|flac:/outputs/tts_2025-06-22_143100_123_temp0.75.flac"
           content:
             application/json:
               schema:
@@ -534,6 +540,12 @@ paths:
       responses:
         '200':
           description: Voice conversion successful
+          headers:
+            X-Alternative-Formats:
+              description: URLs for additional output formats when streaming (format:url pairs separated by |)
+              schema:
+                type: string
+              example: "mp3:/outputs/vc_2025-06-22_143100_123_voicetarget.mp3|flac:/outputs/vc_2025-06-22_143100_123_voicetarget.flac"
           content:
             application/json:
               schema:
@@ -784,6 +796,12 @@ paths:
       responses:
         '200':
           description: Audio concatenation successful
+          headers:
+            X-Alternative-Formats:
+              description: URLs for additional output formats when streaming (format:url pairs separated by |)
+              schema:
+                type: string
+              example: "mp3:/outputs/concat_2025-06-22_143100_123_2files_leveled.mp3|flac:/outputs/concat_2025-06-22_143100_123_2files_leveled.flac"
           content:
             audio/wav:
               schema:
@@ -824,6 +842,100 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 detail: "File not found: non_existent_file.wav"
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /api/v1/concat/mixed:
+    post:
+      summary: Mixed Source Audio Concatenation
+      description: Combine audio from multiple sources (server files, uploads, silence) in a single request
+      operationId: concatenateAudioMixed
+      tags:
+        - Files
+      parameters:
+        - name: response_mode
+          in: query
+          description: Response mode - 'stream' for direct file download or 'url' for JSON metadata response
+          schema:
+            type: string
+            enum: [stream, url]
+            default: stream
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                request_json:
+                  type: string
+                  description: JSON string containing MixedConcatRequest
+                uploaded_files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Audio files to upload (required if segments reference uploads)
+              required:
+                - request_json
+            examples:
+              mixed_sources:
+                summary: Server files with uploads and silence
+                value:
+                  request_json: |
+                    {
+                      "segments": [
+                        {"type": "server_file", "source": "intro.wav"},
+                        {"type": "upload", "index": 0},
+                        {"type": "silence", "source": "(1s)"},
+                        {"type": "server_file", "source": "outro.wav"}
+                      ],
+                      "export_formats": ["wav", "mp3"],
+                      "normalize_levels": true,
+                      "project": "podcast/episode01"
+                    }
+                  uploaded_files: ["my_audio.wav"]
+      responses:
+        '200':
+          description: Mixed audio concatenation successful
+          headers:
+            X-Alternative-Formats:
+              description: URLs for additional output formats when streaming (format:url pairs separated by |)
+              schema:
+                type: string
+              example: "mp3:/outputs/concat_2025-06-22_143100_123_4files_sil1_leveled.mp3"
+          content:
+            audio/wav:
+              schema:
+                type: string
+                format: binary
+              example: "[Binary audio data for WAV]"
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+              example: "[Binary audio data for MP3]"
+            audio/flac:
+              schema:
+                type: string
+                format: binary
+              example: "[Binary audio data for FLAC]"
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConcatResponse'
+              example:
+                success: true
+                message: "Mixed audio concatenation completed successfully"
+                output_files: ["concat_2025-06-22_143100_123_4files_sil1_leveled.wav"]
+                total_duration_seconds: 25.8
+                file_count: 3
+                processing_time_seconds: 1.2
+                metadata:
+                  segments_processed: 4
+                  upload_count: 1
+                  silence_count: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '422':
           $ref: '#/components/responses/ValidationError'
 

@@ -173,7 +173,10 @@ Returns audio file directly for immediate download:
 ```http
 Content-Type: audio/wav
 Content-Disposition: attachment; filename="concat_2025-06-25_123456_789012_2files_leveled_trim200.wav"
+X-Alternative-Formats: mp3:/outputs/concat_2025-06-25_123456_789012_2files_leveled_trim200.mp3|flac:/outputs/concat_2025-06-25_123456_789012_2files_leveled_trim200.flac
 ```
+
+> **Multi-Format Streaming**: When multiple export formats are requested, the first format is streamed directly and alternative formats are provided via the `X-Alternative-Formats` header as downloadable URLs.
 
 ### URL Mode
 Returns JSON with file information:
@@ -540,7 +543,15 @@ curl -X POST "http://localhost:7860/api/v1/concat/mixed" \
 ## Response Format
 
 ### Success Response (Stream Mode)
-Returns the audio file directly as binary data with appropriate `Content-Type` header.
+Returns the audio file directly as binary data with appropriate `Content-Type` header and streaming metadata:
+
+```http
+Content-Type: audio/wav
+Content-Disposition: attachment; filename="concat_2025-06-25_143022_456_5files_sil2_fade100_leveled_trim150.wav"
+X-Alternative-Formats: mp3:/outputs/concat_2025-06-25_143022_456_5files_sil2_fade100_leveled_trim150.mp3|flac:/outputs/concat_2025-06-25_143022_456_5files_sil2_fade100_leveled_trim150.flac
+```
+
+> **Multi-Format Streaming**: When multiple export formats are requested, the first format is streamed directly and alternative formats are provided via the `X-Alternative-Formats` header as downloadable URLs.
 
 ### Success Response (URL Mode)
 ```json
