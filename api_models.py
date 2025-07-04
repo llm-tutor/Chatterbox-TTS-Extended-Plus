@@ -623,6 +623,8 @@ class MixedConcatRequest(BaseModel):
     trim: bool = Field(default=False, description="Remove extraneous silence from input files before concatenation")
     trim_threshold_ms: int = Field(default=200, ge=50, le=1000, description="Minimum silence duration (ms) to consider for trimming")
     output_filename: Optional[str] = Field(None, description="Custom output filename (without extension)")
+    project: Optional[str] = Field(None, description="Project folder path for organizing generated files within outputs/ directory")
+    folder: Optional[str] = Field(None, description="Alias for project parameter - folder path for organizing generated files")
 
     @field_validator('export_formats')
     @classmethod
@@ -664,3 +666,32 @@ class MixedConcatRequest(BaseModel):
             if base_duration > 0 and v >= base_duration:
                 raise ValueError("Pause variation must be less than base pause duration when pause is enabled")
         return v
+
+    @field_validator('project')
+    @classmethod
+    def validate_project_path(cls, v):
+        if v is None:
+            return v
+        
+        # Basic validation for project path
+        if not v.strip():
+            raise ValueError("Project path cannot be empty")
+            
+        # Check for invalid characters
+        invalid_chars = ['<', '>', ':', '"', '|', '?', '*']
+        if any(char in v for char in invalid_chars):
+            raise ValueError(f"Project path contains invalid characters: {invalid_chars}")
+            
+        return v.strip()
+
+    @model_validator(mode='after')
+    def validate_project_folder_combination(self):
+        """Handle project/folder parameter combination with folder as alias"""
+        if self.project is not None and self.folder is not None:
+            raise ValueError("Cannot specify both 'project' and 'folder' parameters - use 'project' (folder is just an alias)")
+        
+        # If only folder is specified, use it as project
+        if self.project is None and self.folder is not None:
+            self.project = self.folder
+            
+        return self

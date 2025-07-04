@@ -48,6 +48,7 @@ cd tests && python generate_test_files.py
 - `test_phase11_task_11_9_file_management.py` - Complete file management system testing (upload, deletion, project organization)
 - `test_phase11_task_11_13_basic_concat_revision.py` - Basic concatenation revision testing (Task 11.13)
 - `test_phase11_task_11_15_mixed_concat_revision.py` - Mixed concatenation decision tree testing (Task 11.15)
+- `test_phase11_task_11_16_mixed_concat_optimization.py` - Mixed concatenation optimization testing (Task 11.16)
 
 #### **Complete File Management System** (`test_phase11_task_11_9_file_management.py`)
 ```bash
@@ -159,6 +160,50 @@ curl -X POST "http://localhost:7860/api/v1/concat?response_mode=url" -d '{"files
 # Incorrect usage  
 curl -X POST "http://localhost:7860/api/v1/concat" -d '{"files": [...], "response_mode": "url"}'
 ```
+
+#### **Mixed Concatenation Optimization Testing** (`test_phase11_task_11_16_mixed_concat_optimization.py`)
+```bash
+cd tests && python test_phase11_task_11_16_mixed_concat_optimization.py
+```
+**Comprehensive testing of Task 11.16 implementation - Mixed concatenation optimization**:
+- **Post-concatenation format conversion**: Validates single concatenation + format conversion approach
+- **Project/folder parameter support**: Tests project organization for mixed concatenation
+- **Enhanced logging validation**: Confirms detailed timing and process logging
+- **Performance optimization**: Tests multi-format conversion efficiency
+
+**Key Test Scenarios** (Task 11.16 Coverage):
+1. **Project parameter support**: Mixed concatenation with project folders ✅
+2. **Folder parameter alias**: Tests folder-as-project-alias functionality ✅
+3. **Format conversion optimization**: Multi-format generation efficiency (wav, mp3, flac) ✅
+4. **Enhanced logging validation**: Confirms improved monitoring and timing ✅
+5. **Backward compatibility**: All existing mixed concatenation features work ✅
+6. **Parameter validation**: Project/folder parameter validation and error handling ✅
+
+**Test Files Used**:
+- **Server files**: `outputs/concatenation_test/*.mp3` (including basic and `-long.mp3` variants)
+- **Upload files**: `tests/media/alex.mp3`, `tests/media/jamie-01.mp3`, `tests/media/sean.mp3`
+- **Project organization**: Tests creation of project folders like `outputs/test_project/episode_01/`
+
+**Features Validated**:
+- ✅ Project folder parameter support with mixed sources (server files + uploads)
+- ✅ Folder parameter alias functionality (folder → project conversion)
+- ✅ Post-concatenation format conversion optimization (single concat + format conversion)
+- ✅ Enhanced logging and monitoring with separate timing for operations
+- ✅ Backward compatibility with all existing mixed concatenation features
+- ✅ Parameter validation for project/folder parameters (empty, invalid characters, conflicts)
+- ✅ Performance optimization validation (efficient processing times)
+
+**Consistency Testing**:
+- **API alignment**: Mixed concatenation now follows the same optimization pattern as basic concatenation
+- **Parameter consistency**: Project/folder parameters work identically across both concatenation modes
+- **Format conversion**: Uses the same core engine method for consistent behavior
+- **Performance**: Validates processing time improvements from optimized approach
+
+**Integration Validation**:
+- **Project folder creation**: Automatic directory creation with proper permissions
+- **File organization**: Generated files correctly placed in project subdirectories
+- **Metadata consistency**: Project parameters included in saved metadata files
+- **Error handling**: Proper validation and error messages for invalid project paths
 
 #### **Mixed Concatenation Decision Tree Testing** (`test_phase11_task_11_15_mixed_concat_revision.py`)
 ```bash

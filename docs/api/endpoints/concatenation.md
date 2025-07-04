@@ -437,6 +437,14 @@ POST /api/v1/concat/mixed
 | `export_formats` | array[string] | `["wav"]` | wav, mp3, flac | Output audio formats |
 | `normalize_levels` | boolean | `true` | - | Normalize audio levels across segments |
 | `crossfade_ms` | integer | `0` | 0-5000 | Crossfade duration in milliseconds |
+| `pause_duration_ms` | integer | `0` | 0-3000 | Base pause duration between clips (0 = no pause, ignored when using manual silence) |
+| `pause_variation_ms` | integer | `200` | 0-500 | Random variation in pause duration (+/-) |
+| `trim` | boolean | `false` | - | Remove extraneous silence from input files before concatenation |
+| `trim_threshold_ms` | integer | `200` | 50-1000 | Minimum silence duration to consider for trimming |
+| `output_filename` | string | null | - | Custom output filename (without extension) |
+| `project` | string | null | - | Project folder path for organizing generated files within outputs/ directory |
+| `folder` | string | null | - | Alias for project parameter - folder path for organizing generated files |
+| `crossfade_ms` | integer | `0` | 0-5000 | Crossfade duration in milliseconds |
 | `pause_duration_ms` | integer | `0` | 0-3000 | Base pause duration between clips (ignored when using manual silence) |
 | `pause_variation_ms` | integer | `200` | 0-500 | Random variation in pause duration (+/-) |
 | `trim` | boolean | `false` | - | Remove silence from input files before concatenation |
@@ -480,7 +488,8 @@ curl -X POST "http://localhost:7860/api/v1/concat/mixed" \
     ],
     "export_formats": ["wav", "mp3"],
     "normalize_levels": true,
-    "crossfade_ms": 250
+    "crossfade_ms": 250,
+    "project": "podcast/episode01"
   }' \
   -F "uploaded_files=@my_audio.wav"
 ```
@@ -502,7 +511,8 @@ curl -X POST "http://localhost:7860/api/v1/concat/mixed" \
     "crossfade_ms": 100,
     "trim": true,
     "trim_threshold_ms": 150,
-    "output_filename": "professional_edit"
+    "output_filename": "professional_edit",
+    "folder": "audiobook/chapter01"
   }'
 ```
 
@@ -519,7 +529,8 @@ curl -X POST "http://localhost:7860/api/v1/concat/mixed" \
       {"type": "upload", "index": 2}
     ],
     "export_formats": ["wav", "mp3"],
-    "pause_duration_ms": 0
+    "pause_duration_ms": 0,
+    "project": "interview/session01"
   }' \
   -F "uploaded_files=@part1.wav" \
   -F "uploaded_files=@part2.wav" \

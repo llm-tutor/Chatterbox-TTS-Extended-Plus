@@ -55,17 +55,17 @@
 (Several tasks and fixes omitted for brevity - stored in file api_refinement_implementation_plan_part2.md)
 
 #### **Task 11.13: Revision of basic concat**
-- [ ] Change the iteration to create different formats to a 
+- [x] Change the iteration to create different formats to a 
   post-concatenation format conversion (following the process used for TTS 
   multi-format generation - CoreEngine.convert_audio_formats at core_engine.
   py line 591, maybe reusable but needs checking out)
-- Add the parameter project (with 'folder' as alias), to allow the user to 
+- [x] Add the parameter project (with 'folder' as alias), to allow the user to 
   specify the location inside the outputs/ folder, where the resulting file 
   will be stored (like 'project1/episode-01'), like TTS request does
-- [ ] Ensure that the output filename parameter, and the process of saving 
+- [x] Ensure that the output filename parameter, and the process of saving 
   the file either with the automatic and manual naming methods are 
   compatible and work with the project/folder parameter 
-- [ ] Add useful logging and time monitoring logging to the concatenation 
+- [x] Add useful logging and time monitoring logging to the concatenation 
   process 
 
 #### **Task 11.14: Testing of basic concat** ✅
@@ -90,24 +90,30 @@
 - [x] Comprehensive error handling and logging for all three modes
 
 
-#### **Task 11.16: Revision of mixed concat optimization**
-- [ ] Apply Task 11.13 improvements to mixed concatenation:
+#### **Task 11.16: Revision of mixed concat optimization** ✅
+- [x] Apply Task 11.13 improvements to mixed concatenation (read 
+  changelog entry for details):
   - Change mixed concatenation to use post-concatenation format conversion
   - Follow the same process as basic concatenation (single concat + format conversion)
   - Use `engine.convert_audio_formats()` method for consistency
-- [ ] Add project/folder parameter support to mixed concatenation
+- [x] Add project/folder parameter support to mixed concatenation
   - Implement `project` and `folder` parameters in `MixedConcatRequest` model
   - Support output organization within `outputs/` directory (e.g., `outputs/project1/episode-01/`)
   - Ensure compatibility with custom filename parameter
-- [ ] Enhanced logging and monitoring for mixed concatenation
+- [x] Enhanced logging and monitoring for mixed concatenation
   - Add mode detection logging: "manual silence", "trimming", or "basic" mode
   - Separate timing for concatenation vs format conversion operations
   - File processing and target path logging for mixed sources
   - Total operation time tracking with millisecond precision
-- [ ] Ensure backward compatibility with all existing mixed concatenation features
-  - Maintain all current mixed concatenation functionality
-  - Preserve crossfade, trimming, manual silence, and upload handling
-  - Validate seamless integration with existing API responses
+- [x] Preserve existing mixed concatenation features, although some 
+  parameters and output naming may change. Is more important consistency 
+  with the basic concatenation API definitions than preserving the current 
+  input or output structures of mixed (API not yet released, no clients are 
+  affected)
+  - Maintain current mixed concatenation logic, which should be already 
+    consistent with basic concatenation logic
+  - Consistent crossfade, trimming, manual silence with basic concatenation, 
+    plus the mixed upload handling
 
 #### **Task 11.17: Integration & Testing** - Several here already done?
 - [ ] Add concat results to output metadata system (include silence/trim info)
