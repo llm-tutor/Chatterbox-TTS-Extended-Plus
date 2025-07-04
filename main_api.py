@@ -1226,97 +1226,135 @@ async def concatenate_audio(
         # Generate output filenames for each format
         output_files = []
         generated_metadata = {}
+
+        # Determine output directory (with project folder support)
+        outputs_base_dir = Path(config_manager.get("paths.output_dir", "outputs"))
+        if request.project:
+            # Create project subdirectory
+            output_dir = outputs_base_dir / request.project
+            output_dir.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Concatenation - Using project folder: {request.project}")
+        else:
+            output_dir = outputs_base_dir
+
+        # Generate primary WAV filename
+        if request.output_filename:
+            # Use custom filename
+            base_filename = request.output_filename
+            if base_filename.endswith('.wav'):
+                base_filename = base_filename[:-4]  # Remove .wav extension
+        else:
+            # Generate timestamp-based filename
+            base_filename = generate_enhanced_filename("concat", concat_params, "wav")
+            if base_filename.endswith('.wav'):
+                base_filename = base_filename[:-4]  # Remove .wav extension
         
-        for export_format in request.export_formats:
-            # Generate enhanced filename
-            if request.output_filename:
-                # Use custom filename
-                base_filename = request.output_filename
-            else:
-                # Generate timestamp-based filename
-                base_filename = generate_enhanced_filename("concat", concat_params, export_format)
+        primary_wav_filename = f"{base_filename}.wav"
+        primary_wav_path = output_dir / primary_wav_filename
+        
+        logger.info(f"Concatenation - Processing {audio_file_count} files into: {primary_wav_path}")
+        
+        # Perform concatenation to primary WAV file
+        concat_start_time = time_module.time()
+        
+        if has_manual_silence:
+            # Use enhanced mixed-mode concatenation with silence and pause support
+            logger.info("Concatenation - Using manual silence mode")
+            concat_metadata = concatenate_with_silence(
+                parsed_items=parsed_items,
+                output_path=primary_wav_path,
+                normalize_levels=request.normalize_levels,
+                crossfade_ms=request.crossfade_ms,
+                outputs_dir=outputs_dir,
+                trim=request.trim,
+                trim_threshold_ms=request.trim_threshold_ms,
+                pause_duration_ms=request.pause_duration_ms,
+                pause_variation_ms=request.pause_variation_ms
+            )
+        else:
+            # Use concatenation with optional trimming
+            file_paths = [outputs_dir / item["source"] for item in parsed_items if item["type"] == "file"]
             
-            # Ensure proper extension
-            if not base_filename.endswith(f".{export_format}"):
-                if '.' in base_filename:
-                    base_filename = base_filename.rsplit('.', 1)[0]
-                base_filename = f"{base_filename}.{export_format}"
-            
-            output_path = outputs_dir / base_filename
-            
-            # Choose appropriate concatenation method
-            if has_manual_silence:
-                # Use enhanced mixed-mode concatenation with silence and pause support
-                concat_metadata = concatenate_with_silence(
-                    parsed_items=parsed_items,
-                    output_path=output_path,
-                    normalize_levels=request.normalize_levels,
-                    crossfade_ms=request.crossfade_ms,
-                    outputs_dir=outputs_dir,
+            if request.trim:
+                logger.info("Concatenation - Using trimming mode")
+                concat_metadata = concatenate_with_trimming(
+                    file_paths=file_paths,
+                    output_path=primary_wav_path,
                     trim=request.trim,
                     trim_threshold_ms=request.trim_threshold_ms,
+                    normalize_levels=request.normalize_levels,
+                    crossfade_ms=request.crossfade_ms,
                     pause_duration_ms=request.pause_duration_ms,
                     pause_variation_ms=request.pause_variation_ms
                 )
             else:
-                # Use concatenation with optional trimming
-                file_paths = [outputs_dir / item["source"] for item in parsed_items if item["type"] == "file"]
-                
-                if request.trim:
-                    concat_metadata = concatenate_with_trimming(
-                        file_paths=file_paths,
-                        output_path=output_path,
-                        trim=request.trim,
-                        trim_threshold_ms=request.trim_threshold_ms,
-                        normalize_levels=request.normalize_levels,
-                        crossfade_ms=request.crossfade_ms,
-                        pause_duration_ms=request.pause_duration_ms,
-                        pause_variation_ms=request.pause_variation_ms
-                    )
-                else:
-                    # Use original concatenation with natural pauses
-                    concat_metadata = concatenate_audio_files(
-                        file_paths=file_paths,
-                        output_path=output_path,
-                        normalize_levels=request.normalize_levels,
-                        crossfade_ms=request.crossfade_ms,
-                        pause_duration_ms=request.pause_duration_ms,
-                        pause_variation_ms=request.pause_variation_ms
-                    )
+                # Use original concatenation with natural pauses
+                logger.info("Concatenation - Using basic concatenation mode")
+                concat_metadata = concatenate_audio_files(
+                    file_paths=file_paths,
+                    output_path=primary_wav_path,
+                    normalize_levels=request.normalize_levels,
+                    crossfade_ms=request.crossfade_ms,
+                    pause_duration_ms=request.pause_duration_ms,
+                    pause_variation_ms=request.pause_variation_ms
+                )
+        
+        concat_time_ms = (time_module.time() - concat_start_time) * 1000
+        logger.info(f"Concatenation - Audio processing completed in {concat_time_ms:.1f}ms")
+        
+        generated_metadata = concat_metadata
+        
+        # Add primary WAV file to output list
+        output_files.append(primary_wav_filename)
+        
+        # Convert to additional formats if requested
+        if len(request.export_formats) > 1 or (len(request.export_formats) == 1 and request.export_formats[0] != "wav"):
+            conversion_start_time = time_module.time()
+            logger.info(f"Concatenation - Converting to additional formats: {request.export_formats}")
             
-            output_files.append(base_filename)
+            # Use the core engine's format conversion
+            converted_files = engine.convert_audio_formats(primary_wav_path, request.export_formats)
             
-            if export_format == request.export_formats[0]:  # Store metadata once
-                generated_metadata = concat_metadata
+            # Add converted files to output list (replace WAV if not in requested formats)
+            output_files = []
+            for file_info in converted_files:
+                if file_info['format'] in request.export_formats:
+                    output_files.append(file_info['filename'])
             
-            # Save metadata JSON file
-            metadata_to_save = {
-                "type": "concat",
-                "parameters": {
-                    "source_files": request.files,
-                    "normalize_levels": request.normalize_levels,
-                    "crossfade_ms": request.crossfade_ms,
-                    "manual_silence": has_manual_silence,
-                    "file_count": audio_file_count,
-                    "silence_segments": silence_count,
-                    "trim": request.trim,
-                    "trim_threshold_ms": request.trim_threshold_ms
-                },
-                "generation_info": concat_metadata,
-                "source_files_info": source_files_info
-            }
-            
-            # Add pause parameters only if not using manual silence
-            if not has_manual_silence:
-                metadata_to_save["parameters"].update({
-                    "pause_duration_ms": request.pause_duration_ms,
-                    "pause_variation_ms": request.pause_variation_ms
-                })
-            
-            save_generation_metadata(output_path, metadata_to_save)
+            conversion_time_ms = (time_module.time() - conversion_start_time) * 1000
+            logger.info(f"Concatenation - Format conversion completed in {conversion_time_ms:.1f}ms")
+        
+        # Save metadata JSON file for primary output
+        metadata_to_save = {
+            "type": "concat",
+            "parameters": {
+                "source_files": request.files,
+                "normalize_levels": request.normalize_levels,
+                "crossfade_ms": request.crossfade_ms,
+                "manual_silence": has_manual_silence,
+                "file_count": audio_file_count,
+                "silence_segments": silence_count,
+                "trim": request.trim,
+                "trim_threshold_ms": request.trim_threshold_ms,
+                "export_formats": request.export_formats,
+                "project": request.project
+            },
+            "generation_info": concat_metadata,
+            "source_files_info": source_files_info
+        }
+        
+        # Add pause parameters only if not using manual silence
+        if not has_manual_silence:
+            metadata_to_save["parameters"].update({
+                "pause_duration_ms": request.pause_duration_ms,
+                "pause_variation_ms": request.pause_variation_ms
+            })
+        
+        save_generation_metadata(primary_wav_path, metadata_to_save)
         
         # Record operation time
         operation_time_ms = (time_module.time() - start_time) * 1000
+        logger.info(f"Concatenation - Total operation completed in {operation_time_ms:.1f}ms")
         # record_operation_time(operation_time_ms, "concat")  # Temporarily disabled for debugging
         
         # Prepare response
@@ -1331,7 +1369,7 @@ async def concatenate_audio(
         # Handle response mode
         if response_mode == "stream" and len(output_files) == 1:
             # Stream the first (primary) file
-            primary_file = outputs_dir / output_files[0]
+            primary_file = output_dir / output_files[0]
             if primary_file.exists():
                 def file_streamer():
                     with open(primary_file, "rb") as f:
@@ -1498,7 +1536,8 @@ async def concatenate_mixed_audio(
         # Generate output filenames for each format
         output_files = []
         generated_metadata = {}
-        
+
+        # TODO: Here too, we are doing a concatenation per format. Just create the wav and from it create the other ones
         for export_format in request.export_formats:
             # Generate enhanced filename
             if request.output_filename:
@@ -1515,7 +1554,15 @@ async def concatenate_mixed_audio(
                 base_filename = f"{base_filename}.{export_format}"
             
             output_path = outputs_dir / base_filename
-            
+
+            # TODO: Validate concatenate_with_mixed_sources. The process should match basic concatenation in terms
+            # of the decision tree it follows (read docs/dev/refinement_plan/concat_parameter_interaction_design.md)
+            # Probably the best option would be to refactor basic and mixed, so we use the same logic for both
+            # The only significative difference between basic and mixed, is that the second receives also some files
+            # Once the uploaded files are stored, the processing should proceed just as it does for basic concatenation:
+            # We will be concatenating a series of files in the server, some already existing, some just uploaded,
+            # but from the perspective of the concatenating algorithm, all files are uploaded (as basic), and the
+            # process afterwards should be the same as basic concatenation
             # Perform concatenation with mixed sources
             concat_result = concatenate_with_mixed_sources(
                 segments=request.segments,

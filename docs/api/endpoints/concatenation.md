@@ -25,7 +25,14 @@ POST /api/v1/concat
 | `trim` | boolean | `false` | - | Remove extraneous silence from input files before concatenation |
 | `trim_threshold_ms` | integer | `200` | 50-1000 | Minimum silence duration to consider for trimming |
 | `output_filename` | string | null | - | Custom output filename (without extension) |
-| `response_mode` | string | `"stream"` | stream, url | Response format |
+| `project` | string | null | - | Project folder path for organizing generated files within outputs/ directory |
+| `folder` | string | null | - | Alias for project parameter - folder path for organizing generated files |
+
+## Query Parameters
+
+| Parameter | Type | Default | Range | Description |
+|-----------|------|---------|-------|-------------|
+| `response_mode` | string | `"stream"` | stream, url | Response format: 'stream' for direct file download, 'url' for JSON metadata |
 
 ## Files Array Formats
 
@@ -254,14 +261,27 @@ Output files include processing parameters in the filename:
 
 ### Basic Concatenation
 ```bash
-curl -X POST http://localhost:7860/api/v1/concat \
+curl -X POST http://localhost:7860/api/v1/concat?response_mode=url \
   -H "Content-Type: application/json" \
   -d '{
     "files": ["intro.wav", "main.wav", "outro.wav"],
-    "export_formats": ["wav", "mp3"],
-    "response_mode": "url"
+    "export_formats": ["wav", "mp3"]
   }'
 ```
+
+### Project Organization
+```bash
+curl -X POST http://localhost:7860/api/v1/concat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "files": ["chapter1.wav", "chapter2.wav", "chapter3.wav"],
+    "project": "audiobook/book1",
+    "output_filename": "full_book",
+    "export_formats": ["wav", "mp3"],
+    "normalize_levels": true
+  }'
+```
+*Saves to: `outputs/audiobook/book1/full_book.wav` and `outputs/audiobook/book1/full_book.mp3`*
 
 ### Professional Video Production
 ```bash
@@ -280,8 +300,7 @@ curl -X POST http://localhost:7860/api/v1/concat \
     "trim": true,
     "trim_threshold_ms": 150,
     "normalize_levels": true,
-    "export_formats": ["wav"],
-    "response_mode": "url"
+    "export_formats": ["wav"]
   }'
 ```
 
@@ -295,14 +314,13 @@ curl -X POST http://localhost:7860/api/v1/concat \
     "trim": true,
     "trim_threshold_ms": 200,
     "normalize_levels": true,
-    "export_formats": ["mp3"],
-    "response_mode": "stream"
+    "export_formats": ["mp3"]
   }'
 ```
 
 ### Natural Pause Concatenation
 ```bash
-curl -X POST http://localhost:7860/api/v1/concat \
+curl -X POST http://localhost:7860/api/v1/concat?response_mode=url \
   -H "Content-Type: application/json" \
   -d '{
     "files": ["chapter1.wav", "chapter2.wav", "chapter3.wav"],
@@ -333,8 +351,7 @@ curl -X POST http://localhost:7860/api/v1/concat \
     "trim": true,
     "trim_threshold_ms": 150,
     "normalize_levels": true,
-    "export_formats": ["wav"],
-    "response_mode": "url"
+    "export_formats": ["wav"]
   }'
 ```
 

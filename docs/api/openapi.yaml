@@ -743,7 +743,7 @@ paths:
       parameters:
         - name: response_mode
           in: query
-          description: Response mode - stream for direct download or url for metadata
+          description: Response mode - 'stream' for direct file download or 'url' for JSON metadata response
           schema:
             type: string
             enum: [stream, url]
@@ -1012,6 +1012,22 @@ components:
         output_filename:
           type: string
           description: Custom output filename (without extension)
+        project:
+          type: string
+          description: Project folder path for organizing generated files within outputs/ directory
+        folder:
+          type: string
+          description: Alias for project parameter - folder path for organizing generated files
+        trim:
+          type: boolean
+          default: false
+          description: Remove extraneous silence from input files before concatenation
+        trim_threshold_ms:
+          type: integer
+          minimum: 50
+          maximum: 1000
+          default: 200
+          description: Minimum silence duration (ms) to consider for trimming
         response_mode:
           type: string
           enum: [stream, url]

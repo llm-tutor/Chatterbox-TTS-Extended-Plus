@@ -449,6 +449,8 @@ class ConcatRequest(BaseModel):
     trim: bool = Field(default=False, description="Remove extraneous silence from input files before concatenation")
     trim_threshold_ms: int = Field(default=200, ge=50, le=1000, description="Minimum silence duration (ms) to consider for trimming")
     output_filename: Optional[str] = Field(None, description="Custom output filename (without extension)")
+    project: Optional[str] = Field(None, description="Project folder path for organizing generated files within outputs/ directory")
+    folder: Optional[str] = Field(None, description="Alias for project parameter - folder path for organizing generated files")
     response_mode: str = Field(default="stream", description="Response mode: 'stream' or 'url'")
 
     @field_validator('export_formats')
@@ -505,6 +507,30 @@ class ConcatRequest(BaseModel):
             if base_duration > 0 and v >= base_duration:
                 raise ValueError("Pause variation must be less than base pause duration when pause is enabled")
         return v
+
+    @model_validator(mode='before')
+    @classmethod
+    def handle_project_folder_alias(cls, values):
+        """Handle project/folder parameter aliasing"""
+        if isinstance(values, dict):
+            project = values.get('project')
+            folder = values.get('folder')
+            
+            # If both are provided, project takes precedence
+            if project and folder and project != folder:
+                # Note: logger import needed at top level
+                print(f"Warning: Both 'project' and 'folder' provided. Using 'project': {project}")
+            
+            # Set project from folder if project is not set
+            if not project and folder:
+                values['project'] = folder
+                # Remove folder to avoid duplicate parameters
+                values.pop('folder', None)
+            elif project:
+                # Remove folder if project is set to avoid confusion
+                values.pop('folder', None)
+        
+        return values
 
 
 class ConcatResponse(BaseModel):

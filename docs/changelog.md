@@ -6,6 +6,64 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [🔧 Phase 11 Task 11.13: Basic Concatenation Revision] - 2025-07-03
+
+### ⚡ CONCATENATION SYSTEM OPTIMIZATION
+
+**Major Enhancement**: Revised basic concatenation implementation for improved efficiency, enhanced organization, and better user experience.
+
+### Core Improvements
+- **Post-concatenation format conversion**: Changed from per-format concatenation to single concatenation + format conversion
+  - Uses `engine.convert_audio_formats()` method for consistency with TTS multi-format generation
+  - Significantly improved processing efficiency
+  - Reduced server load and processing time
+- **Project folder organization**: Added `project` and `folder` parameters for output organization
+  - Creates subdirectories under `outputs/` automatically (e.g., `outputs/audiobook/chapter1/`)
+  - `folder` parameter works as alias for `project` with proper validation
+  - Seamless integration with custom filename parameter
+- **Enhanced logging and monitoring**: Comprehensive timing and process information
+  - Mode detection logging: "manual silence", "trimming", or "basic" concatenation
+  - Separate timing for concatenation vs format conversion operations
+  - File processing and target path logging
+  - Total operation time tracking with millisecond precision
+
+### API Enhancements
+- **Parameter additions**: `project` and `folder` parameters in `ConcatRequest` model
+- **Validation improvements**: Project/folder alias handling with precedence rules
+- **Backward compatibility**: All existing functionality preserved (manual silence, crossfade, trimming)
+- **Response handling**: Improved file path resolution for project subdirectories
+
+### Documentation Updates
+- **Parameter documentation**: Added project/folder parameters to concatenation endpoint docs
+- **Query parameter clarification**: Fixed `response_mode` documentation as query parameter (not body)
+- **Example corrections**: Updated all curl examples to show proper `?response_mode=url` usage
+- **OpenAPI specification**: Enhanced descriptions and parameter accuracy
+
+### Testing and Validation
+- **Comprehensive test suite**: Created `test_phase11_task_11_13_basic_concat_revision.py`
+- **Task 11.14 completion**: All required concatenation testing scenarios validated
+  - ✅ Basic concatenation without trimming (multiple formats)
+  - ✅ Concatenation with trimming, no spaces (using *-long.mp3 files)
+  - ✅ Concatenation with trimming and custom spaces (parameter integration)
+- **Additional validations**: Project folders, format efficiency, backward compatibility
+- **Performance testing**: Confirmed processing time improvements and efficient multi-format generation
+
+### Files Modified
+- **Core Implementation**: `main_api.py` - Revised concatenation logic with project support
+- **Data Models**: `api_models.py` - Added project/folder parameters with validation
+- **Documentation**: 
+  - `docs/api/endpoints/concatenation.md` - Parameter updates and example corrections
+  - `docs/api/openapi.yaml` - Enhanced parameter descriptions
+  - `tests/README.md` - Comprehensive test documentation
+- **Implementation Plan**: Updated Task 11.14 completion status
+- **Test Infrastructure**: Unicode-safe test suite for Windows compatibility
+
+### Performance Results
+- **Efficiency**: Single concatenation + conversion vs per-format approach
+- **Processing time**: Typically <250ms for most operations
+- **Multi-format generation**: 3 formats (WAV/MP3/FLAC) in ~0.6s total time
+- **Organization**: Automatic project directory creation and file management
+
 ## [📁 Documentation Cleanup - FastAPI Migration Archive] - 2025-07-02
 
 ### 🗂️ DOCUMENTATION REORGANIZATION

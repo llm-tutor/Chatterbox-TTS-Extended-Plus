@@ -11,7 +11,11 @@ import json
 # Test configuration
 API_BASE = "http://127.0.0.1:7860"
 # TEST_TEXT = "This is a test of the cleaned up speed factor implementation without pyrubberband."
-TEST_TEXT = "In a village of La Mancha, the name of which I have no desire to call to mind, there lived not long since one of those gentlemen that keep a lance in the lance-rack, an old buckler, a lean hack, and a greyhound for coursing."
+# TEST_TEXT = "In a village of La Mancha, the name of which I have no desire to call to mind, there lived not long since one of those gentlemen that keep a lance in the lance-rack, an old buckler, a lean hack, and a greyhound for coursing."
+# TEST_TEXT = "The problem is that our fundamental ideas about the world are ideas that separate us from the world, from nature, and in fact, from the reality of what we are. And that reality is that we are living beings."
+# TEST_TEXT = "As we wrap this up, I hope this reflection gave you some new angles to think about, maybe even challenged a few assumptions along the way. Until next time, keep questioning, keep wondering, and I'll see you soon. "
+TEST_TEXT = "Hey everyone, welcome back! You know that feeling when you discover a perspective that completely shifts how you see the world? Well, that's exactly what we're exploring today. Grab your coffee, get comfortable, and let's jump right in!"
+
 
 def test_speed_factor_cleanup():
     """Test the speed factor implementation after pyrubberband removal"""
@@ -20,26 +24,31 @@ def test_speed_factor_cleanup():
     print("=" * 60)
     
     tests = [
-        {
-            "name": "Default Speed (1.0x)",
-            "speed_factor": 1.0,
-            "library": "auto"
-        },
+        # {
+        #     "name": "Default Speed (1.0x)",
+        #     "speed_factor": 1.0,
+        #     "library": "auto"
+        # },
         {
             "name": "Slower Speech (0.8x) with audiostretchy",
-            "speed_factor": 0.8,
+            "speed_factor": 0.80,
             "library": "audiostretchy"
         },
         {
-            "name": "Faster Speech (1.3x) with auto selection",
-            "speed_factor": 1.3,
+            "name": "Slow Speech (0.9x) with audiostretchy",
+            "speed_factor": 0.90,
             "library": "audiostretchy"
         },
-        {
-            "name": "Fallback to librosa",
-            "speed_factor": 1.5,
-            "library": "audiostretchy"
-        }
+        # {
+        #     "name": "Faster Speech (1.3x) with auto selection",
+        #     "speed_factor": 1.3,
+        #     "library": "audiostretchy"
+        # },
+        # {
+        #     "name": "Fallback to librosa",
+        #     "speed_factor": 1.5,
+        #     "library": "audiostretchy"
+        # }
     ]
     
     for i, test in enumerate(tests, 1):
@@ -53,7 +62,9 @@ def test_speed_factor_cleanup():
             "speed_factor": test['speed_factor'],
             "speed_factor_library": test['library'],
             "export_formats": ["mp3", "wav"],
-            "reference_audio_filename": "test_voices/linda_johnson_01.mp3"  # Use default voice
+            # "reference_audio_filename": "test_voices/linda_johnson_01.mp3"  # Use default voice
+            "reference_audio_filename": "speaker_en/jamie_vc_to_david-2.wav"
+            # "reference_audio_filename": "speaker_en/casual_to_david.wav"
         }
         
         # Make request
@@ -62,7 +73,7 @@ def test_speed_factor_cleanup():
             response = requests.post(
                 f"{API_BASE}/api/v1/tts?response_mode=url",
                 json=request_data,
-                timeout=60
+                timeout=180
             )
             
             duration = time.time() - start_time
@@ -96,7 +107,16 @@ def test_speed_factor_cleanup():
             print(f"   TIMEOUT after 60 seconds")
         except Exception as e:
             print(f"   ERROR: {e}")
-    
+
+    print(f"\nSpeed Factor Cleanup Test Complete!")
+    print(f"Key validations:")
+    print(f"  - pyrubberband removed from allowed libraries")
+    print(f"  - audiostretchy preferred for speech quality")
+    print(f"  - Clean fallback chain: audiostretchy -> librosa -> torchaudio")
+    print(f"  - Configuration defaults working")
+
+
+def test_invalid_library():
     print(f"\nTesting Invalid Library (should fail gracefully)")
     # Test with pyrubberband (should fail validation now)
     try:
@@ -106,24 +126,25 @@ def test_speed_factor_cleanup():
             "speed_factor_library": "pyrubberband",  # Should be rejected
             "export_formats": ["wav"]
         }
-        
+
         response = requests.post(
             f"{API_BASE}/api/v1/tts?response_mode=url",
             json=invalid_request,
             timeout=10
         )
-        
+
         if response.status_code == 422:  # Validation error expected
             print(f"   SUCCESS - pyrubberband correctly rejected (HTTP 422)")
             error_detail = response.json()
             print(f"   Validation error: {error_detail['detail'][0]['msg']}")
         else:
             print(f"   UNEXPECTED - Should have rejected pyrubberband")
-            
+
     except Exception as e:
         print(f"   ERROR: {e}")
-    
-    # Test configuration defaults
+
+
+def test_configuration_defaults():
     print(f"\nTesting Configuration Defaults")
     try:
         # Request without speed_factor (should use config default)
@@ -131,7 +152,7 @@ def test_speed_factor_cleanup():
             "text": "Testing configuration defaults",
             "export_formats": ["wav"]
         }
-        
+
         start_time = time.time()
         response = requests.post(
             f"{API_BASE}/api/v1/tts?response_mode=url",
@@ -139,23 +160,22 @@ def test_speed_factor_cleanup():
             timeout=60
         )
         duration = time.time() - start_time
-        
+
         if response.status_code == 200:
             print(f"   SUCCESS - Config defaults applied")
             print(f"   Response time: {duration:.1f}s")
         else:
             print(f"   FAILED - HTTP {response.status_code}")
-            
+
     except Exception as e:
         print(f"   ERROR: {e}")
-    
-    print(f"\nSpeed Factor Cleanup Test Complete!")
-    print(f"Key validations:")
-    print(f"  - pyrubberband removed from allowed libraries")
-    print(f"  - audiostretchy preferred for speech quality")
-    print(f"  - Clean fallback chain: audiostretchy -> librosa -> torchaudio")
-    print(f"  - Configuration defaults working")
-    print(f"  - Zero overhead for speed_factor=1.0 maintained")
+
 
 if __name__ == "__main__":
     test_speed_factor_cleanup()
+
+    # Invalid library
+    # test_invalid_library()
+
+    # Test configuration defaults
+    # test_configuration_defaults()

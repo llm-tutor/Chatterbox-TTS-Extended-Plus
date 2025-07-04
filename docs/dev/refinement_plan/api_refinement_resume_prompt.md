@@ -4,7 +4,8 @@
 I need to continue development of the **Chatterbox TTS Extended Plus API Refinement Project**. This is a systematic, phase-based project (Phases 9-14) to transform the existing FastAPI implementation from basic functionality into a production-ready, feature-rich API.
 
 ## Project Overview
-- **Current State**: Check `docs/dev/api_refinement_implementation_plan.md` for current phase status and pending tasks
+- **Current State**: Check 
+  `docs/dev/refinement_plan/api_refinement_implementation_plan.md` for current phase status and pending tasks
 - **Documentation State**: API Documentation Reorganization complete - Modular structure established
 - **Goal**: Implement streaming responses, file uploads, enhanced metadata, speed control, voice management, audio concatenation, and OpenAI compatibility
 - **Approach**: Incremental phases with detailed checklists, comprehensive testing, and validated documentation updates
@@ -13,7 +14,8 @@ I need to continue development of the **Chatterbox TTS Extended Plus API Refinem
 Please read and analyze the following documents to understand the current project state and continue development:
 
 ### Essential Context Documents:
-1. **Implementation Plan**: `docs/dev/api_refinement_implementation_plan.md` - Current phase status, task checklists, and next steps
+1. **Implementation Plan**: 
+   `docs/dev/refinement_plan/api_refinement_implementation_plan.md` - Current phase status, task checklists, and next steps
 2. **Conceptual Design**: Available in your project knowledge as 'api_refinement_conceptual_design.md' - Core design decisions and technical approach
 3. **Change History**: `docs/changelog.md` - Complete implementation history and version tracking
 4. **Current API Docs**: `docs/api/README.md` - Navigation hub for modular documentation structure
@@ -53,7 +55,8 @@ Look at **Modular Documentation Structure** in complete protocols.
 
 
 ### API Refinement Development Workflow:
-1. **Read Implementation Plan**: Check `docs/dev/api_refinement_implementation_plan.md` for current phase and tasks
+1. **Read Implementation Plan**: Check 
+   `docs/dev/refinement_plan/api_refinement_implementation_plan.md` for current phase and tasks
 2. **Examine Project Structure**: Understand current implementation state in core files
 3. **Complete Phase Tasks**: Follow detailed checklists in implementation plan
 4. **Update Modular Documentation**: Update relevant files across `docs/api/` structure as features are implemented
@@ -108,7 +111,8 @@ When implementing new features in this project, update these modular files:
 ## Expected Response Pattern
 
 **Phase Analysis:**
-1. Read `docs/dev/api_refinement_implementation_plan.md` and `docs/changelog.md` to identify current phase and status
+1. Read `docs/dev/refinement_plan/api_refinement_implementation_plan.md` and 
+   the top of `docs/changelog.md` to identify current phase and status
 2. Examine relevant project files (`main_api.py`, `api_models.py`, `core_engine.py`) to understand current implementation state
 3. Identify next specific task(s) from the phase checklist
 

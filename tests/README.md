@@ -46,6 +46,7 @@ cd tests && python generate_test_files.py
 ### Phase 11 - Audio Concatenation System
 - `test_phase11_5_mixed_concatenation.py` - Mixed source concatenation (server files + uploads + silence)
 - `test_phase11_task_11_9_file_management.py` - Complete file management system testing (upload, deletion, project organization)
+- `test_phase11_task_11_13_basic_concat_revision.py` - Basic concatenation revision testing (Task 11.13)
 
 #### **Complete File Management System** (`test_phase11_task_11_9_file_management.py`)
 ```bash
@@ -111,6 +112,52 @@ cd tests && python test_phase11_5_mixed_concatenation.py
 - ✅ Simple concatenations (Test 1, 3, 5) stream properly
 - ✅ URL response mode returns complete metadata
 - ✅ Small file operations work perfectly
+
+#### **Basic Concatenation Revision Testing** (`test_phase11_task_11_13_basic_concat_revision.py`)
+```bash
+cd tests && python test_phase11_task_11_13_basic_concat_revision.py
+```
+**Comprehensive testing of Task 11.13 implementation and Task 11.14 validation**:
+- **Post-concatenation format conversion**: Validates single concatenation + format conversion approach
+- **Project folder organization**: Tests project/folder parameters for output organization
+- **Enhanced logging validation**: Confirms detailed timing and process logging
+- **Backward compatibility**: Ensures all existing concatenation features work correctly
+
+**Key Test Scenarios** (Task 11.14 coverage):
+1. **Basic concatenation (no trimming)**: Simple file joining with multiple output formats ✅
+2. **Concatenation with trimming (no spaces)**: Uses `*-long.mp3` files to test silence removal ✅
+3. **Concatenation with trimming + custom spaces**: Combines trimming with pause insertion ✅
+4. **Project folder functionality**: Tests project/folder parameters and custom filenames
+5. **Format conversion efficiency**: Validates new single-concat + conversion approach
+6. **Backward compatibility**: Confirms manual silence, crossfade, and other features work
+
+**Test Files Used**:
+- `outputs/concatenation_test/*.mp3` - Regular audio files for basic testing
+- `outputs/concatenation_test/*-long.mp3` - Files with extra silence for trimming tests
+
+**Features Validated**:
+- ✅ Efficient format conversion (single concatenation + post-processing)
+- ✅ Project folder creation and file organization (`outputs/project/file.wav`)
+- ✅ Project/folder parameter aliasing and validation
+- ✅ Enhanced logging with timing information
+- ✅ Custom filename compatibility with project folders
+- ✅ All existing trimming, silence, and crossfade features
+- ✅ Multiple output format generation (wav, mp3, flac)
+- ✅ Streaming and URL response modes
+- ✅ Query parameter usage for response_mode
+
+**Performance Validation**:
+- **Efficiency**: Confirms processing time improvements from single concatenation
+- **Logging**: Validates detailed timing information for concatenation and conversion steps
+- **Organization**: Tests project folder creation and file path resolution
+
+**Important Note**: The `response_mode` parameter must be passed as a query parameter, not in the JSON body:
+```bash
+# Correct usage
+curl -X POST "http://localhost:7860/api/v1/concat?response_mode=url" -d '{"files": [...]}'
+# Incorrect usage  
+curl -X POST "http://localhost:7860/api/v1/concat" -d '{"files": [...], "response_mode": "url"}'
+```
 
 ### Legacy/Reference Tests
 - `test_api_basic.py` - Basic API functionality
