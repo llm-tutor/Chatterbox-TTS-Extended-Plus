@@ -10,11 +10,15 @@ Documents for ongoing projects and foundational standards:
 | Document | Purpose | Status |
 |----------|---------|---------|
 | **[implementation-protocols.md](implementation-protocols.md)** | Common protocols, guidelines, and testing procedures for all development projects | **Foundation** |
-| **[api_refinement_implementation_plan.md](refinement_plan/api_refinement_implementation_plan.md)** | API refinement project progress tracking and task checklists | **Active** |
-| **[api_refinement_resume_prompt.md](refinement_plan/api_refinement_resume_prompt.md)** | API refinement project guidelines and protocols | **Active** |
-| **refinement_plan/phase10_*.*** | API refinement research files and performance data | **Active** |
 
-In general, the documents for the refinement plan are inside the folder `docs/dev/refinement_plan/`, as the number of documents has grown lately.
+### **Pending Projects**
+Future development plans in standby:
+
+```
+pending_api_plans/
+├── openai_plan.md              # Phase 12: OpenAI Compatibility Layer
+└── api_polish_and_documentation.md    # Phase 13: Polish & Production Features
+```
 
 ### **Project Archives**
 Completed projects organized by category:
@@ -24,6 +28,7 @@ archives/
 ├── api-implementation/          # Original API development (Phases 1-7)
 ├── api-docs-reorganization/     # API documentation restructuring  
 ├── fastapi-migration/          # FastAPI migration project (Phases 1-5)
+├── refinement_plan/            # API refinement project (Phases 8-11)
 ├── two-tier-testing/           # Testing strategy implementation
 └── utils-refactoring/          # Utils.py modular refactoring project
 ```
@@ -43,9 +48,10 @@ Projects are archived when:
 2. **File Preservation**: All project files moved as-is to maintain history
 3. **Documentation Links**: Update any active references to archived files
 
-### **Active vs Archived**
+### **Active vs Archived vs Pending**
 - **Active**: Root-level files for ongoing development
 - **Foundation**: Core documents that support multiple projects (e.g., `implementation-protocols.md`)
+- **Pending**: Future projects in `pending_api_plans/` - not active but reserved for future implementation
 - **Archived**: Completed projects in organized subdirectories
 
 ### **Archive Contents**
@@ -60,8 +66,9 @@ Each project archive typically contains:
 ### **Getting Started with Development**
 1. **Read Foundation Documents**: Start with `implementation-protocols.md` for comprehensive development standards
 2. **Active Projects**: Check root-level files for ongoing work
-3. **Historical Context**: Review archived projects for patterns and lessons learned
-4. **Resume Development**: Use project-specific `*_resume_prompt.md` files when continuing work
+3. **Pending Projects**: Review `pending_api_plans/` for future work
+4. **Historical Context**: Review archived projects for patterns and lessons learned
+5. **Resume Development**: Use project-specific `*_resume_prompt.md` files when continuing work
 
 ### **Testing & Validation Standards**
 - **Core Validation**: `python scripts/test_core_examples.py` (2-3 minutes, implementation protocol)
@@ -102,11 +109,28 @@ Each project archive typically contains:
 - **Key Achievements**: 29 functions migrated across 6 modules, 100% backward compatibility, zero breaking changes
 - **Reference**: Modular architecture patterns and incremental migration strategies
 
+### **API Refinement** (`archives/refinement_plan/`)
+- **Scope**: Enhanced API features and user experience improvements (Phases 8-11)
+- **Key Achievements**: Speed factor control, enhanced file naming, voice management, audio concatenation, streaming responses, file upload integration
+- **Reference**: Advanced API feature patterns, performance optimization, and user experience design
+
+## 🔮 **Pending Projects Reference**
+
+### **OpenAI Compatibility** (`pending_api_plans/openai_plan.md`)
+- **Scope**: Phase 12 - Broader ecosystem integration
+- **Planned Features**: `/v1/audio/speech` endpoint, OpenAI parameter mapping, voice resolution system, client library compatibility
+- **Focus**: Drop-in replacement capability for OpenAI TTS API
+
+### **Polish & Production Features** (`pending_api_plans/api_polish_and_documentation.md`)
+- **Scope**: Phase 13 - Production readiness and advanced features
+- **Planned Features**: Advanced voice management, enhanced error handling, performance optimization, security validation
+- **Focus**: Production deployment readiness and enterprise features
+
 ## 🔍 **Finding Information**
 
 ### **Current Development**
-- **Active Projects**: Check root-level `*_implementation_plan.md` files
-- **Guidelines**: Use `*_resume_prompt.md` for project-specific protocols
+- **Active Projects**: Check root-level `*_implementation_plan.md` files (currently none - all complete)
+- **Guidelines**: Use `*_resume_prompt.md` for project-specific protocols (archived)
 - **Standards**: Reference `implementation-protocols.md` for common procedures
 
 ### **Historical Information**
@@ -143,6 +167,13 @@ When archiving new completed projects:
 4. Verify and update any broken links in active documents
 5. Add archive entry to project lifecycle tracking
 
+### **Activating Pending Projects**
+When starting work on pending projects:
+1. Move relevant files from `pending_api_plans/` to root level
+2. Create implementation plan and resume prompt documents
+3. Update this README to reflect active status
+4. Follow established development protocols
+
 ---
 
-**Note**: This documentation structure supports the complete development lifecycle from active development through historical preservation, enabling effective knowledge management and development continuity.
+**Note**: This documentation structure supports the complete development lifecycle from pending through active development to historical preservation, enabling effective knowledge management and development continuity.
