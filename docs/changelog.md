@@ -6,6 +6,67 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [🔧 Phase 11 Task 11.15: Mixed Concatenation Revision] - 2025-07-04
+
+### ⚡ MIXED CONCATENATION DECISION TREE IMPLEMENTATION
+
+**Major Enhancement**: Refactored mixed concatenation to follow the same decision tree pattern as basic concatenation, ensuring consistent parameter interaction logic across all concatenation modes.
+
+### Architecture Improvements
+- **Decision tree consistency**: Mixed concatenation now follows the same logical flow as basic concatenation
+  - Manual silence mode: `concatenate_with_mixed_silence()` (Cases 1a, 2a)
+  - Trimming mode: `concatenate_with_mixed_trimming()` (Cases 3a, 3b)  
+  - Basic mode: `concatenate_with_mixed_basic()` (Cases 4a, 4b)
+- **Parameter interaction alignment**: All mixed concatenation scenarios now handle trim/silence/pause parameters identically to basic concatenation
+- **Code organization**: Replaced single large function with three focused functions matching basic concatenation pattern
+
+### Technical Implementation
+- **New functions in `utils/concatenation/advanced.py`**:
+  - `concatenate_with_mixed_silence()`: Handles server files + uploads + manual silence
+  - `concatenate_with_mixed_trimming()`: Handles server files + uploads with trimming + natural pauses
+  - `concatenate_with_mixed_basic()`: Handles server files + uploads with natural pauses only
+- **Updated endpoint logic**: `/api/v1/concat/mixed` now uses the same decision tree as `/api/v1/concat`
+- **Comprehensive error handling**: Each function provides detailed error messages and logging
+- **Metadata consistency**: All functions return consistent metadata structure
+
+### User Experience Improvements
+- **Predictable behavior**: Mixed concatenation now behaves identically to basic concatenation for the same parameters
+- **Clear decision logic**: Manual silence overrides natural pauses, trimming works consistently across all modes
+- **Better error messages**: More specific error handling for mixed source scenarios
+
+### Code Quality
+- **Removed TODO**: Eliminated extensive TODO commentary from main_api.py
+- **Consistent patterns**: All concatenation functions now follow the same architectural approach
+- **Comprehensive logging**: Enhanced logging for mixed concatenation decision tree
+### Testing and Validation
+- **Comprehensive test suite**: Created `test_phase11_task_11_15_mixed_concat_revision.py`
+- **6 decision tree scenarios validated**:
+  - ✅ Case 1a: Manual silence WITH trimming - Mixed sources with precise timing control
+  - ✅ Case 2a: Manual silence WITHOUT trimming - Mixed sources preserving original timing
+  - ✅ Case 3a: Trimming with no natural pauses - Compact mixed concatenation
+  - ✅ Case 3b: Trimming WITH natural pauses - Clean & spaced mixed concatenation
+  - ✅ Case 4a: No trim, no natural pauses - Direct join of mixed sources
+  - ✅ Case 4b: No trim WITH natural pauses - Natural flow mixed concatenation
+- **Validation testing**: Error handling, missing references, consistency verification
+- **Test documentation**: Updated `tests/README.md` with comprehensive test coverage
+
+### Next Steps
+- **Task 11.16 planned**: Apply Task 11.13 optimization improvements to mixed concatenation
+  - Post-concatenation format conversion efficiency
+  - Project/folder parameter support
+  - Enhanced logging and monitoring
+  - Backward compatibility maintenance
+
+### Files Modified
+- `main_api.py`: Updated mixed concatenation endpoint to use decision tree
+- `utils/concatenation/advanced.py`: Added three new decision tree functions (~250 lines)
+- `tests/test_phase11_task_11_15_mixed_concat_revision.py`: Comprehensive test suite (~470 lines)
+- `tests/README.md`: Updated test documentation
+- `docs/dev/refinement_plan/api_refinement_implementation_plan.md`: Updated task completion and added Task 11.16
+- `docs/changelog.md`: Added implementation details
+
+---
+
 ## [🔧 Phase 11 Task 11.13: Basic Concatenation Revision] - 2025-07-03
 
 ### ⚡ CONCATENATION SYSTEM OPTIMIZATION

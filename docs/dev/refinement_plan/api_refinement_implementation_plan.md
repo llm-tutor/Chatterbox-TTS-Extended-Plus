@@ -78,16 +78,38 @@
 - [x] Format conversion efficiency validated
 - [x] Backward compatibility confirmed
 
-#### **Task 11.15: Revision of mixed concat**
- - [ ] The processing decision tree should match the basic one (see 
-   `docs/dev/refinement_plan/concat_parameter_interaction_design.md`)
-Note: There is an extensive note about this task in `main_api.py` lines 1558 
-   to 1566. After understanding the problem presented, update this task to 
-   steps more clearly defined if necessary. After addressing the issue, 
-   remove the TODO and the extensive commentary.
+#### **Task 11.15: Revision of mixed concat** ✅
+- [x] Refactored mixed concatenation to follow the same decision tree as basic concatenation
+- [x] Created three new functions matching the basic concatenation pattern:
+  - `concatenate_with_mixed_silence()` - Manual silence mode (Cases 1a, 2a)
+  - `concatenate_with_mixed_trimming()` - Trimming mode (Cases 3a, 3b)
+  - `concatenate_with_mixed_basic()` - Basic mode (Cases 4a, 4b)
+- [x] Updated mixed concatenation endpoint to use proper decision tree logic
+- [x] Removed TODO comment and extensive commentary from main_api.py
+- [x] All mixed concatenation now follows the same parameter interaction design as basic concatenation
+- [x] Comprehensive error handling and logging for all three modes
 
 
-#### **Task 11.16: Integration & Testing** - Several here already done?
+#### **Task 11.16: Revision of mixed concat optimization**
+- [ ] Apply Task 11.13 improvements to mixed concatenation:
+  - Change mixed concatenation to use post-concatenation format conversion
+  - Follow the same process as basic concatenation (single concat + format conversion)
+  - Use `engine.convert_audio_formats()` method for consistency
+- [ ] Add project/folder parameter support to mixed concatenation
+  - Implement `project` and `folder` parameters in `MixedConcatRequest` model
+  - Support output organization within `outputs/` directory (e.g., `outputs/project1/episode-01/`)
+  - Ensure compatibility with custom filename parameter
+- [ ] Enhanced logging and monitoring for mixed concatenation
+  - Add mode detection logging: "manual silence", "trimming", or "basic" mode
+  - Separate timing for concatenation vs format conversion operations
+  - File processing and target path logging for mixed sources
+  - Total operation time tracking with millisecond precision
+- [ ] Ensure backward compatibility with all existing mixed concatenation features
+  - Maintain all current mixed concatenation functionality
+  - Preserve crossfade, trimming, manual silence, and upload handling
+  - Validate seamless integration with existing API responses
+
+#### **Task 11.17: Integration & Testing** - Several here already done?
 - [ ] Add concat results to output metadata system (include silence/trim info)
 - [ ] Include concat files in `/api/v1/outputs` listings with processing metadata
 - [ ] Test cleanup of temporary processing files (trimmed audio cache)

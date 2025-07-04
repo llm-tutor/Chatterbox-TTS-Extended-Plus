@@ -47,7 +47,14 @@ from utils.voice.management import validate_voice_file, save_uploaded_voice, del
 from utils.voice.organization import bulk_delete_voices, get_voice_folder_structure
 from utils.outputs.management import scan_generated_files, find_files_by_names, save_generation_metadata
 from utils.concatenation.basic import concatenate_audio_files
-from utils.concatenation.advanced import concatenate_with_trimming, concatenate_with_mixed_sources, concatenate_with_silence
+from utils.concatenation.advanced import (
+    concatenate_with_trimming, 
+    concatenate_with_mixed_sources, 
+    concatenate_with_silence,
+    concatenate_with_mixed_silence,
+    concatenate_with_mixed_trimming,
+    concatenate_with_mixed_basic
+)
 from utils.concatenation.parsing import parse_concat_files
 from utils.files.naming import generate_enhanced_filename
 
@@ -1555,27 +1562,54 @@ async def concatenate_mixed_audio(
             
             output_path = outputs_dir / base_filename
 
-            # TODO: Validate concatenate_with_mixed_sources. The process should match basic concatenation in terms
-            # of the decision tree it follows (read docs/dev/refinement_plan/concat_parameter_interaction_design.md)
-            # Probably the best option would be to refactor basic and mixed, so we use the same logic for both
-            # The only significative difference between basic and mixed, is that the second receives also some files
-            # Once the uploaded files are stored, the processing should proceed just as it does for basic concatenation:
-            # We will be concatenating a series of files in the server, some already existing, some just uploaded,
-            # but from the perspective of the concatenating algorithm, all files are uploaded (as basic), and the
-            # process afterwards should be the same as basic concatenation
-            # Perform concatenation with mixed sources
-            concat_result = concatenate_with_mixed_sources(
-                segments=request.segments,
-                upload_paths=upload_paths,
-                output_path=output_path,
-                outputs_dir=outputs_dir,
-                normalize_levels=request.normalize_levels,
-                crossfade_ms=request.crossfade_ms,
-                trim=request.trim,
-                trim_threshold_ms=request.trim_threshold_ms,
-                pause_duration_ms=request.pause_duration_ms,
-                pause_variation_ms=request.pause_variation_ms
-            )
+            # Determine if we have manual silence in segments
+            has_manual_silence = any(seg.type == 'silence' for seg in request.segments)
+            
+            # Apply the same decision tree as basic concatenation
+            if has_manual_silence:
+                # Use enhanced mixed-mode concatenation with silence and pause support
+                logger.info("Mixed Concatenation - Using manual silence mode")
+                concat_result = concatenate_with_mixed_silence(
+                    segments=request.segments,
+                    upload_paths=upload_paths,
+                    output_path=output_path,
+                    outputs_dir=outputs_dir,
+                    normalize_levels=request.normalize_levels,
+                    crossfade_ms=request.crossfade_ms,
+                    trim=request.trim,
+                    trim_threshold_ms=request.trim_threshold_ms,
+                    pause_duration_ms=request.pause_duration_ms,
+                    pause_variation_ms=request.pause_variation_ms
+                )
+            else:
+                # Use concatenation with optional trimming for mixed sources
+                if request.trim:
+                    logger.info("Mixed Concatenation - Using trimming mode")
+                    concat_result = concatenate_with_mixed_trimming(
+                        segments=request.segments,
+                        upload_paths=upload_paths,
+                        output_path=output_path,
+                        outputs_dir=outputs_dir,
+                        normalize_levels=request.normalize_levels,
+                        crossfade_ms=request.crossfade_ms,
+                        trim=request.trim,
+                        trim_threshold_ms=request.trim_threshold_ms,
+                        pause_duration_ms=request.pause_duration_ms,
+                        pause_variation_ms=request.pause_variation_ms
+                    )
+                else:
+                    # Use basic concatenation for mixed sources
+                    logger.info("Mixed Concatenation - Using basic concatenation mode")
+                    concat_result = concatenate_with_mixed_basic(
+                        segments=request.segments,
+                        upload_paths=upload_paths,
+                        output_path=output_path,
+                        outputs_dir=outputs_dir,
+                        normalize_levels=request.normalize_levels,
+                        crossfade_ms=request.crossfade_ms,
+                        pause_duration_ms=request.pause_duration_ms,
+                        pause_variation_ms=request.pause_variation_ms
+                    )
             
             output_files.append(base_filename)
             

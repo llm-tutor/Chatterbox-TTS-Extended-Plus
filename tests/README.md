@@ -47,6 +47,7 @@ cd tests && python generate_test_files.py
 - `test_phase11_5_mixed_concatenation.py` - Mixed source concatenation (server files + uploads + silence)
 - `test_phase11_task_11_9_file_management.py` - Complete file management system testing (upload, deletion, project organization)
 - `test_phase11_task_11_13_basic_concat_revision.py` - Basic concatenation revision testing (Task 11.13)
+- `test_phase11_task_11_15_mixed_concat_revision.py` - Mixed concatenation decision tree testing (Task 11.15)
 
 #### **Complete File Management System** (`test_phase11_task_11_9_file_management.py`)
 ```bash
@@ -158,6 +159,53 @@ curl -X POST "http://localhost:7860/api/v1/concat?response_mode=url" -d '{"files
 # Incorrect usage  
 curl -X POST "http://localhost:7860/api/v1/concat" -d '{"files": [...], "response_mode": "url"}'
 ```
+
+#### **Mixed Concatenation Decision Tree Testing** (`test_phase11_task_11_15_mixed_concat_revision.py`)
+```bash
+cd tests && python test_phase11_task_11_15_mixed_concat_revision.py
+```
+**Comprehensive testing of Task 11.15 implementation - Mixed concatenation decision tree**:
+- **Decision tree consistency**: Validates that mixed concatenation follows the same parameter interaction logic as basic concatenation
+- **Manual silence mode**: Tests Cases 1a & 2a with server files + uploads + manual silence
+- **Trimming mode**: Tests Cases 3a & 3b with server files + uploads + trimming + natural pauses
+- **Basic mode**: Tests Cases 4a & 4b with server files + uploads + natural pauses only
+
+**Key Test Scenarios** (Decision Tree Coverage):
+1. **Case 1a**: Manual silence WITH trimming - Mixed sources with precise timing control ✅
+2. **Case 2a**: Manual silence WITHOUT trimming - Mixed sources preserving original timing ✅
+3. **Case 3a**: Trimming with no natural pauses - Compact mixed concatenation ✅
+4. **Case 3b**: Trimming WITH natural pauses - Clean & spaced mixed concatenation ✅
+5. **Case 4a**: No trim, no natural pauses - Direct join of mixed sources ✅
+6. **Case 4b**: No trim WITH natural pauses - Natural flow mixed concatenation ✅
+
+**Test Files Used**:
+- **Server files**: `outputs/concatenation_test/*.mp3` (including `-long.mp3` for trimming tests)
+- **Upload files**: `tests/media/alex.mp3`, `tests/media/jamie-01.mp3`, `tests/media/sean.mp3`
+- **Manual silence**: `"(500ms)"`, `"(1s)"`, `"(2.5s)"` notation testing
+
+**Features Validated**:
+- ✅ Three dedicated functions following basic concatenation pattern:
+  - `concatenate_with_mixed_silence()` - Manual silence mode
+  - `concatenate_with_mixed_trimming()` - Trimming mode
+  - `concatenate_with_mixed_basic()` - Basic mode
+- ✅ Parameter interaction consistency (manual silence overrides natural pauses)
+- ✅ Mixed source handling (server files + uploads + silence)
+- ✅ Enhanced error handling and validation
+- ✅ Crossfade logic matching basic concatenation
+- ✅ Multiple output format support
+- ✅ Comprehensive logging and timing information
+
+**Validation Testing**:
+- **Error handling**: Manual silence segments rejected in trimming mode
+- **Missing references**: Upload indices and server files validated
+- **Consistency**: Parameter interaction matches basic concatenation behavior
+- **Safety**: Proper file handle management for uploaded files
+
+**Architecture Validation**:
+- **Decision tree logic**: Mixed concatenation uses same branching as basic concatenation
+- **Code organization**: Three focused functions replacing single large function
+- **Metadata consistency**: All functions return consistent metadata structure
+- **Performance**: Efficient processing with proper resource management
 
 ### Legacy/Reference Tests
 - `test_api_basic.py` - Basic API functionality
