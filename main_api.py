@@ -1374,8 +1374,9 @@ async def concatenate_audio(
         )
         
         # Handle response mode
-        if response_mode == "stream" and len(output_files) == 1:
-            # Stream the first (primary) file
+        if response_mode == "stream" and len(output_files) > 0:
+            # Stream the first file (primary format) even when multiple formats are generated
+            # Additional formats are available via URLs in the response metadata
             primary_file = output_dir / output_files[0]
             if primary_file.exists():
                 def file_streamer():
@@ -1692,20 +1693,11 @@ async def concatenate_mixed_audio(
         )
         
         # Handle response mode
-        if response_mode == "stream" and len(output_files) == 1:
-            # Stream the first (primary) file
+        if response_mode == "stream" and len(output_files) > 0:
+            # Stream the first file (primary format) even when multiple formats are generated
+            # Additional formats are available via URLs in the response metadata
             primary_file = output_dir / output_files[0]
             if primary_file.exists():
-                # Ensure file is fully written to disk
-                import os
-                try:
-                    # Force file system sync to ensure data is written
-                    fd = os.open(str(primary_file), os.O_RDONLY)
-                    os.fsync(fd)
-                    os.close(fd)
-                except Exception as sync_error:
-                    logger.warning(f"File sync failed: {sync_error}")
-                
                 def file_streamer():
                     with open(primary_file, "rb") as f:
                         while chunk := f.read(8192):

@@ -6,6 +6,62 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [🎯 Phase 11 Task 11.17-11.18: Streaming Download Issue Resolution] - 2025-07-04
+
+### 🔧 CRITICAL FIX: Multi-Format Streaming & Download Corruption Resolution
+
+**Major Bug Fix**: Resolved critical download corruption issue affecting concatenation endpoints when requesting multiple audio formats in streaming mode.
+
+### Root Cause Analysis
+- **Issue Identified**: Streaming condition `len(output_files) == 1` prevented streaming when multiple formats were requested
+- **Manifestation**: 
+  - Small corrupted files (800-3000 bytes) downloaded instead of full audio files (2-4MB)
+  - JSON decode errors when tests expected streaming but got URL responses
+  - File sync warnings in mixed concatenation (red herring)
+
+### Core Fixes
+- **Streaming Logic Enhancement**: 
+  - **Before**: Only stream when exactly 1 output file exists (`len(output_files) == 1`)
+  - **After**: Stream when any output files exist (`len(output_files) > 0`)
+  - **Behavior**: Always stream first requested format; additional formats available via URLs in metadata
+- **Multi-Format Streaming Support**:
+  - Basic concatenation: `response_mode=stream` + `export_formats=["wav", "mp3"]` → streams WAV, provides MP3 URL
+  - Mixed concatenation: `response_mode=stream` + `export_formats=["wav", "mp3", "flac"]` → streams WAV, provides other URLs
+  - Consistent behavior across both concatenation endpoints
+
+### Test Infrastructure Improvements
+- **Parameter Usage Fix**: Corrected `response_mode` usage as query parameter instead of JSON body field
+- **Client Streaming**: Added `stream=True` to requests for proper large file handling
+- **Multi-Format Validation**: Tests now verify both streaming and multi-format generation work together
+
+### Performance & Reliability
+- **File Completion Waits Evaluation**: Determined unnecessary after streaming logic fix
+  - **Tested**: Full files download correctly without any timing delays
+  - **Removed**: All `wait_for_file_completion` calls from codebase (clean rollback)
+  - **Result**: Cleaner, faster code without scattered timing workarounds
+
+### Technical Implementation
+- **Files Modified**:
+  - `main_api.py`: Updated streaming conditions for basic and mixed concatenation
+  - `tests/test_phase11_task_11_13_basic_concat_revision.py`: Fixed parameter usage and client streaming
+- **Files Rolled Back** (unnecessary changes):
+  - `core_engine.py`: Removed unnecessary file completion waits
+  - `utils/concatenation/basic.py`: Removed unnecessary file completion waits  
+  - `utils/concatenation/advanced.py`: Removed unnecessary file completion waits
+
+### Validation Results
+- ✅ **Basic Concatenation**: Multi-format streaming works (3.6MB WAV files streamed correctly)
+- ✅ **Mixed Concatenation**: Multi-format streaming works (3.8MB WAV files streamed correctly)
+- ✅ **Download Integrity**: WAV files pass audio integrity checks (proper frame count, sample rate, duration)
+- ✅ **Test Coverage**: All 6 basic concatenation tests pass, all mixed concatenation tests pass
+
+### Next Steps (Task 11.19)
+- **TTS/VC Review**: Check if TTS and VC endpoints need similar multi-format streaming fixes
+- **Documentation**: Update API documentation to reflect corrected streaming behavior  
+- **OpenAPI**: Validate openapi.yaml correctly describes response_mode parameter usage
+
+---
+
 ## [🔧 Phase 11 Task 11.16: Mixed Concatenation Optimization] - 2025-07-04
 
 ### ⚡ MIXED CONCATENATION OPTIMIZATION IMPLEMENTATION

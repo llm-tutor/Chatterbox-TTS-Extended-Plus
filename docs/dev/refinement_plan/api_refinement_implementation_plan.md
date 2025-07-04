@@ -115,18 +115,61 @@
   - Consistent crossfade, trimming, manual silence with basic concatenation, 
     plus the mixed upload handling
 
-#### **Task 11.17: Integration & Testing** - Several here already done?
-- [ ] Add concat results to output metadata system (include silence/trim info)
-- [ ] Include concat files in `/api/v1/outputs` listings with processing metadata
-- [ ] Test cleanup of temporary processing files (trimmed audio cache)
-- [ ] Validate output quality and consistency with new features
-- [ ] Performance testing with multiple large files and complex processing
-- [ ] **ENHANCEMENT**: Address concatenation test script compatibility
-  - **Issue**: `test_curl_examples.py` fails on concat examples with fictional filenames
-  - **Solution**: Enhance test script to dynamically substitute real filenames from `/api/v1/outputs`
-  - **Alternative**: Create dedicated test-safe concatenation examples section
-  - **Current**: Core validation works, comprehensive testing needs enhancement
-  - **Priority**: Phase 11.5+ or dedicated test script improvement phase
+#### **Task 11.17: Fix download issues for concatenation** ✅
+- [x] Review the 'JSONDecodeError' in basic concat (see logs from executing `tests\test_phase11_task_11_13_basic_concat_revision.py`)
+- [x] Validate if the solution requires changes in the API method's definition
+- [x] Fix the problem and review if mixed output has a similar problem
+- [x] Validate the fix doesnt causes regressions, run small tests consistent with the documentation to do this
+- [x] Validate `tests\test_phase11_task_11_13_basic_concat_revision.py` is now free of issues
+- [x] Review the 'File sync failed' in mixed concat (see logs from executing `tests\test_phase11_task_11_16_mixed_concat_optimization.py`)
+- [x] Validate if the solution requires changes in the API method's definition (is the problem the server or the client?)
+- [x] Fix the problem and review if basic output has a similar problem 
+- [x] Validate the fix doesnt causes regressions, run small tests consistent with the documentation to do this
+- [x] Validate `tests\test_phase11_task_11_16_mixed_concat_optimization.py` is now free of issues
+- [x] **Root Cause Found**: Issue was multiple format confusion - when multiple formats requested, streaming condition failed
+- [x] **Fixed**: Test parameter usage (response_mode as query param), client streaming (stream=True), single format for streaming tests
+- [x] **Partially Complete**: File completion waits added but may be unnecessary; streaming logic needs enhancement for multiple formats
+
+#### **Task 11.18: Streaming Logic Enhancement & Comprehensive Testing** ✅
+- [x] **Fix Streaming Condition**: Modify `len(output_files) == 1` condition to stream first requested format even with multiple formats
+  - [x] Update basic concatenation streaming logic in main_api.py
+  - [x] Update mixed concatenation streaming logic in main_api.py
+  - [x] Document behavior: "Streaming mode returns first requested format; additional formats available via URLs in metadata"
+- [x] **Test Multi-Format Streaming**: Create tests validating streaming with multiple format requests
+  - [x] Test basic concatenation: `response_mode=stream` + `export_formats=["wav", "mp3"]` → streams WAV
+  - [x] Test mixed concatenation: `response_mode=stream` + `export_formats=["wav", "mp3", "flac"]` → streams WAV
+  - [x] Validate metadata includes URLs for all generated formats
+- [x] **Evaluate File Completion Waits**: Test if streaming fix eliminates need for file completion waits
+  - [x] Test streaming without waits to see if corruption still occurs
+  - [x] ✅ **Confirmed**: Waits unnecessary - issue was streaming logic, not timing
+  - [x] ✅ **Clean rollback**: Removed wait_for_file_completion calls from core_engine.py and utils/concatenation/
+- [ ] **Review TTS & VC Streaming**: Check if TTS and VC endpoints need similar fixes
+  - [ ] Review TTS streaming logic for multiple format handling
+  - [ ] Review VC streaming logic for multiple format handling  
+  - [ ] Apply consistent streaming behavior across all endpoints
+- [ ] **Documentation & Validation**
+  - [ ] Update basic concatenation documentation for corrected streaming behavior
+  - [ ] Update mixed concatenation documentation for corrected streaming behavior
+  - [ ] Validate openapi.yaml correctly describes response_mode parameter usage
+  - [ ] Update test files to remove incorrect response_mode usage in JSON bodies
+
+#### **Task 11.19: Complete API Streaming Consistency** 
+- [ ] **TTS Endpoint Review**: Ensure TTS follows same multi-format streaming pattern
+  - [ ] Check if TTS `response_mode=stream` works with multiple export_formats
+  - [ ] Test: `export_formats=["wav", "mp3"]` should stream WAV, provide MP3 URL in metadata
+  - [ ] Update TTS streaming logic if needed to match concatenation behavior
+- [ ] **VC Endpoint Review**: Ensure VC follows same multi-format streaming pattern  
+  - [ ] Check if VC `response_mode=stream` works with multiple export_formats
+  - [ ] Test: `export_formats=["wav", "flac"]` should stream WAV, provide FLAC URL in metadata
+  - [ ] Update VC streaming logic if needed to match concatenation behavior
+- [ ] **Cross-Endpoint Testing**: Validate consistent behavior across all streaming endpoints
+  - [ ] Create unified streaming test suite covering TTS, VC, basic concat, mixed concat
+  - [ ] Ensure all endpoints use same streaming logic and response patterns
+- [ ] **Final Documentation Updates**
+  - [ ] Update all endpoint documentation to reflect corrected streaming behavior
+  - [ ] Update openapi.yaml with consistent response_mode parameter descriptions
+  - [ ] Create developer guide for multi-format streaming behavior
+
 
 #### **Testing Focus**
 - Audio quality preservation during concatenation

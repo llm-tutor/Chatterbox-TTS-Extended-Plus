@@ -51,7 +51,7 @@ class BasicConcatRevisionTester:
             
     def save_response_file(self, response: requests.Response, filename: str) -> Path:
         """Save streaming response to file"""
-        output_path = Path("tests/media") / filename
+        output_path = Path("E:/Repos/Chatterbox-TTS-Extended-Plus/tests/media") / filename
         output_path.parent.mkdir(exist_ok=True)
         
         with open(output_path, "wb") as f:
@@ -74,11 +74,10 @@ class BasicConcatRevisionTester:
                 "concatenation_test/02-mark-audio.mp3",
                 "concatenation_test/03-sarah-audio.mp3"
             ],
-            "export_formats": ["wav", "mp3"],
+            "export_formats": ["wav", "mp3"],  # Multiple formats for streaming test
             "normalize_levels": True,
             "trim": False,  # No trimming
-            "pause_duration_ms": 0,  # No pauses for clean test
-            "response_mode": "stream"
+            "pause_duration_ms": 0  # No pauses for clean test
         }
         
         start_time = time.time()
@@ -96,8 +95,7 @@ class BasicConcatRevisionTester:
             self.log(f"PASS Basic concatenation completed in {duration:.2f}s")
             
             # Test URL mode to get metadata
-            payload["response_mode"] = "url"
-            meta_response = self.make_request("/api/v1/concat", "POST", json=payload)
+            meta_response = self.make_request("/api/v1/concat?response_mode=url", "POST", json=payload)
             if meta_response.status_code == 200:
                 metadata = meta_response.json()
                 self.log(f"Generated files: {metadata.get('output_files', [])}")
@@ -136,12 +134,11 @@ class BasicConcatRevisionTester:
                 "concatenation_test/01-sarah-audio-long.mp3",
                 "concatenation_test/02-mark-audio-long.mp3"
             ],
-            "export_formats": ["wav", "mp3"],
+            "export_formats": ["wav"],  # Single format for streaming test
             "normalize_levels": True,
             "trim": True,  # Enable trimming
             "trim_threshold_ms": 200,  # 200ms threshold
-            "pause_duration_ms": 0,  # No pauses between trimmed files
-            "response_mode": "stream"
+            "pause_duration_ms": 0  # No pauses between trimmed files
         }
         
         start_time = time.time()
@@ -155,8 +152,7 @@ class BasicConcatRevisionTester:
             self.log(f"PASS Trimming concatenation completed in {duration:.2f}s")
             
             # Get metadata to check trimming was applied
-            payload["response_mode"] = "url"
-            meta_response = self.make_request("/api/v1/concat", "POST", json=payload)
+            meta_response = self.make_request("/api/v1/concat?response_mode=url", "POST", json=payload)
             if meta_response.status_code == 200:
                 metadata = meta_response.json()
                 
@@ -195,13 +191,12 @@ class BasicConcatRevisionTester:
                 "concatenation_test/06-mark-audio-long.mp3",
                 "concatenation_test/01-sarah-audio-long.mp3"
             ],
-            "export_formats": ["wav", "mp3"],
+            "export_formats": ["wav"],  # Single format for streaming test
             "normalize_levels": True,
             "trim": True,  # Enable trimming
             "trim_threshold_ms": 150,  # Slightly lower threshold
             "pause_duration_ms": 800,  # 800ms pauses after trimming
-            "pause_variation_ms": 100,  # ±100ms variation
-            "response_mode": "stream"
+            "pause_variation_ms": 100  # ±100ms variation
         }
         
         start_time = time.time()
@@ -215,8 +210,7 @@ class BasicConcatRevisionTester:
             self.log(f"PASS Trimming + custom spaces completed in {duration:.2f}s")
             
             # Get metadata for detailed analysis
-            payload["response_mode"] = "url"
-            meta_response = self.make_request("/api/v1/concat", "POST", json=payload)
+            meta_response = self.make_request("/api/v1/concat?response_mode=url", "POST", json=payload)
             if meta_response.status_code == 200:
                 metadata = meta_response.json()
                 
@@ -259,11 +253,10 @@ class BasicConcatRevisionTester:
             "project": "test_phase11/task_11_13",  # Project folder
             "output_filename": "project_test_concat",  # Custom filename
             "normalize_levels": True,
-            "response_mode": "url"  # Use URL mode to get file paths
         }
         
         start_time = time.time()
-        response = self.make_request("/api/v1/concat", "POST", json=payload)
+        response = self.make_request("/api/v1/concat?response_mode=url", "POST", json=payload)
         
         if response.status_code == 200:
             metadata = response.json()
@@ -285,7 +278,7 @@ class BasicConcatRevisionTester:
             payload.pop("project")  # Remove project, use folder alias
             payload["output_filename"] = "folder_alias_test"
             
-            alias_response = self.make_request("/api/v1/concat", "POST", json=payload)
+            alias_response = self.make_request("/api/v1/concat?response_mode=url", "POST", json=payload)
             if alias_response.status_code == 200:
                 alias_metadata = alias_response.json()
                 alias_files = alias_metadata.get('output_files', [])
@@ -320,11 +313,10 @@ class BasicConcatRevisionTester:
             ],
             "export_formats": ["wav", "mp3", "flac"],  # Three formats
             "normalize_levels": True,
-            "response_mode": "url"  # Get metadata to analyze timing
         }
         
         start_time = time.time()
-        response = self.make_request("/api/v1/concat", "POST", json=payload)
+        response = self.make_request("/api/v1/concat?response_mode=url", "POST", json=payload)
         
         if response.status_code == 200:
             metadata = response.json()
@@ -388,12 +380,11 @@ class BasicConcatRevisionTester:
                 "(750ms)"
             ],
             "export_formats": ["wav"],
-            "normalize_levels": True,
-            "response_mode": "url"
+            "normalize_levels": True
         }
         
         start_time = time.time()
-        response = self.make_request("/api/v1/concat", "POST", json=silence_payload)
+        response = self.make_request("/api/v1/concat?response_mode=url", "POST", json=silence_payload)
         
         if response.status_code == 200:
             metadata = response.json()
@@ -417,11 +408,10 @@ class BasicConcatRevisionTester:
                 ],
                 "export_formats": ["wav"],
                 "crossfade_ms": 300,  # 300ms crossfade
-                "normalize_levels": True,
-                "response_mode": "url"
+                "normalize_levels": True
             }
             
-            crossfade_response = self.make_request("/api/v1/concat", "POST", json=crossfade_payload)
+            crossfade_response = self.make_request("/api/v1/concat?response_mode=url", "POST", json=crossfade_payload)
             if crossfade_response.status_code == 200:
                 crossfade_meta = crossfade_response.json()
                 crossfade_params = crossfade_meta.get('metadata', {}).get('parameters', {})

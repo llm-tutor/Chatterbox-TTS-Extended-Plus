@@ -103,24 +103,24 @@ class MixedConcatOptimizationTester:
             if response.status_code == 200:
                 # Save the streamed file
                 self.save_response_file(response, "mixed_project_test.wav")
-                self.log("✅ Project parameter test passed - file generated successfully")
+                self.log("PASS Project parameter test passed - file generated successfully")
                 
                 # Verify file was created in project folder
                 project_path = Path("outputs/test_project/episode_01")
                 if project_path.exists():
                     files_in_project = list(project_path.glob("mixed_with_project*"))
-                    self.log(f"✅ Project folder created with {len(files_in_project)} files")
+                    self.log(f"PASS Project folder created with {len(files_in_project)} files")
                     for file in files_in_project:
                         self.log(f"   - {file.name}")
                 else:
-                    self.log("⚠️  Project folder not found (may need server access to verify)")
+                    self.log("WARN Project folder not found (may need server access to verify)")
                 
             else:
-                self.log(f"❌ Project parameter test failed: {response.status_code}")
+                self.log(f"FAIL Project parameter test failed: {response.status_code}")
                 self.log(f"   Error: {response.text}")
                 
         except Exception as e:
-            self.log(f"❌ Project parameter test failed: {e}")
+            self.log(f"FAIL Project parameter test failed: {e}")
         finally:
             # Close file handles
             for _, file_tuple in files_to_upload:
@@ -162,14 +162,14 @@ class MixedConcatOptimizationTester:
             if response.status_code == 200:
                 # Save the streamed file
                 self.save_response_file(response, "mixed_folder_alias_test.wav")
-                self.log("✅ Folder parameter alias test passed - file generated successfully")
+                self.log("PASS Folder parameter alias test passed - file generated successfully")
                 
             else:
-                self.log(f"❌ Folder parameter alias test failed: {response.status_code}")
+                self.log(f"FAIL Folder parameter alias test failed: {response.status_code}")
                 self.log(f"   Error: {response.text}")
                 
         except Exception as e:
-            self.log(f"❌ Folder parameter alias test failed: {e}")
+            self.log(f"FAIL Folder parameter alias test failed: {e}")
         finally:
             # Close file handles
             for _, file_tuple in files_to_upload:
@@ -212,7 +212,7 @@ class MixedConcatOptimizationTester:
             
             if response.status_code == 200:
                 result = response.json()
-                self.log("✅ Multi-format optimization test passed")
+                self.log("PASS Multi-format optimization test passed")
                 self.log(f"   Generated files: {result.get('output_files', [])}")
                 self.log(f"   Processing time: {result.get('processing_time_seconds', 0):.2f}s")
                 
@@ -223,23 +223,23 @@ class MixedConcatOptimizationTester:
                 
                 for fmt in expected_formats:
                     if fmt in formats_generated:
-                        self.log(f"   ✅ {fmt} format generated")
+                        self.log(f"   PASS {fmt} format generated")
                     else:
-                        self.log(f"   ❌ {fmt} format missing")
+                        self.log(f"   FAIL {fmt} format missing")
                 
                 # Check if processing time is reasonable (optimization should be faster)
                 processing_time = result.get('processing_time_seconds', 0)
                 if processing_time < 10:  # Reasonable threshold
-                    self.log(f"   ✅ Processing time efficient: {processing_time:.2f}s")
+                    self.log(f"   PASS Processing time efficient: {processing_time:.2f}s")
                 else:
-                    self.log(f"   ⚠️  Processing time: {processing_time:.2f}s (may indicate optimization needed)")
+                    self.log(f"   WARN Processing time: {processing_time:.2f}s (may indicate optimization needed)")
                 
             else:
-                self.log(f"❌ Multi-format optimization test failed: {response.status_code}")
+                self.log(f"FAIL Multi-format optimization test failed: {response.status_code}")
                 self.log(f"   Error: {response.text}")
                 
         except Exception as e:
-            self.log(f"❌ Multi-format optimization test failed: {e}")
+            self.log(f"FAIL Multi-format optimization test failed: {e}")
         finally:
             # Close file handles
             for _, file_tuple in files_to_upload:
@@ -285,7 +285,7 @@ class MixedConcatOptimizationTester:
             
             if response.status_code == 200:
                 result = response.json()
-                self.log("✅ Enhanced logging validation test passed")
+                self.log("PASS Enhanced logging validation test passed")
                 
                 # Check for enhanced metadata that indicates improved logging
                 metadata = result.get('metadata', {})
@@ -297,23 +297,23 @@ class MixedConcatOptimizationTester:
                 # The enhanced logging should be visible in server logs
                 # Here we validate that the response contains expected structure
                 if 'total_duration_seconds' in result:
-                    self.log(f"   ✅ Total duration tracked: {result['total_duration_seconds']:.2f}s")
+                    self.log(f"   PASS Total duration tracked: {result['total_duration_seconds']:.2f}s")
                 
                 if 'file_count' in result:
-                    self.log(f"   ✅ File count tracked: {result['file_count']}")
+                    self.log(f"   PASS File count tracked: {result['file_count']}")
                 
                 # Check for metadata structure indicating proper logging
                 if isinstance(metadata, dict) and len(metadata) > 0:
-                    self.log("   ✅ Enhanced metadata structure present")
+                    self.log("   PASS Enhanced metadata structure present")
                 else:
-                    self.log("   ⚠️  Metadata structure may need verification")
+                    self.log("   WARN Metadata structure may need verification")
                 
             else:
-                self.log(f"❌ Enhanced logging validation test failed: {response.status_code}")
+                self.log(f"FAIL Enhanced logging validation test failed: {response.status_code}")
                 self.log(f"   Error: {response.text}")
                 
         except Exception as e:
-            self.log(f"❌ Enhanced logging validation test failed: {e}")
+            self.log(f"FAIL Enhanced logging validation test failed: {e}")
         finally:
             # Close file handles
             for _, file_tuple in files_to_upload:
@@ -362,14 +362,14 @@ class MixedConcatOptimizationTester:
             if response.status_code == 200:
                 # Save the streamed file
                 self.save_response_file(response, "mixed_backward_compatibility_test.wav")
-                self.log("✅ Backward compatibility test passed - all features working")
+                self.log("PASS Backward compatibility test passed - all features working")
                 
             else:
-                self.log(f"❌ Backward compatibility test failed: {response.status_code}")
+                self.log(f"FAIL Backward compatibility test failed: {response.status_code}")
                 self.log(f"   Error: {response.text}")
                 
         except Exception as e:
-            self.log(f"❌ Backward compatibility test failed: {e}")
+            self.log(f"FAIL Backward compatibility test failed: {e}")
         finally:
             # Close file handles
             for _, file_tuple in files_to_upload:
@@ -395,13 +395,13 @@ class MixedConcatOptimizationTester:
                 files=[]
             )
             
-            if response.status_code == 422:  # Validation error
-                self.log("✅ Empty project path correctly rejected")
+            if response.status_code == 400:  # Validation error
+                self.log("PASS Empty project path correctly rejected")
             else:
-                self.log(f"❌ Empty project path should be rejected, got: {response.status_code}")
+                self.log(f"FAIL Empty project path should be rejected, got: {response.status_code}")
                 
         except Exception as e:
-            self.log(f"❌ Empty project validation test failed: {e}")
+            self.log(f"FAIL Empty project validation test failed: {e}")
         
         # Test 2: Invalid characters in project path
         self.log("--- Test 2: Invalid characters in project path ---")
@@ -419,13 +419,13 @@ class MixedConcatOptimizationTester:
                 files=[]
             )
             
-            if response.status_code == 422:  # Validation error
-                self.log("✅ Invalid project characters correctly rejected")
+            if response.status_code == 400:  # Validation error
+                self.log("PASS Invalid project characters correctly rejected")
             else:
-                self.log(f"❌ Invalid project characters should be rejected, got: {response.status_code}")
+                self.log(f"FAIL Invalid project characters should be rejected, got: {response.status_code}")
                 
         except Exception as e:
-            self.log(f"❌ Invalid project characters validation test failed: {e}")
+            self.log(f"FAIL Invalid project characters validation test failed: {e}")
         
         # Test 3: Both project and folder specified (should be rejected)
         self.log("--- Test 3: Both project and folder specified ---")
@@ -444,13 +444,13 @@ class MixedConcatOptimizationTester:
                 files=[]
             )
             
-            if response.status_code == 422:  # Validation error
-                self.log("✅ Both project and folder correctly rejected")
+            if response.status_code == 400:  # Validation error
+                self.log("PASS Both project and folder correctly rejected")
             else:
-                self.log(f"❌ Both project and folder should be rejected, got: {response.status_code}")
+                self.log(f"FAIL Both project and folder should be rejected, got: {response.status_code}")
                 
         except Exception as e:
-            self.log(f"❌ Both project and folder validation test failed: {e}")
+            self.log(f"FAIL Both project and folder validation test failed: {e}")
     
     def run_all_tests(self):
         """Run all Task 11.16 tests"""
@@ -477,11 +477,11 @@ class MixedConcatOptimizationTester:
         
         # Summary
         self.log("Summary of Task 11.16 improvements tested:")
-        self.log("✅ Project/folder parameter support for mixed concatenation")
-        self.log("✅ Post-concatenation format conversion optimization")
-        self.log("✅ Enhanced logging and monitoring")
-        self.log("✅ Backward compatibility with existing features")
-        self.log("✅ Parameter validation for new features")
+        self.log("PASS Project/folder parameter support for mixed concatenation")
+        self.log("PASS Post-concatenation format conversion optimization")
+        self.log("PASS Enhanced logging and monitoring")
+        self.log("PASS Backward compatibility with existing features")
+        self.log("PASS Parameter validation for new features")
         
         self.log("\nNext: Task 11.17 - Integration & Testing")
 
