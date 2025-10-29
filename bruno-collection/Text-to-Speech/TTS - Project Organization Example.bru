@@ -1,0 +1,72 @@
+meta {
+  name: TTS - Project Organization Example
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{base_url}}/api/v1/tts?response_mode=url
+  body: json
+  auth: none
+}
+
+params:query {
+  response_mode: url
+}
+
+body:json {
+  {
+    "text": "This example demonstrates project organization with folder structure for managing generated audio files in organized directories.",
+    "reference_audio_filename": "speaker_en/jamie_vc_to_david-2.wav",
+    "export_formats": ["wav", "mp3"],
+    "project": "my_audiobook/chapter_01",
+    "temperature": 0.75,
+    "seed": 42
+  }
+}
+
+docs {
+  # Text-to-Speech - Project Organization Example
+  
+  Demonstrates organizing generated files in project folders within outputs directory.
+  
+  ## Project Organization Parameters
+  - **project**: Project folder path for organizing files (e.g., "my_audiobook/chapter_01")
+  - **folder**: Alias for project parameter (both work identically)
+  
+  ## File Organization
+  - Files are saved to: `outputs/{project}/filename.wav`
+  - Example: `outputs/my_audiobook/chapter_01/tts_2025-10-29_143022_456.wav`
+  - URLs reflect folder structure: `/outputs/my_audiobook/chapter_01/filename.wav`
+  
+  ## Response Structure
+  ```json
+  {
+    "success": true,
+    "output_files": [
+      {
+        "format": "wav",
+        "filename": "tts_2025-10-29_143022_456.wav",
+        "url": "/outputs/my_audiobook/chapter_01/tts_2025-10-29_143022_456.wav",
+        "path": "E:/Repos/.../outputs/my_audiobook/chapter_01/tts_2025-10-29_143022_456.wav"
+      }
+    ]
+  }
+  ```
+  
+  ## Use Cases
+  - Audiobook chapter organization
+  - Multi-project workflows
+  - Campaign-specific audio
+  - Course content organization
+  - Client project separation
+  
+  ## Response Mode
+  - **response_mode=url**: Returns JSON with file URLs and metadata
+  
+  ## Best Practices
+  - Use descriptive folder names
+  - Organize by project/chapter/section hierarchy
+  - Consistent naming conventions
+  - Consider cleanup workflows for old projects
+}

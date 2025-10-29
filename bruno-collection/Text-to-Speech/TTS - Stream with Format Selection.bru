@@ -1,0 +1,65 @@
+meta {
+  name: TTS - Stream with Format Selection
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/v1/tts?response_mode=stream&return_format=mp3
+  body: json
+  auth: none
+}
+
+params:query {
+  response_mode: stream
+  return_format: mp3
+}
+
+body:json {
+  {
+    "text": "This demonstration shows format selection with voice cloning. The system generates multiple formats but streams the requested one.",
+    "reference_audio_filename": "speaker_en/jamie_vc_to_david-2.wav",
+    "export_formats": ["wav", "mp3", "flac"],
+    "temperature": 0.8,
+    "seed": 42,
+    "exaggeration": 0.6
+  }
+}
+
+docs {
+  # Text-to-Speech - Stream with Format Selection
+  
+  Generate multiple audio formats but stream a specific one, with voice cloning.
+  
+  ## Input Method
+  - **Content-Type**: application/json
+  - **Text Input**: Plain text string
+  - **Voice Cloning**: Uses reference audio for voice characteristics
+  
+  ## Response Mode
+  - **response_mode=stream**: Returns binary audio file directly
+  - **return_format=mp3**: Streams MP3 while generating WAV and FLAC too
+  
+  ## Parameters
+  - **text**: Text to synthesize (required)
+  - **reference_audio_filename**: Voice reference file in reference_audio/ directory
+  - **export_formats**: Multiple formats to generate
+  - **temperature**: Generation randomness (0.0-2.0, default: 0.75)
+  - **seed**: Random seed for reproducibility (0 = random, >0 = fixed)
+  - **exaggeration**: Voice expressiveness (0.0-1.0, default: 0.5)
+  
+  ## Query Parameters
+  - **return_format**: Which format to stream (mp3, wav, flac)
+  
+  ## Response
+  - HTTP 200 with binary MP3 data
+  - Content-Type: audio/mpeg
+  - Content-Disposition: attachment; filename="tts_..._temp0.8_seed42.mp3"
+  - X-Alternative-Formats: wav:/outputs/...,flac:/outputs/...
+  
+  ## Example Use Case
+  - Voice cloning with specific speaker
+  - Multi-format generation with immediate playback
+  - Reproducible results using seed
+  - Adjusting voice characteristics
+}

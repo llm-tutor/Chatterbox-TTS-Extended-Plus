@@ -11,11 +11,17 @@ This directory contains quick reference guides for each API endpoint in the Chat
 - Format selection reference
 - Performance estimates
 
+### Text-to-Speech (TTS)
+**[Text-to-Speech Quick Reference](text-to-speech.md)**
+- 6 request variants (3 core + 3 advanced features)
+- Voice quality parameters (temperature, exaggeration, seed)
+- Speed control and audio trimming options
+- Common use cases and performance estimates
+
 ### Coming Soon
 
 Additional quick references will be added as the Bruno collection expands:
 
-- **Text-to-Speech (TTS)** - Speech generation parameters and voices
 - **Audio Concatenation** - Combining audio files with crossfade
 - **Voice Management** - Upload and manage reference voices
 - **File Operations** - List, download, and manage generated files

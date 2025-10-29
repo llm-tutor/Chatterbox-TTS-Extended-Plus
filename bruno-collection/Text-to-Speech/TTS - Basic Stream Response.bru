@@ -1,0 +1,54 @@
+meta {
+  name: TTS - Basic Stream Response
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/v1/tts?response_mode=stream
+  body: json
+  auth: none
+}
+
+params:query {
+  response_mode: stream
+}
+
+body:json {
+  {
+    "text": "Hello world! This is a basic test of the TTS API with default parameters.",
+    "export_formats": ["wav"]
+  }
+}
+
+docs {
+  # Text-to-Speech - Basic Stream Response
+  
+  Basic TTS generation with default parameters and streaming response.
+  
+  ## Input Method
+  - **Content-Type**: application/json
+  - **Text Input**: Plain text string (max 10,000 characters)
+  - **No Voice Cloning**: Uses default voice
+  
+  ## Response Mode
+  - **response_mode=stream** (default): Returns binary audio file directly
+  - Binary response with Content-Disposition header containing filename
+  - X-Alternative-Formats header lists URLs to other generated formats
+  
+  ## Parameters
+  - **text**: Text to synthesize (required)
+  - **export_formats**: Array of formats to generate (["wav"], ["mp3"], ["flac"], ["wav","mp3"])
+  
+  ## Response
+  - HTTP 200 with binary audio data
+  - Content-Type: audio/wav
+  - Content-Disposition: attachment; filename="tts_2025-10-29_143022_456_temp0.75_seed0.wav"
+  - X-Alternative-Formats: (if multiple formats requested)
+  
+  ## Example Use Case
+  - Quick text-to-speech generation
+  - Testing TTS functionality
+  - Simple voice output for applications
+  - Default voice testing
+}

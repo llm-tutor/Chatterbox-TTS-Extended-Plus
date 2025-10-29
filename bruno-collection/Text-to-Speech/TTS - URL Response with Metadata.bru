@@ -1,0 +1,81 @@
+meta {
+  name: TTS - URL Response with Metadata
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/api/v1/tts?response_mode=url
+  body: json
+  auth: none
+}
+
+params:query {
+  response_mode: url
+}
+
+body:json {
+  {
+    "text": "This example demonstrates URL response mode with complete metadata including processing time, seed used, and multiple format URLs.",
+    "reference_audio_filename": "speaker_en/jamie_vc_to_david-2.wav",
+    "export_formats": ["wav", "mp3", "flac"],
+    "temperature": 0.75,
+    "seed": 123,
+    "exaggeration": 0.5,
+    "cfg_weight": 1.0,
+    "bypass_whisper_checking": true
+  }
+}
+
+docs {
+  # Text-to-Speech - URL Response with Metadata
+  
+  Generate TTS and receive JSON response with file URLs and comprehensive metadata.
+  
+  ## Input Method
+  - **Content-Type**: application/json
+  - **Text Input**: Plain text string
+  - **Voice Cloning**: Optional reference audio
+  
+  ## Response Mode
+  - **response_mode=url**: Returns JSON with file URLs and metadata
+  - Best for workflows needing file information
+  - Ideal for batch processing and async operations
+  
+  ## Parameters
+  - **text**: Text to synthesize (required)
+  - **reference_audio_filename**: Voice reference file (optional)
+  - **export_formats**: Formats to generate
+  - **temperature**: Generation randomness (default: 0.75)
+  - **seed**: Random seed (0 = random)
+  - **exaggeration**: Voice expressiveness (default: 0.5)
+  - **cfg_weight**: Classifier-free guidance weight (default: 1.0)
+  - **bypass_whisper_checking**: Skip quality validation (faster, default: false)
+  
+  ## Response
+  ```json
+  {
+    "success": true,
+    "output_files": [
+      {
+        "format": "wav",
+        "filename": "tts_2025-10-29_143022_456_temp0.75_seed123.wav",
+        "url": "/outputs/tts_2025-10-29_143022_456_temp0.75_seed123.wav",
+        "path": "E:/Repos/.../outputs/tts_2025-10-29_143022_456_temp0.75_seed123.wav"
+      },
+      ...
+    ],
+    "generation_seed_used": 123,
+    "processing_time_seconds": 5.2,
+    "message": "TTS generation completed successfully",
+    "timestamp": "2025-10-29T14:30:22Z"
+  }
+  ```
+  
+  ## Example Use Case
+  - Batch processing workflows
+  - Applications needing metadata
+  - Async generation workflows
+  - Multiple format access
+  - Processing time tracking
+}

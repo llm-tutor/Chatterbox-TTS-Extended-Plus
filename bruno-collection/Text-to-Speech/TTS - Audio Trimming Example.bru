@@ -1,0 +1,60 @@
+meta {
+  name: TTS - Audio Trimming Example
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/api/v1/tts?response_mode=url
+  body: json
+  auth: none
+}
+
+params:query {
+  response_mode: url
+}
+
+body:json {
+  {
+    "text": "This example demonstrates automatic silence trimming for professional audio production with clean start and end points.",
+    "reference_audio_filename": "speaker_en/jamie_vc_to_david-2.wav",
+    "export_formats": ["wav", "mp3"],
+    "trim": true,
+    "trim_threshold_ms": 150,
+    "temperature": 0.75,
+    "seed": 42
+  }
+}
+
+docs {
+  # Text-to-Speech - Audio Trimming Example
+  
+  Demonstrates automatic silence removal for professional audio output.
+  
+  ## Audio Trimming Parameters
+  - **trim**: Enable silence trimming (default: false)
+  - **trim_threshold_ms**: Silence threshold in milliseconds (50-1000, default: 200)
+    - Lower values = more aggressive trimming
+    - Higher values = more conservative trimming
+  
+  ## Trimming Process
+  1. **Silence Detection**: Uses librosa to analyze audio
+  2. **Threshold Analysis**: Detects silence below specified threshold (dB)
+  3. **Conservative Approach**: Leaves small buffer to avoid cutting audio
+  4. **Smart Processing**: Skips files without significant silence
+  
+  ## Use Cases
+  - Remove TTS generation artifacts
+  - Professional audio production
+  - Consistent timing for concatenation
+  - Clean audio for presentations
+  - Podcast and audiobook production
+  
+  ## Response Mode
+  - **response_mode=url**: Returns JSON with file URLs and metadata
+  
+  ## Recommendations
+  - Start with 150-200ms for most speech
+  - Use 100-150ms for very clean requirements
+  - Use 250-300ms for more conservative trimming
+}

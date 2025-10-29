@@ -1,0 +1,63 @@
+meta {
+  name: TTS - Speed Control Example
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/api/v1/tts?response_mode=url
+  body: json
+  auth: none
+}
+
+params:query {
+  response_mode: url
+}
+
+body:json {
+  {
+    "text": "This example demonstrates speed control with high-quality audiostretchy library for natural sounding faster speech.",
+    "reference_audio_filename": "speaker_en/jamie_vc_to_david-2.wav",
+    "export_formats": ["wav", "mp3"],
+    "speed_factor": 1.3,
+    "speed_factor_library": "audiostretchy",
+    "temperature": 0.75,
+    "seed": 42
+  }
+}
+
+docs {
+  # Text-to-Speech - Speed Control Example
+  
+  Demonstrates speed adjustment using high-quality audio processing libraries.
+  
+  ## Speed Control Parameters
+  - **speed_factor**: Playback speed multiplier (0.5-2.0, default: 1.0)
+    - 1.0 = normal speed
+    - 1.5 = 50% faster
+    - 0.8 = 20% slower
+  - **speed_factor_library**: Processing library selection
+    - "auto" = Smart selection (default)
+    - "audiostretchy" = Best quality, TDHS algorithm (recommended)
+    - "librosa" = Good baseline compatibility
+    - "torchaudio" = Basic fallback (affects pitch)
+  
+  ## Library Comparison
+  - **audiostretchy**: Superior speech quality with formant preservation
+  - **librosa**: Good quality, widely compatible
+  - **torchaudio**: Affects pitch, use only as fallback
+  
+  ## Response Mode
+  - **response_mode=url**: Returns JSON with file URLs and metadata
+  
+  ## Example Use Cases
+  - Faster audiobook narration
+  - Slower speech for learning materials
+  - Adjusting pacing for different audiences
+  - Time-constrained content delivery
+  
+  ## Performance Notes
+  - Speed adjustment adds ~10-20% processing time
+  - audiostretchy provides best quality for speech
+  - Results are preserved in generated filename
+}

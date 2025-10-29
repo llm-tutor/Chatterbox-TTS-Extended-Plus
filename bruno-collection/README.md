@@ -24,10 +24,13 @@ bruno-collection/
 ├── README.md                          # This file - overview and index
 ├── quick-reference/                   # Quick reference guides
 │   ├── README.md                     # Quick reference index
-│   └── voice-conversion.md           # VC quick reference
+│   ├── voice-conversion.md           # VC quick reference
+│   └── text-to-speech.md             # TTS quick reference
 ├── environments/
 │   └── Local.bru                     # Local environment (localhost:7860)
-└── Voice Conversion/                  # VC endpoint requests (6 variants)
+├── Voice Conversion/                  # VC endpoint requests (6 variants)
+│   └── [.bru request files]
+└── Text-to-Speech/                    # TTS endpoint requests (6 variants)
     └── [.bru request files]
 ```
 
@@ -51,11 +54,21 @@ bruno-collection/
 - **Quick Reference**: [voice-conversion.md](quick-reference/voice-conversion.md)
 
 ### Text-to-Speech (TTS)
-**Status**: 🚧 Planned  
+**Status**: ✅ Complete (6 request variants)  
 **Endpoint**: POST /api/v1/tts  
-**Purpose**: Generate speech from text
+**Purpose**: Generate speech from text with voice cloning and advanced features
 
-*Coming soon...*
+**Request Variants**:
+- Basic Stream Response (default voice)
+- Stream with Format Selection (voice cloning, multiple formats)
+- URL Response with Metadata (JSON response)
+- Speed Control Example (adjustable playback speed)
+- Audio Trimming Example (silence removal)
+- Project Organization Example (folder structure)
+
+**Documentation**:
+- **Detailed Guide**: [Text-to-Speech Folder](Text-to-Speech/) (includes comprehensive README)
+- **Quick Reference**: [text-to-speech.md](quick-reference/text-to-speech.md)
 
 ### Audio Concatenation
 **Status**: 🚧 Planned  
@@ -107,7 +120,7 @@ Check [quick-reference/](quick-reference/) for parameter guides and use case sum
 
 ### 4. Run Your First Request
 
-Recommended starting point: **Voice Conversion - JSON Request - Stream Response**
+**For Voice Conversion**: **VC - JSON Request - Stream Response**
 
 1. Navigate to `Voice Conversion` folder
 2. Open "VC - JSON Request - Stream Response"
@@ -116,17 +129,34 @@ Recommended starting point: **Voice Conversion - JSON Request - Stream Response*
 5. Click "Send" or press Ctrl+Enter
 6. View the streamed audio response
 
+**For Text-to-Speech**: **TTS - Basic Stream Response**
+
+1. Navigate to `Text-to-Speech` folder
+2. Open "TTS - Basic Stream Response"
+3. Review the text parameter
+4. Click "Send" or press Ctrl+Enter
+5. Download and play the generated speech
+
 ## General Tips and Best Practices
 
 ### File Preparation
 
-**For JSON Requests** (files on server):
+**For Voice Conversion**:
+
+**JSON Requests** (files on server):
 - Input audio: Place in `vc_inputs/` directory
 - Target voices: Place in `reference_audio/` directory
 
-**For File Upload Requests**:
+**File Upload Requests**:
 - Upload directly from anywhere on your system
 - Update file path in Bruno: `@file(C:/path/to/audio.wav)`
+
+**For Text-to-Speech**:
+
+**Reference Audio** (optional, for voice cloning):
+- Place reference voices in `reference_audio/` directory
+- Examples: `speaker_en/jamie_vc_to_david-2.wav`, `test_voices/linda_johnson_01.mp3`
+- Requirements: 10-30 seconds of clear speech, minimal noise
 
 ### Response Types
 
@@ -148,10 +178,18 @@ Recommended starting point: **Voice Conversion - JSON Request - Stream Response*
 - Consider making a health check first: GET /api/v1/health
 
 **Processing Time Estimates**:
+
+**Voice Conversion**:
 - 30 seconds audio: 15-30 seconds
 - 2 minutes audio: 45-90 seconds  
 - 5 minutes audio: 2-4 minutes
 - 10+ minutes: 0.4-0.8x audio length
+
+**Text-to-Speech**:
+- 1-2 sentences: 2-5 seconds
+- 1 paragraph: 5-15 seconds (with quality validation)
+- Long text (batched): 30-60 seconds
+- With voice cloning: +20-50% processing time
 
 ### Monitoring and Debugging
 
@@ -185,7 +223,8 @@ Get-Content logs/chatterbox_extended.log -Wait
 **Slow Performance**:
 - First request after start takes longer (model loading)
 - Check server logs for errors
-- Increase chunk_sec parameter for voice conversion
+- For VC: Increase chunk_sec parameter
+- For TTS: Set `bypass_whisper_checking: true` for faster processing
 
 **Request Fails**:
 - Review response body for error details
@@ -197,12 +236,14 @@ Get-Content logs/chatterbox_extended.log -Wait
 ### API Documentation
 - **Main API Docs**: `docs/api/README.md`
 - **Voice Conversion**: `docs/api/endpoints/voice-conversion.md`
+- **Text-to-Speech**: `docs/api/endpoints/tts.md`
 - **Quick Start Guide**: `docs/api/quick-start.md`
 - **Error Handling**: `docs/api/guides/error-handling.md`
 
 ### Development
 - **Implementation Protocols**: `docs/dev/implementation-protocols.md`
-- **Test Client**: `tests/test_vc_client.py`
+- **VC Test Client**: `tests/test_vc_client.py`
+- **TTS Test Client**: `tests/test_tts_client.py`
 
 ## Contributing
 
