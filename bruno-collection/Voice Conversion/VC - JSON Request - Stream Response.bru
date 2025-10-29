@@ -1,0 +1,61 @@
+meta {
+  name: VC - JSON Request - Stream Response
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/v1/vc?response_mode=stream
+  body: json
+  auth: none
+}
+
+params:query {
+  response_mode: stream
+}
+
+body:json {
+  {
+    "input_audio_source": "josh.mp3",
+    "target_voice_source": "speaker_en/DAVID-2.mp3",
+    "chunk_sec": 60,
+    "overlap_sec": 0.1,
+    "export_formats": ["wav"],
+    "disable_watermark": true
+  }
+}
+
+docs {
+  # Voice Conversion - JSON Request with Streaming Response
+  
+  This is the traditional method for voice conversion where audio files already exist on the server.
+  
+  ## Input Method
+  - **Content-Type**: application/json
+  - **Input Audio**: File must exist in `vc_inputs/` directory
+  - **Target Voice**: File must exist in `reference_audio/` directory
+  
+  ## Response Mode
+  - **response_mode=stream** (default): Returns binary audio file directly
+  - Binary response with Content-Disposition header containing filename
+  - X-Alternative-Formats header lists URLs to other generated formats
+  
+  ## Parameters
+  - **input_audio_source**: Filename in vc_inputs/ (e.g., "josh.mp3", "test_inputs/chatterbox-in-a-village-of-la-mancha.mp3")
+  - **target_voice_source**: Filename in reference_audio/ (e.g., "speaker_en/DAVID-2.mp3")
+  - **chunk_sec**: Chunk size in seconds (10-300, default: 60)
+  - **overlap_sec**: Overlap between chunks (0.0-2.0, default: 0.1)
+  - **export_formats**: Array of formats to generate (["wav"], ["mp3"], ["flac"], ["wav","mp3"])
+  - **disable_watermark**: Disable audio watermarking (default: true)
+  
+  ## Response
+  - HTTP 200 with binary audio data
+  - Content-Type: audio/wav (or audio/mpeg, audio/flac depending on return_format)
+  - Content-Disposition: attachment; filename="vc_2025-06-22_143045_789_chunk60_overlap0.1.wav"
+  - X-Alternative-Formats: mp3:/outputs/vc_2025-06-22_143045_789_chunk60_overlap0.1.mp3
+  
+  ## Example Use Case
+  - Batch processing of pre-uploaded files
+  - Server-side automation workflows
+  - Processing files without size limitations
+}

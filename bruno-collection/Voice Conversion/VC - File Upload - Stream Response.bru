@@ -1,0 +1,64 @@
+meta {
+  name: VC - File Upload - Stream Response
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/api/v1/vc?response_mode=stream
+  body: multipartForm
+  auth: none
+}
+
+params:query {
+  response_mode: stream
+}
+
+body:multipart-form {
+  input_audio: @file(./test-files/sample-recording.wav)
+  target_voice_source: test_voices/linda_johnson_02.mp3
+  chunk_sec: 60
+  overlap_sec: 0.1
+  export_formats: wav,mp3
+  disable_watermark: true
+}
+
+docs {
+  # Voice Conversion - File Upload with Streaming Response
+  
+  Upload audio files directly without pre-staging them on the server.
+  
+  ## Input Method
+  - **Content-Type**: multipart/form-data
+  - **File Upload**: Direct upload in the request (max 100MB)
+  - **Target Voice**: Still references file in reference_audio/
+  
+  ## Form Fields
+  - **input_audio**: File upload field (required)
+  - **target_voice_source**: Target voice filename (required)
+  - **chunk_sec**: Integer, default 60
+  - **overlap_sec**: Float, default 0.1
+  - **export_formats**: Comma-separated string (e.g., "wav,mp3,flac")
+  - **disable_watermark**: Boolean, default true
+  
+  ## Response
+  - Binary audio file streamed directly
+  - Content-Type matches the requested format
+  - Content-Disposition with generated filename
+  - X-Alternative-Formats lists other generated files
+  
+  ## Use Cases
+  - Web interfaces with file upload forms
+  - Mobile apps recording and converting audio
+  - Client applications without server access
+  - Processing user-uploaded content
+  
+  ## File Requirements
+  - Maximum file size: 100MB
+  - Supported formats: WAV, MP3, FLAC
+  - Recommended: Clear speech, minimal noise
+  
+  ## Note on Test File
+  Replace `@file(./test-files/sample-recording.wav)` with an actual file path
+  relative to this Bruno collection or use an absolute path.
+}

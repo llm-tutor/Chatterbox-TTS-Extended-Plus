@@ -1,0 +1,17 @@
+# Test files - don't commit large audio files
+test-files/
+*.wav
+*.mp3
+*.flac
+*.ogg
+
+# Bruno local settings
+.bruno/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp

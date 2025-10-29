@@ -1,0 +1,63 @@
+meta {
+  name: VC - File Upload - Stream with Format Selection
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/api/v1/vc?response_mode=stream&return_format=flac
+  body: multipartForm
+  auth: none
+}
+
+params:query {
+  response_mode: stream
+  return_format: flac
+}
+
+body:multipart-form {
+  input_audio: @file(./test-files/sample-recording.wav)
+  target_voice_source: test_voices/linda_johnson_02.mp3
+  chunk_sec: 30
+  overlap_sec: 0.2
+  export_formats: wav,mp3,flac
+  disable_watermark: true
+}
+
+docs {
+  # Voice Conversion - File Upload with Format Selection
+  
+  Upload audio and generate multiple formats, streaming a specific format.
+  
+  ## Advanced Features
+  - Shorter chunk size (30s) for better quality on longer files
+  - Increased overlap (0.2s) for smoother transitions
+  - Generate 3 formats but stream FLAC
+  
+  ## Chunking Strategy
+  
+  **Optimal Chunk Sizes by Audio Length:**
+  - < 2 minutes: 60 seconds (single chunk)
+  - 2-10 minutes: 30-45 seconds (balanced)
+  - > 10 minutes: 20-30 seconds (prevent memory issues)
+  
+  ## Overlap Settings
+  - 0.1s: Standard, minimal memory usage
+  - 0.2s: Smoother transitions for music/singing
+  - 0.5-1.0s: Very smooth but slower processing
+  
+  ## Format Characteristics
+  - **WAV**: Lossless, largest file, best quality
+  - **MP3**: Lossy, smallest file, good quality
+  - **FLAC**: Lossless, compressed, excellent balance
+  
+  ## Response
+  - Content-Type: audio/flac
+  - FLAC file streamed directly
+  - X-Alternative-Formats: wav:/outputs/...,mp3:/outputs/...
+  
+  ## Processing Time Estimates
+  - 30 seconds audio: 15-30 seconds processing
+  - 2 minutes audio: 45-90 seconds processing
+  - 5 minutes audio: 2-4 minutes processing
+}

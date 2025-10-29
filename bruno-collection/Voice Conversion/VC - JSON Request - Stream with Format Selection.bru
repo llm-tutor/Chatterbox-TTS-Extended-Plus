@@ -1,0 +1,53 @@
+meta {
+  name: VC - JSON Request - Stream with Format Selection
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/v1/vc?response_mode=stream&return_format=mp3
+  body: json
+  auth: none
+}
+
+params:query {
+  response_mode: stream
+  return_format: mp3
+}
+
+body:json {
+  {
+    "input_audio_source": "sean.mp3",
+    "target_voice_source": "speaker_en/DAVID-2.mp3",
+    "chunk_sec": 60,
+    "overlap_sec": 0.1,
+    "export_formats": ["wav", "mp3", "flac"],
+    "disable_watermark": true
+  }
+}
+
+docs {
+  # Voice Conversion - JSON Request with Format Selection
+  
+  Generate multiple formats but stream a specific format in the response.
+  
+  ## Format Selection
+  - **return_format**: Specifies which format to stream (wav, mp3, or flac)
+  - Must be one of the formats in export_formats array
+  - Other formats are still generated and accessible via X-Alternative-Formats header
+  
+  ## Use Case
+  - Generate multiple formats for archival/backup
+  - Stream preferred format for immediate use
+  - Efficient for clients that need specific format but want alternatives available
+  
+  ## Example
+  - Request generates WAV, MP3, and FLAC
+  - return_format=mp3 streams the MP3 file directly
+  - X-Alternative-Formats header contains URLs to WAV and FLAC files
+  
+  ## Response Headers
+  - Content-Type: audio/mpeg
+  - Content-Disposition: attachment; filename="vc_..._chunk60_overlap0.1.mp3"
+  - X-Alternative-Formats: wav:/outputs/..., flac:/outputs/...
+}

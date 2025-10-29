@@ -1,0 +1,77 @@
+meta {
+  name: VC - File Upload - URL Response
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{base_url}}/api/v1/vc?response_mode=url
+  body: multipartForm
+  auth: none
+}
+
+params:query {
+  response_mode: url
+}
+
+body:multipart-form {
+  input_audio: @file(./test-files/sample-recording.wav)
+  target_voice_source: test_voices/linda_johnson_02.mp3
+  chunk_sec: 60
+  overlap_sec: 0.1
+  export_formats: wav,mp3
+  disable_watermark: true
+}
+
+docs {
+  # Voice Conversion - File Upload with URL Response
+  
+  Upload audio file and receive JSON response with file URLs.
+  
+  ## Workflow
+  1. Client uploads audio file
+  2. Server processes voice conversion
+  3. Server returns JSON with file information
+  4. Client can download files using URLs
+  
+  ## Response Format
+  ```json
+  {
+    "success": true,
+    "output_files": [
+      {
+        "format": "wav",
+        "filename": "vc_2025-06-22_143045_789_chunk60_overlap0.1_voicespeaker2.wav",
+        "url": "/outputs/vc_2025-06-22_143045_789_chunk60_overlap0.1_voicespeaker2.wav",
+        "path": "/full/path/to/outputs/..."
+      },
+      {
+        "format": "mp3",
+        "filename": "vc_2025-06-22_143045_789_chunk60_overlap0.1_voicespeaker2.mp3",
+        "url": "/outputs/vc_2025-06-22_143045_789_chunk60_overlap0.1_voicespeaker2.mp3",
+        "path": "/full/path/to/outputs/..."
+      }
+    ],
+    "processing_time_seconds": 8.7,
+    "message": "Voice conversion completed successfully",
+    "timestamp": "2025-06-22T14:30:45Z"
+  }
+  ```
+  
+  ## Use Cases
+  - Web apps where user uploads audio for conversion
+  - Mobile apps with audio recording
+  - Forms with file upload fields
+  - Systems needing upload and process workflow
+  
+  ## Advantages
+  - No pre-staging required
+  - Single request for upload and conversion
+  - Get metadata before downloading
+  - Easy to integrate with web forms
+  
+  ## Limitations
+  - 100MB file size limit
+  - Longer processing time (upload + conversion)
+  - Not suitable for very large files
+}

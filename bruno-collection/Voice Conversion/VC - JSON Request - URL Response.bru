@@ -1,0 +1,72 @@
+meta {
+  name: VC - JSON Request - URL Response
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/api/v1/vc?response_mode=url
+  body: json
+  auth: none
+}
+
+params:query {
+  response_mode: url
+}
+
+body:json {
+  {
+    "input_audio_source": "test_inputs/chatterbox-in-a-village-of-la-mancha.mp3",
+    "target_voice_source": "test_voices/linda_johnson_02.mp3",
+    "chunk_sec": 60,
+    "overlap_sec": 0.1,
+    "export_formats": ["wav", "mp3"],
+    "disable_watermark": true
+  }
+}
+
+docs {
+  # Voice Conversion - JSON Request with URL Response
+  
+  Returns JSON response with URLs to generated files instead of streaming binary data.
+  
+  ## Response Mode
+  - **response_mode=url**: Returns JSON with file information
+  - Useful for web applications and batch processing
+  - Allows processing to complete before accessing files
+  
+  ## Response Format
+  ```json
+  {
+    "success": true,
+    "output_files": [
+      {
+        "format": "wav",
+        "filename": "vc_2025-06-22_143045_789_chunk60_overlap0.1_voicespeaker2.wav",
+        "url": "/outputs/vc_2025-06-22_143045_789_chunk60_overlap0.1_voicespeaker2.wav",
+        "path": "/path/to/outputs/vc_2025-06-22_143045_789_chunk60_overlap0.1_voicespeaker2.wav"
+      },
+      {
+        "format": "mp3",
+        "filename": "vc_2025-06-22_143045_789_chunk60_overlap0.1_voicespeaker2.mp3",
+        "url": "/outputs/vc_2025-06-22_143045_789_chunk60_overlap0.1_voicespeaker2.mp3",
+        "path": "/path/to/outputs/vc_2025-06-22_143045_789_chunk60_overlap0.1_voicespeaker2.mp3"
+      }
+    ],
+    "processing_time_seconds": 8.7,
+    "message": "Voice conversion completed successfully",
+    "timestamp": "2025-06-22T14:30:45Z"
+  }
+  ```
+  
+  ## Use Cases
+  - Web applications that need file URLs for display/download
+  - Batch processing scripts that process results later
+  - Systems that need metadata before downloading files
+  - Queue-based processing workflows
+  
+  ## Follow-up Actions
+  - Download files using URLs in response
+  - Full URL: http://localhost:7860/outputs/filename.wav
+  - Files remain available until cleaned up
+}
