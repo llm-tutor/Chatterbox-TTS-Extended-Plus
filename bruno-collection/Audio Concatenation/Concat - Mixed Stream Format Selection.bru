@@ -1,0 +1,78 @@
+meta {
+  name: Concat - Mixed Stream Format Selection
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{base_url}}/api/v1/concat/mixed?response_mode=stream&return_format=mp3
+  body: multipartForm
+  auth: none
+}
+
+params:query {
+  response_mode: stream
+  return_format: mp3
+}
+
+body:multipart-form {
+  request_json: {
+    "segments": [
+      {"type": "server_file", "source": "concatenation_test/01-sarah-audio.mp3"},
+      {"type": "upload", "index": 0},
+      {"type": "silence", "source": "(500ms)"},
+      {"type": "server_file", "source": "concatenation_test/03-sarah-audio.mp3"}
+    ],
+    "export_formats": ["wav", "mp3", "flac"],
+    "normalize_levels": true,
+    "crossfade_ms": 250
+  }
+  uploaded_files: @file(./test-files/audio-sample.wav)
+}
+
+docs {
+  # Audio Concatenation - Mixed Stream with Format Selection
+  
+  Generate multiple audio formats and stream a specific one, with alternatives accessible via header.
+  
+  ## Format Selection
+  - **export_formats**: Generate multiple formats ["wav", "mp3", "flac"]
+  - **return_format**: Choose which format to stream (mp3 in this example)
+  - **X-Alternative-Formats**: Header lists URLs to other generated formats
+  
+  ## Query Parameters
+  - **response_mode=stream**: Stream the file directly
+  - **return_format=mp3**: Stream MP3 (alternatives: wav, flac)
+  
+  ## Response Headers
+  ```
+  Content-Type: audio/mpeg
+  Content-Disposition: attachment; filename="concat_..._4files_sil1_fade250_leveled.mp3"
+  X-Alternative-Formats: wav:/outputs/concat_..._4files_sil1_fade250_leveled.wav|flac:/outputs/concat_..._4files_sil1_fade250_leveled.flac
+  ```
+  
+  ## Use Cases
+  - Generate high-quality WAV + compressed MP3 for distribution
+  - Stream MP3 for immediate playback, keep WAV for editing
+  - Create multiple format options for different platforms
+  - Archive in FLAC while serving MP3
+  
+  ## Format Characteristics
+  - **WAV**: Lossless, best quality, ~10MB/min, editing-friendly
+  - **MP3**: Lossy compressed, ~1MB/min, widely compatible
+  - **FLAC**: Lossless compressed, ~5MB/min, excellent balance
+  
+  ## Advanced Features Combined
+  This example demonstrates:
+  - Mixed sources (server files + upload + silence)
+  - Multiple format generation
+  - Format-specific streaming
+  - Crossfade transitions
+  - Audio normalization
+  
+  ## Tips
+  - Stream format based on immediate use (MP3 for web, WAV for editing)
+  - Parse X-Alternative-Formats header to get other format URLs
+  - All formats generated simultaneously for efficiency
+  - Use appropriate format for target platform
+}

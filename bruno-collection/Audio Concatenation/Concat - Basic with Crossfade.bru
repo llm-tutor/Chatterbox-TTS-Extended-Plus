@@ -1,0 +1,75 @@
+meta {
+  name: Concat - Basic with Crossfade
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/api/v1/concat
+  body: json
+  auth: none
+}
+
+params:query {
+  response_mode: stream
+}
+
+body:json {
+  {
+    "files": [
+      "concatenation_test/01-sarah-audio.mp3",
+      "concatenation_test/02-mark-audio.mp3",
+      "concatenation_test/03-sarah-audio.mp3"
+    ],
+    "export_formats": ["wav", "mp3"],
+    "normalize_levels": true,
+    "crossfade_ms": 300
+  }
+}
+
+docs {
+  # Audio Concatenation - Basic with Crossfade
+  
+  Demonstrates professional crossfade transitions between audio segments for smooth, seamless concatenation.
+  
+  ## Crossfade Feature
+  - **Duration**: 0-5000 milliseconds (crossfade_ms parameter)
+  - **Application**: Applied between consecutive audio segments
+  - **Effect**: Previous segment fades out while next segment fades in
+  - **Result**: Smooth, professional transitions without abrupt cuts
+  
+  ## Crossfade Parameters
+  - **crossfade_ms**: Crossfade duration in milliseconds (0-5000, default: 0)
+    - 0ms = Direct join (no crossfade)
+    - 100-200ms = Quick, subtle transition
+    - 300-500ms = Standard professional crossfade
+    - 500-1000ms = Longer, more dramatic transition
+    - 1000+ms = Very long fade (for music/ambient)
+  
+  ## Use Cases
+  - **Podcast Production**: Smooth segment transitions
+  - **Music Mixing**: Blend songs or instrumental sections
+  - **Audio Book**: Seamless chapter transitions
+  - **Video Narration**: Professional audio for video content
+  
+  ## Important Notes
+  - Crossfade is NOT applied to silence segments
+  - Works with all response modes (stream/url)
+  - Compatible with other features (trim, normalize, pauses)
+  - Total duration is reduced by crossfade duration
+  
+  ## Filename Convention
+  - Output includes crossfade: concat_..._3files_fade300_leveled.wav
+  
+  ## Response
+  - HTTP 200 with binary audio data (stream mode)
+  - Crossfaded audio transitions between segments
+  - X-Alternative-Formats header for other formats
+  
+  ## Tips
+  - Start with 300ms for most applications
+  - Use shorter (100-200ms) for speech-heavy content
+  - Use longer (500-1000ms) for music or ambient audio
+  - Test different values to find best fit for content
+  - Combine with normalization for best results
+}

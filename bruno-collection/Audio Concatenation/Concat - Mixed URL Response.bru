@@ -1,0 +1,134 @@
+meta {
+  name: Concat - Mixed URL Response
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{base_url}}/api/v1/concat/mixed?response_mode=url
+  body: multipartForm
+  auth: none
+}
+
+params:query {
+  response_mode: url
+}
+
+body:multipart-form {
+  request_json: {
+    "segments": [
+      {"type": "silence", "source": "(500ms)"},
+      {"type": "server_file", "source": "concatenation_test/01-sarah-audio.mp3"},
+      {"type": "upload", "index": 0},
+      {"type": "server_file", "source": "concatenation_test/02-mark-audio.mp3"},
+      {"type": "upload", "index": 1},
+      {"type": "silence", "source": "(1s)"},
+      {"type": "server_file", "source": "concatenation_test/03-sarah-audio.mp3"}
+    ],
+    "export_formats": ["wav", "mp3"],
+    "normalize_levels": true,
+    "crossfade_ms": 200,
+    "trim": true,
+    "trim_threshold_ms": 150,
+    "output_filename": "professional_mix",
+    "project": "podcast/episode01"
+  }
+  uploaded_files: @file(./test-files/audio-sample-1.wav)
+  uploaded_files: @file(./test-files/audio-sample-2.wav)
+}
+
+docs {
+  # Audio Concatenation - Mixed URL Response
+  
+  Complete mixed-mode workflow with JSON response containing detailed metadata and file information.
+  
+  ## Input Method
+  - **Content-Type**: multipart/form-data
+  - **Multiple Uploads**: Two files in this example (index 0 and 1)
+  - **Complex Segment Ordering**: 7 segments with mixed types
+  
+  ## Response Mode
+  - **response_mode=url**: Returns JSON with URLs and metadata
+  - Detailed processing information included
+  - File paths and durations provided
+  
+  ## Response Structure
+  ```json
+  {
+    "success": true,
+    "message": "Audio concatenation completed successfully",
+    "output_files": [
+      "podcast/episode01/professional_mix.wav",
+      "podcast/episode01/professional_mix.mp3"
+    ],
+    "total_duration_seconds": 78.5,
+    "file_count": 5,
+    "processing_time_seconds": 3.2,
+    "metadata": {
+      "type": "concat",
+      "timestamp": "2025-10-29T14:30:22.456Z",
+      "generation_info": {
+        "audio_segment_count": 5,
+        "silence_segment_count": 2,
+        "upload_count": 2,
+        "crossfade_applied": true,
+        "normalization_applied": true,
+        "trim_applied": true,
+        "processing_details": [
+          {
+            "type": "silence",
+            "duration_ms": 500,
+            "source": "(500ms)"
+          },
+          {
+            "type": "server_file",
+            "filename": "01-sarah-audio.mp3",
+            "duration_seconds": 15.0,
+            "trim_info": {
+              "trimmed": true,
+              "leading_silence_removed_ms": 150,
+              "trailing_silence_removed_ms": 100
+            }
+          },
+          {
+            "type": "upload",
+            "index": 0,
+            "duration_seconds": 12.3
+          }
+        ]
+      }
+    }
+  }
+  ```
+  
+  ## Advanced Features
+  This example demonstrates the complete feature set:
+  - Multiple file uploads (2 files)
+  - Mixed segment types (server files + uploads + silence)
+  - Audio trimming with custom threshold
+  - Crossfade transitions
+  - Audio normalization
+  - Custom output filename
+  - Project folder organization
+  - Multiple export formats
+  - Detailed metadata response
+  
+  ## Project Organization
+  - **project**: "podcast/episode01"
+  - **output_filename**: "professional_mix"
+  - **Result**: Saved to outputs/podcast/episode01/professional_mix.{wav,mp3}
+  
+  ## Use Cases
+  - Professional podcast production workflows
+  - Complex audio assembly with user content
+  - Web applications requiring detailed feedback
+  - Batch processing with comprehensive logging
+  - Quality control and validation workflows
+  
+  ## Tips
+  - URL mode provides complete processing details
+  - Use for debugging and validation
+  - Monitor trim_info to verify silence removal
+  - Check processing_time for performance optimization
+  - project parameter creates nested folder structure
+}

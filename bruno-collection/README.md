@@ -25,12 +25,15 @@ bruno-collection/
 ├── quick-reference/                   # Quick reference guides
 │   ├── README.md                     # Quick reference index
 │   ├── voice-conversion.md           # VC quick reference
-│   └── text-to-speech.md             # TTS quick reference
+│   ├── text-to-speech.md             # TTS quick reference
+│   └── concatenation.md              # Concat quick reference
 ├── environments/
 │   └── Local.bru                     # Local environment (localhost:7860)
 ├── Voice Conversion/                  # VC endpoint requests (6 variants)
 │   └── [.bru request files]
-└── Text-to-Speech/                    # TTS endpoint requests (6 variants)
+├── Text-to-Speech/                    # TTS endpoint requests (6 variants)
+│   └── [.bru request files]
+└── Audio Concatenation/               # Concat endpoint requests (7 variants)
     └── [.bru request files]
 ```
 
@@ -71,11 +74,22 @@ bruno-collection/
 - **Quick Reference**: [text-to-speech.md](quick-reference/text-to-speech.md)
 
 ### Audio Concatenation
-**Status**: 🚧 Planned  
-**Endpoint**: POST /api/v1/concat  
-**Purpose**: Combine multiple audio files with crossfade
+**Status**: ✅ Complete (7 request variants)  
+**Endpoints**: POST /api/v1/concat (basic), POST /api/v1/concat/mixed (advanced)  
+**Purpose**: Combine multiple audio files with professional production features
 
-*Coming soon...*
+**Request Variants**:
+- Basic Stream Response (simple concatenation)
+- Basic URL Response (metadata and file info)
+- Basic with Trimming (automatic silence removal)
+- Basic with Crossfade (smooth transitions)
+- Mixed Stream Response (server files + uploads + silence)
+- Mixed Stream Format Selection (multiple formats)
+- Mixed URL Response (complete workflow with metadata)
+
+**Documentation**:
+- **Detailed Guide**: [Audio Concatenation Folder](Audio%20Concatenation/) (includes comprehensive README)
+- **Quick Reference**: [concatenation.md](quick-reference/concatenation.md)
 
 ### Voice Management
 **Status**: 🚧 Planned  

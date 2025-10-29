@@ -18,11 +18,18 @@ This directory contains quick reference guides for each API endpoint in the Chat
 - Speed control and audio trimming options
 - Common use cases and performance estimates
 
+### Audio Concatenation
+**[Audio Concatenation Quick Reference](concatenation.md)**
+- 7 request variants (4 basic + 3 mixed mode)
+- Basic vs mixed mode selection guide
+- Crossfade, trimming, and pause parameters
+- Manual silence and natural pause systems
+- Professional production use cases
+
 ### Coming Soon
 
 Additional quick references will be added as the Bruno collection expands:
 
-- **Audio Concatenation** - Combining audio files with crossfade
 - **Voice Management** - Upload and manage reference voices
 - **File Operations** - List, download, and manage generated files
 

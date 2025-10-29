@@ -1,0 +1,97 @@
+meta {
+  name: Concat - Mixed Stream Response
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/api/v1/concat/mixed?response_mode=stream
+  body: multipartForm
+  auth: none
+}
+
+params:query {
+  response_mode: stream
+}
+
+body:multipart-form {
+  request_json: {
+    "segments": [
+      {"type": "server_file", "source": "concatenation_test/01-sarah-audio.mp3"},
+      {"type": "silence", "source": "(1s)"},
+      {"type": "upload", "index": 0},
+      {"type": "silence", "source": "(500ms)"},
+      {"type": "server_file", "source": "concatenation_test/03-sarah-audio.mp3"}
+    ],
+    "export_formats": ["wav"],
+    "normalize_levels": true
+  }
+  uploaded_files: @file(./test-files/audio-sample.wav)
+}
+
+docs {
+  # Audio Concatenation - Mixed Stream Response
+  
+  Advanced concatenation supporting mixed sources: server files, uploaded files, and silence segments.
+  
+  ## Input Method
+  - **Content-Type**: multipart/form-data
+  - **request_json**: JSON string containing MixedConcatRequest
+  - **uploaded_files**: Audio files to upload (if segments reference uploads)
+  
+  ## Segment Types
+  
+  ### server_file
+  References a file in the outputs/ directory:
+  ```json
+  {"type": "server_file", "source": "concatenation_test/01-sarah-audio.mp3"}
+  ```
+  
+  ### upload
+  References an uploaded file by index (0-based):
+  ```json
+  {"type": "upload", "index": 0}
+  ```
+  
+  ### silence
+  Generates silence segment with duration notation:
+  ```json
+  {"type": "silence", "source": "(1s)"}
+  {"type": "silence", "source": "(500ms)"}
+  {"type": "silence", "source": "(2.5s)"}
+  ```
+  
+  ## Response Mode
+  - **response_mode=stream** (default): Returns binary audio file directly
+  - Binary response with Content-Disposition header
+  - X-Alternative-Formats header for other formats
+  
+  ## Parameters
+  - **segments**: Array of segment objects (ordered list to concatenate)
+  - **export_formats**: Array of formats (["wav"], ["mp3"], ["flac"], ["wav","mp3"])
+  - **normalize_levels**: Normalize audio levels (default: true)
+  - **crossfade_ms**: Crossfade duration (0-5000, default: 0)
+  - **pause_duration_ms**: Base pause between clips (0-3000, default: 0)
+  - **pause_variation_ms**: Random pause variation (0-500, default: 200)
+  - **trim**: Remove silence from inputs (default: false)
+  - **trim_threshold_ms**: Minimum silence to trim (50-1000, default: 200)
+  - **output_filename**: Custom filename without extension
+  - **project**: Project folder path (e.g., "podcast/episode01")
+  
+  ## Response
+  - HTTP 200 with binary audio data
+  - Content-Type: audio/wav (or audio/mpeg, audio/flac)
+  - Content-Disposition: attachment; filename="concat_2025-10-29_143022_456_5files_sil2_leveled.wav"
+  
+  ## Example Use Case
+  - Combine intro music (server) + user recording (upload) + outro (server)
+  - Add precise silence gaps between segments
+  - Mix multiple user uploads with system audio
+  - Dynamic audio assembly based on user input
+  
+  ## File Upload
+  - Update @file() path to point to your audio file
+  - Supports WAV, MP3, FLAC, OGG, M4A formats
+  - Multiple uploads: add more uploaded_files fields
+  - Match upload index in segments array
+}

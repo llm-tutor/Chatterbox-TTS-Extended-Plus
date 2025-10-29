@@ -1,0 +1,87 @@
+meta {
+  name: Concat - Basic with Trimming
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/api/v1/concat?response_mode=url
+  body: json
+  auth: none
+}
+
+params:query {
+  response_mode: url
+}
+
+body:json {
+  {
+    "files": [
+      "concatenation_test/01-sarah-audio-long.mp3",
+      "concatenation_test/02-mark-audio-long.mp3",
+      "concatenation_test/03-sarah-audio-long.mp3"
+    ],
+    "export_formats": ["wav"],
+    "normalize_levels": true,
+    "trim": true,
+    "trim_threshold_ms": 200
+  }
+}
+
+docs {
+  # Audio Concatenation - Basic with Trimming
+  
+  Demonstrates the audio trimming system that automatically removes extraneous silence from files before concatenation.
+  
+  ## Trimming System
+  - **Silence Detection**: Uses librosa to analyze audio for silence regions
+  - **Threshold Filtering**: Only removes silence longer than trim_threshold_ms
+  - **Conservative Approach**: Leaves 50ms buffer to avoid cutting into audio
+  - **Smart Processing**: Skips files without significant silence
+  
+  ## Trimming Parameters
+  - **trim**: Enable/disable trimming (default: false)
+  - **trim_threshold_ms**: Minimum silence duration to remove (50-1000ms, default: 200ms)
+    - Lower values = more aggressive trimming
+    - Higher values = more conservative trimming
+  
+  ## Use Cases
+  - **Video Production**: Clean up narration files with recording artifacts
+  - **Podcast Editing**: Remove inconsistent silence between segments
+  - **Audio Book Production**: Standardize chapter beginnings/endings
+  - **Professional Audio**: Ensure consistent timing across multiple takes
+  
+  ## Response (URL mode shows trim details)
+  ```json
+  {
+    "generation_info": {
+      "trim_applied": true,
+      "files_trimmed": 2,
+      "files_not_trimmed": 1,
+      "total_silence_removed_seconds": 0.85,
+      "processing_details": [
+        {
+          "type": "file",
+          "filename": "01-sarah-audio-long.mp3",
+          "duration_seconds": 8.15,
+          "trim_info": {
+            "trimmed": true,
+            "original_duration_ms": 8500,
+            "trimmed_duration_ms": 8150,
+            "leading_silence_removed_ms": 250,
+            "trailing_silence_removed_ms": 100
+          }
+        }
+      ]
+    }
+  }
+  ```
+  
+  ## Filename Convention
+  - Output includes trim threshold: concat_..._3files_leveled_trim200.wav
+  
+  ## Tips
+  - Use URL response mode to see detailed trim information
+  - Test with different threshold values to find optimal setting
+  - Monitor total_silence_removed to verify effectiveness
+}

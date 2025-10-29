@@ -1,0 +1,65 @@
+meta {
+  name: Concat - Basic Stream Response
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/api/v1/concat?response_mode=stream
+  body: json
+  auth: none
+}
+
+params:query {
+  response_mode: stream
+}
+
+body:json {
+  {
+    "files": [
+      "concatenation_test/01-sarah-audio.mp3",
+      "concatenation_test/02-mark-audio.mp3",
+      "concatenation_test/03-sarah-audio.mp3"
+    ],
+    "export_formats": ["wav"],
+    "normalize_levels": true
+  }
+}
+
+docs {
+  # Audio Concatenation - Basic Stream Response
+  
+  This is the simplest method for concatenating audio files that already exist in the outputs/ directory.
+  
+  ## Input Method
+  - **Content-Type**: application/json
+  - **Files**: Must exist in outputs/ directory (e.g., "filename.wav" or "subfolder/filename.mp3")
+  
+  ## Response Mode
+  - **response_mode=stream** (default): Returns binary audio file directly
+  - Binary response with Content-Disposition header containing filename
+  - X-Alternative-Formats header lists URLs to other generated formats
+  
+  ## Parameters
+  - **files**: Array of filenames in outputs/ directory (e.g., ["intro.wav", "main.mp3", "outro.wav"])
+  - **export_formats**: Array of formats to generate (["wav"], ["mp3"], ["flac"], ["wav","mp3"])
+  - **normalize_levels**: Normalize audio levels across files (default: true)
+  - **crossfade_ms**: Crossfade duration in milliseconds (0-5000, default: 0)
+  - **pause_duration_ms**: Base pause duration between clips (0-3000, default: 0)
+  - **pause_variation_ms**: Random variation in pause (+/-, 0-500, default: 200)
+  - **trim**: Remove silence from input files (default: false)
+  - **trim_threshold_ms**: Minimum silence duration to trim (50-1000, default: 200)
+  - **output_filename**: Custom output filename without extension
+  - **project**: Project folder path for organizing output (e.g., "podcast/episode01")
+  
+  ## Response
+  - HTTP 200 with binary audio data
+  - Content-Type: audio/wav (or audio/mpeg, audio/flac)
+  - Content-Disposition: attachment; filename="concat_2025-10-29_123456_789012_3files_leveled.wav"
+  - X-Alternative-Formats: mp3:/outputs/concat_2025-10-29_123456_789012_3files_leveled.mp3
+  
+  ## Example Use Case
+  - Quick combination of recorded segments
+  - Simple podcast assembly
+  - Joining narration clips
+}

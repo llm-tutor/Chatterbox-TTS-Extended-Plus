@@ -1,0 +1,79 @@
+meta {
+  name: Concat - Basic URL Response
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/v1/concat?response_mode=url
+  body: json
+  auth: none
+}
+
+params:query {
+  response_mode: url
+}
+
+body:json {
+  {
+    "files": [
+      "concatenation_test/01-sarah-audio.mp3",
+      "concatenation_test/02-mark-audio.mp3",
+      "concatenation_test/03-sarah-audio.mp3"
+    ],
+    "export_formats": ["wav", "mp3"],
+    "normalize_levels": true
+  }
+}
+
+docs {
+  # Audio Concatenation - Basic URL Response
+  
+  Returns JSON metadata instead of streaming the file directly. Best for workflows needing file information.
+  
+  ## Input Method
+  - **Content-Type**: application/json
+  - **Files**: Must exist in outputs/ directory
+  
+  ## Response Mode
+  - **response_mode=url**: Returns JSON with file URLs and metadata
+  - Includes processing information, duration, and file details
+  
+  ## Parameters
+  - Same as Basic Stream Response (see Concat - Basic Stream Response.bru)
+  
+  ## Response
+  ```json
+  {
+    "output_files": ["concat_2025-10-29_123456_789012_3files_leveled.wav", "concat_2025-10-29_123456_789012_3files_leveled.mp3"],
+    "generation_info": {
+      "total_duration_seconds": 45.2,
+      "file_count": 3,
+      "processing_time_seconds": 1.8,
+      "processing_details": [
+        {
+          "type": "file",
+          "filename": "01-sarah-audio.mp3",
+          "duration_seconds": 15.0
+        },
+        {
+          "type": "file",
+          "filename": "02-mark-audio.mp3",
+          "duration_seconds": 15.1
+        },
+        {
+          "type": "file",
+          "filename": "03-sarah-audio.mp3",
+          "duration_seconds": 15.1
+        }
+      ]
+    }
+  }
+  ```
+  
+  ## Example Use Case
+  - Web applications needing file information
+  - Batch processing workflows
+  - API integrations requiring metadata
+  - Async processing confirmations
+}
