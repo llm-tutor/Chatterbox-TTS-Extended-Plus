@@ -765,7 +765,7 @@ class CoreEngine:
                             exaggeration=min(exaggeration_input, 1.0),
                             temperature=temperature_input,
                             cfg_weight=cfgw_input,
-                            apply_watermark=not disable_watermark
+                            apply_watermark=False  # disable_watermark
                         )
                         
                         # Save candidate
